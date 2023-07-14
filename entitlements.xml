@@ -1,0 +1,14 @@
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>application-identifier</key>
+    <string>com.kdt.livecontainer</string>
+    <key>get-task-allow</key>
+    <true/>
+    <!-- Optional entitlements -->
+    <key>com.apple.developer.kernel.extended-virtual-addressing</key>
+    <true/>
+    <key>com.apple.developer.kernel.increased-memory-limit</key>
+    <true/>
+</dict>
+</plist>

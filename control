@@ -1,0 +1,8 @@
+Package: com.kdt.livecontainer
+Name: livecontainer
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: An awesome application!
+Maintainer: khanhduytran0
+Author: khanhduytran0
+Section: Utilities
