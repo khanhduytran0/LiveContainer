@@ -17,11 +17,11 @@
 
 #define ASM(...) __asm__(#__VA_ARGS__)
 // ldr x8, value; br x8; value: .ascii "\x41\x42\x43\x44\x45\x46\x47\x48"
-char patch[] = {0x88,0x00,0x00,0x58,0x00,0x01,0x1f,0xd6,0x1f,0x20,0x03,0xd5,0x1f,0x20,0x03,0xd5,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41};
+static char patch[] = {0x88,0x00,0x00,0x58,0x00,0x01,0x1f,0xd6,0x1f,0x20,0x03,0xd5,0x1f,0x20,0x03,0xd5,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41};
 
 // Signatures to search for
-char mmapSig[] = {0xB0, 0x18, 0x80, 0xD2, 0x01, 0x10, 0x00, 0xD4};
-char fcntlSig[] = {0x90, 0x0B, 0x80, 0xD2, 0x01, 0x10, 0x00, 0xD4};
+static char mmapSig[] = {0xB0, 0x18, 0x80, 0xD2, 0x01, 0x10, 0x00, 0xD4};
+static char fcntlSig[] = {0x90, 0x0B, 0x80, 0xD2, 0x01, 0x10, 0x00, 0xD4};
 
 extern void* __mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
 extern int __fcntl(int fildes, int cmd, void* param);
@@ -41,7 +41,7 @@ ASM(_builtin_vm_protect: \n
     ret
 );
 
-bool redirectFunction(char *name, void *patchAddr, void *target) {
+static bool redirectFunction(char *name, void *patchAddr, void *target) {
     kern_return_t kret = builtin_vm_protect(mach_task_self(), (vm_address_t)patchAddr, sizeof(patch), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
     if (kret != KERN_SUCCESS) {
         NSLog(@"[DyldLVBypass] vm_protect(RW) fails at line %d", __LINE__);
@@ -61,7 +61,7 @@ bool redirectFunction(char *name, void *patchAddr, void *target) {
     return TRUE;
 }
 
-bool searchAndPatch(char *name, char *base, char *signature, int length, void *target) {
+static bool searchAndPatch(char *name, char *base, char *signature, int length, void *target) {
     char *patchAddr = NULL;
     
     for(int i=0; i < 0x100000; i++) {
@@ -80,7 +80,7 @@ bool searchAndPatch(char *name, char *base, char *signature, int length, void *t
     return redirectFunction(name, patchAddr, target);
 }
 
-void *getDyldBase(void) {
+static void *getDyldBase(void) {
     struct task_dyld_info dyld_info;
     mach_vm_address_t image_infos;
     struct dyld_all_image_infos *infos;
@@ -103,7 +103,7 @@ void *getDyldBase(void) {
     return (void *)infos->dyldImageLoadAddress;
 }
 
-void* hooked_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
+static void* hooked_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
     if (!addr && len == 0x100000000 && !prot) {
         abort();
     }
@@ -134,7 +134,7 @@ void* hooked_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off
     return __mmap(addr, len, prot, flags, fd, offset);
 }
 
-int hooked___fcntl(int fildes, int cmd, void *param) {
+static int hooked___fcntl(int fildes, int cmd, void *param) {
     if (cmd == F_ADDFILESIGS_RETURN) {
         const char *homeDir = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory
             inDomains:NSUserDomainMask].lastObject.path.stringByResolvingSymlinksInPath.UTF8String;
@@ -162,7 +162,7 @@ int hooked___fcntl(int fildes, int cmd, void *param) {
     return __fcntl(fildes, cmd, param);
 }
 
-int hooked_fcntl(int fildes, int cmd, ...) {
+static int hooked_fcntl(int fildes, int cmd, ...) {
     va_list ap;
     va_start(ap, cmd);
     void *param = va_arg(ap, void *);
@@ -178,8 +178,8 @@ void init_bypassDyldLibValidation() {
     NSLog(@"[DyldLVBypass] init");
     
     // Modifying exec page during execution may cause SIGBUS, so ignore it now
-    // Before calling JLI_Launch, this will be set back to SIG_DFL
-    signal(SIGBUS, SIG_IGN);
+    // Only comment this out if only one thread (main) is running
+    //signal(SIGBUS, SIG_IGN);
     
     char *dyldBase = getDyldBase();
     redirectFunction("mmap", mmap, hooked_mmap);

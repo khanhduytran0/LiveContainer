@@ -29,6 +29,7 @@ Run unsigned iOS app without actually installing it!
 ## Limitations
 - Only tested on iOS 14, so some patches might not work on other versions.
 - Entitlements from the live app are not applied to the host app. This isn't a big deal since sideloaded apps requires only basic entitlements.
+- App Permissions are globally applied.
 - arm64e is untested. It is recommended to use arm64 binary.
 - Only one live app can run at a time. This is much more like 3 apps limit where you have to disable an app to run another (switching between app in LiveContainer is instant).
 - Remote push notification might not work. ~~If you have a paid developer account then you don't even have to use LiveContainer~~

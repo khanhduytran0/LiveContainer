@@ -1,5 +1,5 @@
 ARCHS := arm64
-TARGET := iphone:clang:latest:13.0
+TARGET := iphone:clang:latest:12.0
 INSTALL_TARGET_PROCESSES = LiveContainer
 
 include $(THEOS)/makefiles/common.mk
@@ -10,5 +10,6 @@ LiveContainer_FILES = main.m LCAppDelegate.m LCRootViewController.m dyld_bypass_
 LiveContainer_FRAMEWORKS = UIKit
 LiveContainer_CFLAGS = -fcommon -fobjc-arc
 LiveContainer_CODESIGN_FLAGS = -Sentitlements.xml
+LiveContainer_LDFLAGS = -e_LiveContainerMain
 
 include $(THEOS_MAKE_PATH)/application.mk

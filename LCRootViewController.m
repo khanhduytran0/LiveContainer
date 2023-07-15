@@ -7,7 +7,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-void patchPageZero(const char *path) {
+static void patchPageZero(const char *path) {
     int fd = open(path, O_RDWR, (mode_t)0600);
     struct stat s;
     fstat(fd, &s);

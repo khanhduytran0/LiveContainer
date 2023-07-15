@@ -12,15 +12,17 @@
 #include <signal.h>
 #include <sys/mman.h>
 
+static int (*appMain)(int, char**);
+
 static BOOL _JITNotEnabled() {
     return NO;
 }
-void checkJITEnabled_handler(int signum, siginfo_t* siginfo, void* context)
+static void checkJITEnabled_handler(int signum, siginfo_t* siginfo, void* context)
 {
     struct __darwin_ucontext *ucontext = (struct __darwin_ucontext *)context;
     ucontext->uc_mcontext->__ss.__pc = (uint64_t)_JITNotEnabled();
 }
-BOOL checkJITEnabled() {
+static BOOL checkJITEnabled() {
     struct sigaction sa, saOld;
     sa.sa_sigaction = checkJITEnabled_handler;
     sa.sa_flags = SA_SIGINFO;
@@ -39,7 +41,7 @@ BOOL checkJITEnabled() {
     return result;
 }
 
-BOOL overwriteMainBundle(NSBundle *newBundle) {
+static BOOL overwriteMainBundle(NSBundle *newBundle) {
     NSString *oldPath = NSBundle.mainBundle.executablePath;
     uint32_t *mainBundleImpl = (uint32_t *)method_getImplementation(class_getClassMethod(NSBundle.class, @selector(mainBundle)));
     for (int i = 0; i < 20; i++) {
@@ -54,7 +56,7 @@ BOOL overwriteMainBundle(NSBundle *newBundle) {
     return ![NSBundle.mainBundle.executablePath isEqualToString:oldPath];
 }
 
-void overwriteExecPath() {
+static void overwriteExecPath() {
     // FIXME: test this on iOS 15+
     // We cannot overwrite the buffer directly due to the new path being longer, we'll have to find the address and overwrite it
     const char *path = _dyld_get_image_name(0);
@@ -77,7 +79,7 @@ void overwriteExecPath() {
     }
 }
 
-void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
+static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     uint32_t entryoff = 0;
     const struct mach_header_64 *header = (struct mach_header_64 *)_dyld_get_image_header(imageIndex);
     uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
@@ -95,7 +97,7 @@ void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     return dlsym(handle, "_mh_execute_header") + entryoff;
 }
 
-int invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
+static int invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     // First of all, let's check if we have JIT
     if (!checkJITEnabled()) {
         appError = @"JIT was not enabled";
@@ -130,7 +132,7 @@ int invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     }
 
     // Find main()
-    int (*appMain)(int, char**) = getAppEntryPoint(appHandle, appIndex);
+    appMain = getAppEntryPoint(appHandle, appIndex);
 /*
     if (!appMain) {
         appError = @(dlerror());
@@ -167,13 +169,19 @@ int invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     return appMain(argc, argv);
 }
 
-int main(int argc, char *argv[]) {
+int LiveContainerMain(int argc, char *argv[]) {
     NSString *selectedApp = [NSUserDefaults.standardUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
         invokeAppMain(selectedApp, argc, argv);
         // don't return, let invokeAppMain takeover or continue
     }
     @autoreleasepool {
-        return     UIApplicationMain(argc, argv, nil, NSStringFromClass([LCAppDelegate class]));
+        return UIApplicationMain(argc, argv, nil, NSStringFromClass([LCAppDelegate class]));
     }
+}
+
+// fake main() used for dlsym(RTLD_DEFAULT, main)
+int main(int argc, char *argv[]) {
+    assert(appMain != NULL);
+    return appMain(argc, argv);
 }
