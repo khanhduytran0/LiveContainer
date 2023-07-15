@@ -57,26 +57,19 @@ static BOOL overwriteMainBundle(NSBundle *newBundle) {
 }
 
 static void overwriteExecPath() {
-    // FIXME: test this on iOS 15+
-    // We cannot overwrite the buffer directly due to the new path being longer, we'll have to find the address and overwrite it
-    const char *path = _dyld_get_image_name(0);
-    uint64_t *refAddr = (uint64_t *)path;
-    char tmp[PATH_MAX];
-    uint32_t tmpLen = PATH_MAX;
-    _NSGetExecutablePath(tmp, &tmpLen);
-    while (true) {
-        while (*refAddr != (uint64_t)path) {
-            ++refAddr;
-        }
-        *(const char **)refAddr = *_CFGetProcessPath();
-        _NSGetExecutablePath(tmp, &tmpLen);
-        if (strncmp(tmp, path, tmpLen)) {
-            // doesn't match, restore
-            *(const char **)refAddr = path;
-        } else {
-            break;
-        }
-    }
+    // Silly workaround: we have set our executable name 100 characters long, now just overwrite its path
+    char *path = (char *)_dyld_get_image_name(0);
+    const char *newPath = *_CFGetProcessPath();
+    size_t maxLen = strlen(path);
+    size_t newLen = strlen(newPath);
+    // Check if it's long enough...
+    assert(maxLen >= newLen);
+
+    // Make it RW and overwrite now
+    builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    bzero(path, maxLen);
+    strncpy(path, newPath, newLen);
+    // Don't change back to RO to avoid any issues related to memory access
 }
 
 static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
@@ -97,11 +90,12 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     return dlsym(handle, "_mh_execute_header") + entryoff;
 }
 
-static int invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
+static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
+    NSString *appError = nil;
     // First of all, let's check if we have JIT
     if (!checkJITEnabled()) {
         appError = @"JIT was not enabled";
-        return -1;
+        return appError;
     }
 
     [NSUserDefaults.standardUserDefaults removeObjectForKey:@"selected"];
@@ -124,36 +118,29 @@ static int invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
     void *appHandle = dlopen(appBundle.executablePath.UTF8String, RTLD_LAZY|RTLD_LOCAL|RTLD_FIRST);
+    //if(0)restoreExecPath();
     if (!appHandle) {
         appError = @(dlerror());
         NSLog(@"[LCBootstrap] %@", appError);
         *path = oldPath;
-        return -1;
+        return appError;
     }
 
     // Find main()
     appMain = getAppEntryPoint(appHandle, appIndex);
-/*
-    if (!appMain) {
-        appError = @(dlerror());
-        NSLog(@"[LCBootstrap] %@", appError);
-        *path = oldPath;
-        return -1;
-    }
-*/
 
     if (![appBundle loadAndReturnError:&error]) {
         appError = error.localizedDescription;
         NSLog(@"[LCBootstrap] loading bundle failed: %@", error);
         *path = oldPath;
-        return -1;
+        return appError;
     }
     NSLog(@"[LCBootstrap] loaded bundle");
 
     if (!overwriteMainBundle(appBundle)) {
         appError = @"Failed to overwrite main bundle";
         *path = oldPath;
-        return -1;
+        return appError;
     }
 
     // Overwrite executable info
@@ -166,17 +153,26 @@ static int invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);
     argv[0] = (char *)NSBundle.mainBundle.executablePath.UTF8String;
-    return appMain(argc, argv);
+    appMain(argc, argv);
+
+    return nil;
 }
 
 int LiveContainerMain(int argc, char *argv[]) {
+    NSString *appError = nil;
     NSString *selectedApp = [NSUserDefaults.standardUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
-        invokeAppMain(selectedApp, argc, argv);
-        // don't return, let invokeAppMain takeover or continue
+        appError = invokeAppMain(selectedApp, argc, argv);
+        // don't return, let invokeAppMain takeover or continue to LiveContainerUI
     }
+
+    if (appError) {
+        [NSUserDefaults.standardUserDefaults setObject:appError forKey:@"error"];
+    }
+
+    dlopen("@executable_path/Frameworks/LiveContainerUI.dylib", RTLD_LAZY);
     @autoreleasepool {
-        return UIApplicationMain(argc, argv, nil, NSStringFromClass([LCAppDelegate class]));
+        return UIApplicationMain(argc, argv, nil, @"LCAppDelegate");
     }
 }
 

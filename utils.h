@@ -1,13 +1,13 @@
 #import <Foundation/Foundation.h>
+#include <mach-o/loader.h>
 #include <objc/runtime.h>
-
-NSString *appError;
 
 const char **_CFGetProgname(void);
 const char **_CFGetProcessPath(void);
 int _NSGetExecutablePath(char* buf, uint32_t* bufsize);
 
 void init_bypassDyldLibValidation();
+kern_return_t builtin_vm_protect(mach_port_name_t task, mach_vm_address_t address, mach_vm_size_t size, boolean_t set_max, vm_prot_t new_prot);
 
 uint64_t aarch64_emulate_adrp(uint32_t instruction, uint64_t pc);
 bool aarch64_emulate_add_imm(uint32_t instruction, uint32_t *dst, uint32_t *src, uint32_t *imm);

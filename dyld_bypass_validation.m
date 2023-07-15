@@ -34,8 +34,9 @@ static void builtin_memcpy(char *target, char *source, size_t size) {
 }
 
 // Originated from _kernelrpc_mach_vm_protect_trap
-kern_return_t builtin_vm_protect(mach_port_name_t task, mach_vm_address_t address, mach_vm_size_t size, boolean_t set_max, vm_prot_t new_prot);
-ASM(_builtin_vm_protect: \n
+ASM(
+.global _builtin_vm_protect \n
+_builtin_vm_protect:     \n
     mov x16, #-0xe       \n
     svc #0x80            \n
     ret

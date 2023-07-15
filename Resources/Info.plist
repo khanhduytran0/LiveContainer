@@ -7,7 +7,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>LiveContainer</string>
 	<key>CFBundleExecutable</key>
-	<string>LiveContainer</string>
+	<string>LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou</string>
 	<key>CFBundleIcons</key>
 	<dict>
 		<key>CFBundlePrimaryIcon</key>
@@ -45,8 +45,12 @@
 	<string>com.kdt.livecontainer</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>LiveContainer</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleSupportedPlatforms</key>
@@ -60,73 +64,73 @@
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>NFCReaderUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSAppleMusicUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSFallDetectionUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSGKFriendListUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSHealthRequiredReadAuthorizationTypeIdentifiers</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSHomeKitUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSIdentityUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSLocationDefaultAccuracyReduced</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSLocationUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSMotionUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSNearbyInteractionAllowOnceUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSNearbyInteractionUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSSensorKitUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSSiriUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>The live app is requesting for this permission.</string>
+	<string>The guest app is requesting for this permission.</string>
 	<key>SBAppUsesLocalNotifications</key>
 	<integer>1</integer>
 	<key>UIApplicationSceneManifest</key>
@@ -214,6 +218,8 @@
 			<string>{414, 736}</string>
 		</dict>
 	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv64</string>

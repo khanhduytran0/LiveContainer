@@ -1,5 +1,4 @@
 #import "LCRootViewController.h"
-#import "utils.h"
 
 #include <libgen.h>
 #include <mach-o/fat.h>
@@ -46,6 +45,7 @@ static void patchPageZero(const char *path) {
 - (void)loadView {
     [super loadView];
 
+    NSString *appError = [NSUserDefaults.standardUserDefaults stringForKey:@"error"];
     if (appError) {
         [self showDialogTitle:@"Error" message:appError];
     }
