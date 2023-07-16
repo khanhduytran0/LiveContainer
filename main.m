@@ -92,6 +92,9 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
 static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *appError = nil;
     // First of all, let's check if we have JIT
+    for (int i = 0; i < 10 && !checkJITEnabled(); i++) {
+        usleep(1000*100);
+    }
     if (!checkJITEnabled()) {
         appError = @"JIT was not enabled";
         return appError;
