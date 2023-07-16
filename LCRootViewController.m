@@ -6,23 +6,41 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-static void patchPageZero(const char *path) {
+static uint32_t rnd32(uint32_t v, uint32_t r) {
+    r--;
+    return (v + r) & ~r;
+}
+
+static void patchExecutable(const char *path) {
     int fd = open(path, O_RDWR, (mode_t)0600);
     struct stat s;
     fstat(fd, &s);
     s.st_size = MIN(s.st_size, 0x4000);
     void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
     struct mach_header_64 *header = (struct mach_header_64 *)map;
-    // Undo MH_EXECUTE -> MH_DYLIB patch
-    if (header->magic == MH_MAGIC_64 && header->filetype == MH_DYLIB) {
+    uint8_t *imageHeaderPtr = (uint8_t*)map + sizeof(struct mach_header_64);
+
+    // Literally convert an executable to a dylib
+    if (header->magic == MH_MAGIC_64) {
         //assert(header->flags & MH_PIE);
-        header->filetype = MH_EXECUTE;
-        header->flags |= MH_PIE;
+        header->filetype = MH_DYLIB;
+        header->flags &= ~MH_PIE;
     }
 
+    // Add LC_ID_DYLIB
+    char *name = basename((char *)path);
+    struct dylib_command *dylib = (struct dylib_command *)(imageHeaderPtr + header->sizeofcmds);
+    dylib->cmd = LC_ID_DYLIB;
+    dylib->cmdsize = sizeof(struct dylib_command) + rnd32((uint32_t)strlen(name) + 1, 8);
+    dylib->dylib.name.offset = sizeof(struct dylib_command);
+    dylib->dylib.compatibility_version = 0x10000;
+    dylib->dylib.current_version = 0x10000;
+    dylib->dylib.timestamp = 2;
+    strncpy((void *)dylib + dylib->dylib.name.offset, name, strlen(name));
+    header->ncmds++;
+    header->sizeofcmds += dylib->cmdsize;
+
     // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
-    uint8_t *imageHeaderPtr = (uint8_t*)map + sizeof(struct mach_header_64);
     struct segment_command_64 *seg = (struct segment_command_64 *)imageHeaderPtr;
     assert(seg->cmd == LC_SEGMENT_64);
     if (seg->vmaddr == 0) {
@@ -127,11 +145,11 @@ static void patchPageZero(const char *path) {
         info[@"LCDataUUID"] = NSUUID.UUID.UUIDString;
         [info writeToFile:infoPath atomically:YES];
     }
-    if ([info[@"LCPatchRevision"] intValue] < 1) {
-        info[@"LCPatchRevision"] = @(1);
+    if ([info[@"LCPatchRevision"] intValue] < 2) {
+        info[@"LCPatchRevision"] = @(2);
         [info writeToFile:infoPath atomically:YES];
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
-        patchPageZero(execPath.UTF8String);
+        patchExecutable(execPath.UTF8String);
     }
 
     //NSString *dataPath = [NSString stringWithFormat:@"%@/Data/Application/%@", self.docPath, info[@"LCDataUUID"]];

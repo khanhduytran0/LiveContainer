@@ -5,9 +5,11 @@ Run unsigned iOS app without actually installing it!
 
 ## How does it work?
 
-### Patching guest executable's `__PAGEZERO` segment
-- Changed vmaddr to `0xFFFFC000` (`0x100000000 - 0x4000`)
-- Changed vmsize to `0x4000`
+### Patching guest executable
+- Patch `__PAGEZERO` segment:
+  + Change `vmaddr` to `0xFFFFC000` (`0x100000000 - 0x4000`)
+  + Change `vmsize` to `0x4000`
+- Convert `MH_EXECUTE` to `MH_DYLIB`.
 
 ### Patching `@executable_path`
 - Call `_dyld_get_image_name(0)` to get image name pointer.
