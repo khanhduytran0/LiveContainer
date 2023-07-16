@@ -6,6 +6,9 @@ const char **_CFGetProgname(void);
 const char **_CFGetProcessPath(void);
 int _NSGetExecutablePath(char* buf, uint32_t* bufsize);
 
+#define CS_DEBUGGED 0x10000000
+int csops(pid_t pid, unsigned int ops, void *useraddr, size_t usersize);
+
 void init_bypassDyldLibValidation();
 kern_return_t builtin_vm_protect(mach_port_name_t task, mach_vm_address_t address, mach_vm_size_t size, boolean_t set_max, vm_prot_t new_prot);
 

@@ -24,31 +24,16 @@ static NSBundle *overwrittenBundle;
 
 static int (*appMain)(int, char**);
 
-static BOOL _JITNotEnabled() {
-    return NO;
-}
-static void checkJITEnabled_handler(int signum, siginfo_t* siginfo, void* context)
-{
-    struct __darwin_ucontext *ucontext = (struct __darwin_ucontext *)context;
-    ucontext->uc_mcontext->__ss.__pc = (uint64_t)_JITNotEnabled();
-}
 static BOOL checkJITEnabled() {
-    struct sigaction sa, saOld;
-    sa.sa_sigaction = checkJITEnabled_handler;
-    sa.sa_flags = SA_SIGINFO;
-    sigaction(SIGBUS, &sa, &saOld);
+    // check if jailbroken
+    if (access("/var/mobile", R_OK) == 0) {
+        return YES;
+    }
 
-    uint32_t *page = (uint32_t *)mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
-    page[0] = 0xD2800020; // mov x0, #1
-    page[1] = 0xD65F03C0; // ret
-
-    mprotect(page, PAGE_SIZE, PROT_READ | PROT_EXEC);
-    BOOL(*testJIT)() = (void *)page;
-    BOOL result = testJIT();
-    munmap(page, PAGE_SIZE);
-
-    sigaction(SIGBUS, &saOld, NULL);
-    return result;
+    // check csflags
+    int flags;
+    csops(getpid(), 0, &flags, sizeof(flags));
+    return (flags & CS_DEBUGGED) != 0;
 }
 
 static BOOL overwriteMainBundle(NSBundle *newBundle) {
@@ -172,6 +157,7 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         // causing _GSRegisterPurpleNamedPortInPrivateNamespace to fail due to
         // GetIdentifierCString returning guest app's identifier. Use a different route.
         method_exchangeImplementations(class_getClassMethod(NSBundle.class, @selector(mainBundle)), class_getClassMethod(NSBundle.class, @selector(hooked_mainBundle)));
+        overwrittenBundle = appBundle;
     }
 
     // Overwrite executable info
