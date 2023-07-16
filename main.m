@@ -12,6 +12,16 @@
 #include <signal.h>
 #include <sys/mman.h>
 
+static NSBundle *overwrittenBundle;
+@implementation NSBundle(LC_iOS12)
++ (id)hooked_mainBundle {
+    if (overwrittenBundle) {
+        return overwrittenBundle;
+    }
+    return self.hooked_mainBundle;
+}
+@end
+
 static int (*appMain)(int, char**);
 
 static BOOL _JITNotEnabled() {
@@ -46,24 +56,28 @@ static BOOL overwriteMainBundle(NSBundle *newBundle) {
     uint32_t *mainBundleImpl = (uint32_t *)method_getImplementation(class_getClassMethod(NSBundle.class, @selector(mainBundle)));
     for (int i = 0; i < 20; i++) {
         void **_MergedGlobals = (void **)aarch64_emulate_adrp_add(mainBundleImpl[i], mainBundleImpl[i+1], (uint64_t)&mainBundleImpl[i]);
-        if (_MergedGlobals) {
-            assert(_MergedGlobals[1] == (__bridge void *)NSBundle.mainBundle);
-            _MergedGlobals[1] = (__bridge void *)newBundle;
-            break;
+        if (!_MergedGlobals) continue;
+        for (int mgIdx = 0; mgIdx < 4; mgIdx++) {
+            if (_MergedGlobals[mgIdx] == (__bridge void *)NSBundle.mainBundle) {
+                _MergedGlobals[mgIdx] = (__bridge void *)newBundle;
+                break;
+            }
         }
     }
 
     return ![NSBundle.mainBundle.executablePath isEqualToString:oldPath];
 }
 
-static void overwriteExecPath() {
-    // Silly workaround: we have set our executable name 100 characters long, now just overwrite its path
+static void overwriteExecPath(NSString *bundlePath) {
+    // Silly workaround: we have set our executable name 100 characters long, now just overwrite its path with our fake executable file
     char *path = (char *)_dyld_get_image_name(0);
-    const char *newPath = *_CFGetProcessPath();
+    const char *newPath = [bundlePath stringByAppendingPathComponent:@"LiveContainer"].UTF8String;
     size_t maxLen = strlen(path);
     size_t newLen = strlen(newPath);
     // Check if it's long enough...
     assert(maxLen >= newLen);
+    // Create an empty file so dyld could resolve its path properly
+    close(open(newPath, O_CREAT | S_IRUSR | S_IWUSR));
 
     // Make it RW and overwrite now
     builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
@@ -87,7 +101,7 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
         command = (struct load_command *)imageHeaderPtr;
     }
     assert(entryoff > 0);
-    return (void *)_dyld_get_image_header(imageIndex) + entryoff;
+    return (void *)header + entryoff;
 }
 
 static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
@@ -113,7 +127,7 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     const char **path = _CFGetProcessPath();
     const char *oldPath = *path;
     *path = appBundle.executablePath.UTF8String;
-    overwriteExecPath();
+    overwriteExecPath(appBundle.bundlePath);
 
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
@@ -147,10 +161,17 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     }
     NSLog(@"[LCBootstrap] loaded bundle");
 
-    if (!overwriteMainBundle(appBundle)) {
-        appError = @"Failed to overwrite main bundle";
-        *path = oldPath;
-        return appError;
+    if (@available(iOS 14.0, *)) {
+        if (!overwriteMainBundle(appBundle)) {
+            appError = @"Failed to overwrite main bundle";
+            *path = oldPath;
+            return appError;
+        }
+    } else {
+        // On iOS 12 (and 13?) direct overwriting also overwrites the underlying CFBundle,
+        // causing _GSRegisterPurpleNamedPortInPrivateNamespace to fail due to
+        // GetIdentifierCString returning guest app's identifier. Use a different route.
+        method_exchangeImplementations(class_getClassMethod(NSBundle.class, @selector(mainBundle)), class_getClassMethod(NSBundle.class, @selector(hooked_mainBundle)));
     }
 
     // Overwrite executable info
@@ -168,10 +189,16 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     return nil;
 }
 
+static void exceptionHandler(NSException *exception) {
+    NSString *error = [NSString stringWithFormat:@"%@\nCall stack: %@", exception.reason, exception.callStackSymbols];
+    [NSUserDefaults.standardUserDefaults setObject:error forKey:@"error"];
+}
+
 int LiveContainerMain(int argc, char *argv[]) {
     NSString *appError = nil;
     NSString *selectedApp = [NSUserDefaults.standardUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
+        NSSetUncaughtExceptionHandler(&exceptionHandler);
         appError = invokeAppMain(selectedApp, argc, argv);
         // don't return, let invokeAppMain takeover or continue to LiveContainerUI
     }
@@ -180,7 +207,8 @@ int LiveContainerMain(int argc, char *argv[]) {
         [NSUserDefaults.standardUserDefaults setObject:appError forKey:@"error"];
     }
 
-    dlopen("@executable_path/Frameworks/LiveContainerUI.dylib", RTLD_LAZY);
+    void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerUI.dylib", RTLD_LAZY);
+    assert(LiveContainerUIHandle);
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, @"LCAppDelegate");
     }

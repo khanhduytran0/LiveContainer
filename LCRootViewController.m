@@ -69,6 +69,11 @@ static void patchPageZero(const char *path) {
         preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
     [alert addAction:okAction];
+    UIAlertAction* copyAction = [UIAlertAction actionWithTitle:@"Copy" style:UIAlertActionStyleDefault
+        handler:^(UIAlertAction * action) {
+            UIPasteboard.generalPasteboard.string = message;
+        }];
+    [alert addAction:copyAction];
     [self presentViewController:alert animated:YES completion:nil];
 }
 

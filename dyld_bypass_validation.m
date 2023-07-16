@@ -115,8 +115,10 @@ static void* hooked_mmap(void *addr, size_t len, int prot, int flags, int fd, of
     // Check if the file is our "in-memory" file
     if (fd && __fcntl(fd, F_GETPATH, filePath) != -1) {
         const char *homeDir = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory
-            inDomains:NSUserDomainMask].lastObject.path.stringByResolvingSymlinksInPath.UTF8String;
-        if (!strncmp(filePath, homeDir, strlen(homeDir))) {
+            inDomains:NSUserDomainMask].lastObject.path.UTF8String;
+        char homeDirFull[PATH_MAX];
+        realpath(homeDir, (char *)homeDirFull);
+        if (!strncmp(filePath, homeDirFull, strlen(homeDirFull))) {
             int newFlags = MAP_PRIVATE | MAP_ANONYMOUS;
             if (addr != 0) {
                 newFlags |= MAP_FIXED;
@@ -139,12 +141,12 @@ static int hooked___fcntl(int fildes, int cmd, void *param) {
     if (cmd == F_ADDFILESIGS_RETURN) {
         const char *homeDir = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory
             inDomains:NSUserDomainMask].lastObject.path.stringByResolvingSymlinksInPath.UTF8String;
-        char filePath[PATH_MAX];
-        memset(filePath, 0, sizeof(filePath));
+        char filePath[PATH_MAX], homeDirFull[PATH_MAX];
+        realpath(homeDir, (char *)homeDirFull);
         
         // Check if the file is our "in-memory" file
         if (__fcntl(fildes, F_GETPATH, filePath) != -1) {
-            if (!strncmp(filePath, homeDir, strlen(homeDir))) {
+            if (!strncmp(filePath, homeDirFull, strlen(homeDirFull))) {
                 fsignatures_t *fsig = (fsignatures_t*)param;
                 // called to check that cert covers file.. so we'll make it cover everything ;)
                 fsig->fs_file_start = 0xFFFFFFFF;
