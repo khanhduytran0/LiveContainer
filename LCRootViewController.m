@@ -14,10 +14,11 @@ static void patchPageZero(const char *path) {
     void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     struct mach_header_64 *header = (struct mach_header_64 *)map;
-    if (header->magic == MH_MAGIC_64) {
+    // Undo MH_EXECUTE -> MH_DYLIB patch
+    if (header->magic == MH_MAGIC_64 && header->filetype == MH_DYLIB) {
         //assert(header->flags & MH_PIE);
-        header->filetype = MH_DYLIB;
-        header->flags &= ~MH_PIE;
+        header->filetype = MH_EXECUTE;
+        header->flags |= MH_PIE;
     }
 
     // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
@@ -124,6 +125,10 @@ static void patchPageZero(const char *path) {
     }
     if (!info[@"LCDataUUID"]) {
         info[@"LCDataUUID"] = NSUUID.UUID.UUIDString;
+        [info writeToFile:infoPath atomically:YES];
+    }
+    if ([info[@"LCPatchRevision"] intValue] < 1) {
+        info[@"LCPatchRevision"] = @(1);
         [info writeToFile:infoPath atomically:YES];
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
         patchPageZero(execPath.UTF8String);
