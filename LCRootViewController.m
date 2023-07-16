@@ -47,6 +47,7 @@ static void patchPageZero(const char *path) {
 
     NSString *appError = [NSUserDefaults.standardUserDefaults stringForKey:@"error"];
     if (appError) {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"error"];
         [self showDialogTitle:@"Error" message:appError];
     }
 

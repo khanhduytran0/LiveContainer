@@ -87,7 +87,7 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
         command = (struct load_command *)imageHeaderPtr;
     }
     assert(entryoff > 0);
-    return dlsym(handle, "_mh_execute_header") + entryoff;
+    return (void *)_dyld_get_image_header(imageIndex) + entryoff;
 }
 
 static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
@@ -118,9 +118,13 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
     void *appHandle = dlopen(appBundle.executablePath.UTF8String, RTLD_LAZY|RTLD_LOCAL|RTLD_FIRST);
-    //if(0)restoreExecPath();
-    if (!appHandle) {
-        appError = @(dlerror());
+    const char *dlerr = dlerror();
+    if (!appHandle || (uint64_t)appHandle > 0xf00000000000 || dlerr) {
+        if (dlerr) {
+            appError = @(dlerr);
+        } else {
+            appError = @"dlopen: an unknown error occurred";
+        }
         NSLog(@"[LCBootstrap] %@", appError);
         *path = oldPath;
         return appError;
@@ -128,6 +132,12 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
 
     // Find main()
     appMain = getAppEntryPoint(appHandle, appIndex);
+    if (!appMain) {
+        appError = @"Could not find the main entry point";
+        NSLog(@"[LCBootstrap] %@", appError);
+        *path = oldPath;
+        return appError;
+    }
 
     if (![appBundle loadAndReturnError:&error]) {
         appError = error.localizedDescription;
