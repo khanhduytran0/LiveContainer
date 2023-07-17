@@ -1,8 +1,8 @@
 Package: com.kdt.livecontainer
 Name: livecontainer
-Version: 0.0.1
+Version: 1.0
 Architecture: iphoneos-arm
-Description: An awesome application!
+Description: Run unsigned iOS app without actually installing it!
 Maintainer: khanhduytran0
 Author: khanhduytran0
 Section: Utilities

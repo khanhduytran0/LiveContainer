@@ -15,7 +15,7 @@ static void patchExecutable(const char *path) {
     int fd = open(path, O_RDWR, (mode_t)0600);
     struct stat s;
     fstat(fd, &s);
-    s.st_size = MIN(s.st_size, 0x4000);
+    s.st_size = MIN(s.st_size, 0x8000);
     void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     struct mach_header_64 *header = (struct mach_header_64 *)map;
     uint8_t *imageHeaderPtr = (uint8_t*)map + sizeof(struct mach_header_64);

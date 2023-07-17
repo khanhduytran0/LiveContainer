@@ -3,6 +3,12 @@ Run unsigned iOS app without actually installing it!
 - Allows you to install unlimited apps (10 apps limit of free developer account do not apply here!)
 - Codesigning is entirely bypassed (requires JIT), no need to sign your apps before installing.
 
+## Building
+```
+export THEOS=/path/to/theos
+make package
+```
+
 ## How does it work?
 
 ### Patching guest executable
@@ -31,6 +37,7 @@ Run unsigned iOS app without actually installing it!
 ## Limitations
 - Entitlements from the guest app are not applied to the host app. This isn't a big deal since sideloaded apps requires only basic entitlements.
 - App Permissions are globally applied.
+- Guest app containers are not sandboxed. This means one guest app can access other guest apps's data.
 - arm64e is untested. It is recommended to use arm64 binary.
 - Only one guest app can run at a time. This is much more like 3 apps limit where you have to disable an app to run another (switching between app in LiveContainer is instant).
 - Remote push notification might not work. ~~If you have a paid developer account then you don't even have to use LiveContainer~~
