@@ -117,21 +117,55 @@ static void patchExecutable(const char *path) {
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier];
     }
-
-    cell.textLabel.text = self.objects[indexPath.row];
-
     NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", self.bundlePath, self.objects[indexPath.row]];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
     if (!info[@"LCDataUUID"]) {
         info[@"LCDataUUID"] = NSUUID.UUID.UUIDString;
         [info writeToFile:infoPath atomically:YES];
     }
-    cell.detailTextLabel.text = info[@"LCDataUUID"];
-
+    cell.detailTextLabel.text = info[@"CFBundleIdentifier"];
+    if (info[@"CFBundleDisplayName"]) {
+        cell.textLabel.text = info[@"CFBundleDisplayName"];
+    } else if (info[@"CFBundleName"]) {
+        cell.textLabel.text = info[@"CFBundleName"];
+    } else if (info[@"CFBundleExecutable"]) {
+        cell.textLabel.text = info[@"CFBundleExecutable"];
+    } else {
+        cell.textLabel.text = self.objects[indexPath.row];
+    }
+    cell.imageView.layer.borderWidth = 1;
+    cell.imageView.layer.borderColor = [UIColor.labelColor colorWithAlphaComponent:0.1].CGColor;
+    cell.imageView.layer.cornerRadius = 13.5;
+    cell.imageView.layer.masksToBounds = YES;
+    cell.imageView.layer.cornerCurve = kCACornerCurveContinuous;
+    UIImage* icon = [UIImage imageWithContentsOfFile: [NSString stringWithFormat:@"%@/%@/AppIcon60x60@2x.png", self.bundlePath, self.objects[indexPath.row]]];
+    if(icon) {
+        cell.imageView.image = icon;
+    } else {
+        cell.imageView.image = [UIImage imageNamed:@"DefaultIcon"];
+    }
+    cell.preservesSuperviewLayoutMargins = NO;
+    cell.separatorInset = UIEdgeInsetsZero;
+    cell.layoutMargins = UIEdgeInsetsZero;
+    CGSize itemSize = CGSizeMake(60, 60);
+    UIGraphicsBeginImageContextWithOptions(itemSize, NO, UIScreen.mainScreen.scale);
+    CGRect imageRect = CGRectMake(0.0, 0.0, itemSize.width, itemSize.height);
+    [cell.imageView.image drawInRect:imageRect];
+    cell.imageView.image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
     return cell;
 }
 
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+	return 80.0f;
+}
+
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSError *error = nil;
+    [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
+    if (error) {
+        [self showDialogTitle:@"Error" message:error.localizedDescription];
+    }
     [self.objects removeObjectAtIndex:indexPath.row];
     [tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
