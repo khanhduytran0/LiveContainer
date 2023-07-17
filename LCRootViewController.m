@@ -222,7 +222,7 @@ static void patchExecutable(const char *path) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
         patchExecutable(execPath.UTF8String);
     }
-
+    exit(0);
     //NSString *dataPath = [NSString stringWithFormat:@"%@/Data/Application/%@", self.docPath, info[@"LCDataUUID"]];
     // TODO
 }
