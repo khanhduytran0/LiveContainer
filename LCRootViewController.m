@@ -1,10 +1,11 @@
 #import "LCRootViewController.h"
-
+#import "unarchive.h"
 #include <libgen.h>
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+@import UniformTypeIdentifiers;
 
 static uint32_t rnd32(uint32_t v, uint32_t r) {
     r--;
@@ -60,26 +61,22 @@ static void patchExecutable(const char *path) {
 @end
 
 @implementation LCRootViewController
-
 - (void)loadView {
     [super loadView];
-
     NSString *appError = [NSUserDefaults.standardUserDefaults stringForKey:@"error"];
     if (appError) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"error"];
         [self showDialogTitle:@"Error" message:appError];
     }
-
-    self.docPath = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
-        .lastObject.path;
+    self.docPath = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject.path;
     self.bundlePath = [NSString stringWithFormat:@"%@/Applications", self.docPath];
     NSFileManager *fm = [NSFileManager defaultManager];
     [fm createDirectoryAtPath:self.bundlePath withIntermediateDirectories:YES attributes:nil error:nil];
-    self.objects = [fm contentsOfDirectoryAtPath:self.bundlePath error:nil].mutableCopy;
-
+    self.objects = [[fm contentsOfDirectoryAtPath:self.bundlePath error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
+        return [object hasSuffix:@".app"];
+    }]].mutableCopy;
     self.title = @"LiveContainer";
-
-    //self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped:)];
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped:)];
 }
 
 - (void)showDialogTitle:(NSString *)title message:(NSString *)message {
@@ -97,11 +94,41 @@ static void patchExecutable(const char *path) {
 }
 
 - (void)addButtonTapped:(id)sender {
-    [_objects insertObject:[NSDate date] atIndex:0];
-    [self.tableView insertRowsAtIndexPaths:@[ [NSIndexPath indexPathForRow:0 inSection:0] ] withRowAnimation:UITableViewRowAnimationAutomatic];
+    UIDocumentPickerViewController* documentPickerVC = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[[UTType typeWithFilenameExtension:@"ipa" conformingToType:UTTypeData]]];
+    documentPickerVC.allowsMultipleSelection = NO;
+    documentPickerVC.delegate = self;
+    [self presentViewController:documentPickerVC animated:YES completion:nil];
 }
 
-#pragma mark - Table View Data Source
+- (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    BOOL isAccess = [urls.firstObject startAccessingSecurityScopedResource];
+    if(!isAccess)
+    {
+        return;
+    }
+    NSError *error = nil;
+    NSString* temp = NSTemporaryDirectory();
+    extract(urls.firstObject.path, temp);
+    NSArray* PayloadContents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
+        return [object hasSuffix:@".app"];
+    }]];
+    if (!PayloadContents) {
+        return;
+    }
+    NSString* AppName = PayloadContents[0];
+    [[NSFileManager defaultManager] copyItemAtPath:[[temp stringByAppendingPathComponent: @"Payload"] stringByAppendingPathComponent: AppName] toPath: [self.bundlePath stringByAppendingPathComponent: AppName] error:&error];
+    if (error) {
+        [self showDialogTitle:@"Error" message:error.localizedDescription];
+        return;
+    }
+    [[NSFileManager defaultManager] removeItemAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:&error];
+    if (error) {
+        [self showDialogTitle:@"Error" message:error.localizedDescription];
+        return;
+    }
+    [_objects insertObject:AppName atIndex:0];
+    [self.tableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:0]] withRowAnimation:UITableViewRowAnimationAutomatic];
+}
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
     return 1;
@@ -117,32 +144,62 @@ static void patchExecutable(const char *path) {
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier];
     }
-
-    cell.textLabel.text = self.objects[indexPath.row];
-
     NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", self.bundlePath, self.objects[indexPath.row]];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
     if (!info[@"LCDataUUID"]) {
         info[@"LCDataUUID"] = NSUUID.UUID.UUIDString;
         [info writeToFile:infoPath atomically:YES];
     }
-    cell.detailTextLabel.text = info[@"LCDataUUID"];
-
+    cell.detailTextLabel.text = info[@"CFBundleIdentifier"];
+    if (info[@"CFBundleDisplayName"]) {
+        cell.textLabel.text = info[@"CFBundleDisplayName"];
+    } else if (info[@"CFBundleName"]) {
+        cell.textLabel.text = info[@"CFBundleName"];
+    } else if (info[@"CFBundleExecutable"]) {
+        cell.textLabel.text = info[@"CFBundleExecutable"];
+    } else {
+        cell.textLabel.text = self.objects[indexPath.row];
+    }
+    cell.imageView.layer.borderWidth = 1;
+    cell.imageView.layer.borderColor = [UIColor.labelColor colorWithAlphaComponent:0.1].CGColor;
+    cell.imageView.layer.cornerRadius = 13.5;
+    cell.imageView.layer.masksToBounds = YES;
+    cell.imageView.layer.cornerCurve = kCACornerCurveContinuous;
+    UIImage* icon = [UIImage imageNamed:[info valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]] compatibleWithTraitCollection:nil];
+    if(icon) {
+        cell.imageView.image = icon;
+    } else {
+        cell.imageView.image = [UIImage imageNamed:@"DefaultIcon"];
+    }
+    cell.preservesSuperviewLayoutMargins = NO;
+    cell.separatorInset = UIEdgeInsetsZero;
+    cell.layoutMargins = UIEdgeInsetsZero;
+    CGSize itemSize = CGSizeMake(60, 60);
+    UIGraphicsBeginImageContextWithOptions(itemSize, NO, UIScreen.mainScreen.scale);
+    CGRect imageRect = CGRectMake(0.0, 0.0, itemSize.width, itemSize.height);
+    [cell.imageView.image drawInRect:imageRect];
+    cell.imageView.image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
     return cell;
 }
 
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 80.0f;
+}
+
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSError *error = nil;
+    [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
+    if (error) {
+        [self showDialogTitle:@"Error" message:error.localizedDescription];
+    }
     [self.objects removeObjectAtIndex:indexPath.row];
     [tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
-#pragma mark - Table View Delegate
-
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     //[tableView deselectRowAtIndexPath:indexPath animated:YES];
-
     [NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
-
     NSString *appPath = [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]];
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
@@ -156,9 +213,8 @@ static void patchExecutable(const char *path) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
         patchExecutable(execPath.UTF8String);
     }
-
+    exit(0);
     //NSString *dataPath = [NSString stringWithFormat:@"%@/Data/Application/%@", self.docPath, info[@"LCDataUUID"]];
     // TODO
 }
-
 @end
