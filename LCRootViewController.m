@@ -63,7 +63,6 @@ static void patchExecutable(const char *path) {
 
 - (void)loadView {
     [super loadView];
-
     NSString *appError = [NSUserDefaults.standardUserDefaults stringForKey:@"error"];
     if (appError) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"error"];
@@ -78,7 +77,7 @@ static void patchExecutable(const char *path) {
         return [object hasSuffix:@".app"];
     }]].mutableCopy;
     self.title = @"LiveContainer";
-    //self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped:)];
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped:)];
 }
 
 - (void)showDialogTitle:(NSString *)title message:(NSString *)message {
@@ -96,7 +95,25 @@ static void patchExecutable(const char *path) {
 }
 
 - (void)addButtonTapped:(id)sender {
-    [_objects insertObject:[NSDate date] atIndex:0];
+    UIDocumentPickerViewController *documentProvider = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:[NSArray arrayWithObjects:@"com.apple.bundle", nil] inMode: UIDocumentPickerModeOpen];
+    documentProvider.delegate = self;
+    [self presentViewController:documentProvider animated:YES completion:nil];
+}
+
+- (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    BOOL isAccess = [urls.firstObject startAccessingSecurityScopedResource];
+    if(!isAccess)
+    {
+        return;
+    }
+    NSError *error = nil;
+    NSString* AppPath = urls.firstObject.path;
+    NSString* AppName = AppPath.lastPathComponent;
+    [[NSFileManager defaultManager] copyItemAtPath:AppPath toPath: [self.bundlePath stringByAppendingPathComponent: AppName] error:&error];
+    if (error) {
+        [self showDialogTitle:@"Error" message:error.localizedDescription];
+    }
+    [_objects insertObject:AppName atIndex:0];
     [self.tableView insertRowsAtIndexPaths:@[ [NSIndexPath indexPathForRow:0 inSection:0] ] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
