@@ -1,6 +1,5 @@
 #import "LCRootViewController.h"
 #import "unarchive.h"
-
 #include <libgen.h>
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
@@ -62,7 +61,6 @@ static void patchExecutable(const char *path) {
 @end
 
 @implementation LCRootViewController
-
 - (void)loadView {
     [super loadView];
     NSString *appError = [NSUserDefaults.standardUserDefaults stringForKey:@"error"];
@@ -70,8 +68,7 @@ static void patchExecutable(const char *path) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"error"];
         [self showDialogTitle:@"Error" message:appError];
     }
-    self.docPath = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
-.lastObject.path;
+    self.docPath = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject.path;
     self.bundlePath = [NSString stringWithFormat:@"%@/Applications", self.docPath];
     NSFileManager *fm = [NSFileManager defaultManager];
     [fm createDirectoryAtPath:self.bundlePath withIntermediateDirectories:YES attributes:nil error:nil];
@@ -133,8 +130,6 @@ static void patchExecutable(const char *path) {
     [self.tableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:0]] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
-#pragma mark - Table View Data Source
-
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
     return 1;
 }
@@ -189,7 +184,7 @@ static void patchExecutable(const char *path) {
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-	return 80.0f;
+    return 80.0f;
 }
 
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -202,13 +197,9 @@ static void patchExecutable(const char *path) {
     [tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
-#pragma mark - Table View Delegate
-
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     //[tableView deselectRowAtIndexPath:indexPath animated:YES];
-
     [NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
-
     NSString *appPath = [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]];
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
@@ -226,5 +217,4 @@ static void patchExecutable(const char *path) {
     //NSString *dataPath = [NSString stringWithFormat:@"%@/Data/Application/%@", self.docPath, info[@"LCDataUUID"]];
     // TODO
 }
-
 @end
