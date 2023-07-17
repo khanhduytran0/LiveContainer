@@ -9,6 +9,14 @@ export THEOS=/path/to/theos
 make package
 ```
 
+## Usage
+Requires SideStore; AltStore does not work because it expects the app opened before enabling JIT.
+- Build from source or get prebuilt ipa in [the Actions tab](https://github.com/khanhduytran0/LiveContainer/actions)
+- Place extracted applications into `LiveContainer/Applications`
+- Open LiveContainer, choose the app you want to open in the next launch.
+- Clear LiveContainer from the app switcher.
+- In SideStore, hold down LiveContainer and tap `Enable JIT`.
+
 ## How does it work?
 
 ### Patching guest executable
@@ -54,5 +62,5 @@ make package
 [Apache License 2.0](https://github.com/khanhduytran0/LiveContainer/blob/main/LICENSE)
 
 ## Credits
-- [xpnsec's blogpost: Restoring Dyld Memory Loading](https://blog.xpnsec.com/restoring-dyld-memory-loading)
+- [xpn's blogpost: Restoring Dyld Memory Loading](https://blog.xpnsec.com/restoring-dyld-memory-loading)
 - [LinusHenze's CFastFind](https://github.com/pinauten/PatchfinderUtils/blob/master/Sources/CFastFind/CFastFind.c): [MIT license](https://github.com/pinauten/PatchfinderUtils/blob/master/LICENSE)
