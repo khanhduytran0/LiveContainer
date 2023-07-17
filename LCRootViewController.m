@@ -115,10 +115,19 @@ static void patchExecutable(const char *path) {
     static NSString *CellIdentifier = @"Cell";
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     if (!cell) {
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier];
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier];
     }
 
     cell.textLabel.text = self.objects[indexPath.row];
+
+    NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", self.bundlePath, self.objects[indexPath.row]];
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
+    if (!info[@"LCDataUUID"]) {
+        info[@"LCDataUUID"] = NSUUID.UUID.UUIDString;
+        [info writeToFile:infoPath atomically:YES];
+    }
+    cell.detailTextLabel.text = info[@"LCDataUUID"];
+
     return cell;
 }
 
@@ -140,10 +149,6 @@ static void patchExecutable(const char *path) {
     if (!info) {
         [self showDialogTitle:@"Error" message:@"Info.plist not found"];
         return;
-    }
-    if (!info[@"LCDataUUID"]) {
-        info[@"LCDataUUID"] = NSUUID.UUID.UUIDString;
-        [info writeToFile:infoPath atomically:YES];
     }
     if ([info[@"LCPatchRevision"] intValue] < 2) {
         info[@"LCPatchRevision"] = @(2);
