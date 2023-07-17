@@ -1,5 +1,5 @@
 ARCHS := arm64
-TARGET := iphone:clang:latest:12.0
+TARGET := iphone:clang:latest:13.0
 PACKAGE_FORMAT = ipa
 INSTALL_TARGET_PROCESSES = LiveContainer
 include $(THEOS)/makefiles/common.mk
