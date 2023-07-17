@@ -105,10 +105,6 @@ static void *getDyldBase(void) {
 }
 
 static void* hooked_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
-    if (!addr && len == 0x100000000 && !prot) {
-        abort();
-    }
-    
     char filePath[PATH_MAX];
     memset(filePath, 0, sizeof(filePath));
     
