@@ -15,7 +15,7 @@ include $(THEOS_MAKE_PATH)/library.mk
 # Build the app
 APPLICATION_NAME = LiveContainer
 $(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m
-$(APPLICATION_NAME)_CODESIGN_FLAGS = -Sentitlements.xml -K/var/mobile/ct.p12 -Upassword
+$(APPLICATION_NAME)_CODESIGN_FLAGS = -Sentitlements.xml
 $(APPLICATION_NAME)_CFLAGS = -fobjc-arc
 $(APPLICATION_NAME)_LDFLAGS = -e_LiveContainerMain
 $(APPLICATION_NAME)_FRAMEWORKS = UIKit
