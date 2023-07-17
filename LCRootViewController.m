@@ -165,7 +165,7 @@ static void patchExecutable(const char *path) {
     cell.imageView.layer.cornerRadius = 13.5;
     cell.imageView.layer.masksToBounds = YES;
     cell.imageView.layer.cornerCurve = kCACornerCurveContinuous;
-    UIImage* icon = [UIImage imageWithContentsOfFile: [NSString stringWithFormat:@"%@/%@/AppIcon60x60@2x.png", self.bundlePath, self.objects[indexPath.row]]];
+    UIImage* icon = [UIImage imageNamed:[info valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]] compatibleWithTraitCollection:nil];
     if(icon) {
         cell.imageView.image = icon;
     } else {
