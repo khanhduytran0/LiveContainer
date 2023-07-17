@@ -1,10 +1,12 @@
 #import "LCRootViewController.h"
+#import "unarchive.h"
 
 #include <libgen.h>
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+@import UniformTypeIdentifiers;
 
 static uint32_t rnd32(uint32_t v, uint32_t r) {
     r--;
@@ -95,9 +97,10 @@ static void patchExecutable(const char *path) {
 }
 
 - (void)addButtonTapped:(id)sender {
-    UIDocumentPickerViewController *documentProvider = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:[NSArray arrayWithObjects:@"com.apple.bundle", nil] inMode: UIDocumentPickerModeOpen];
-    documentProvider.delegate = self;
-    [self presentViewController:documentProvider animated:YES completion:nil];
+    UIDocumentPickerViewController* documentPickerVC = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[[UTType typeWithFilenameExtension:@"ipa" conformingToType:UTTypeData]]];
+    documentPickerVC.allowsMultipleSelection = NO;
+    documentPickerVC.delegate = self;
+    [self presentViewController:documentPickerVC animated:YES completion:nil];
 }
 
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
@@ -108,10 +111,24 @@ static void patchExecutable(const char *path) {
     }
     NSError *error = nil;
     NSString* AppPath = urls.firstObject.path;
-    NSString* AppName = AppPath.lastPathComponent;
-    [[NSFileManager defaultManager] copyItemAtPath:AppPath toPath: [self.bundlePath stringByAppendingPathComponent: AppName] error:&error];
+    NSString* temp = NSTemporaryDirectory();
+    extract(AppPath, temp);
+    NSArray* PayloadContents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
+        return [object hasSuffix:@".app"];
+    }]];
+    if (!PayloadContents) {
+        return;
+    }
+    NSString* AppName = PayloadContents[0];
+    [[NSFileManager defaultManager] copyItemAtPath:[[temp stringByAppendingPathComponent: @"Payload"] stringByAppendingPathComponent: AppName] toPath: [self.bundlePath stringByAppendingPathComponent: AppName] error:&error];
     if (error) {
         [self showDialogTitle:@"Error" message:error.localizedDescription];
+        return;
+    }
+    [[NSFileManager defaultManager] removeItemAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:&error];
+    if (error) {
+        [self showDialogTitle:@"Error" message:error.localizedDescription];
+        return;
     }
     [_objects insertObject:AppName atIndex:0];
     [self.tableView insertRowsAtIndexPaths:@[ [NSIndexPath indexPathForRow:0 inSection:0] ] withRowAnimation:UITableViewRowAnimationAutomatic];
