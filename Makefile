@@ -1,14 +1,15 @@
 ARCHS := arm64
-TARGET := iphone:clang:latest:13.0
+TARGET := iphone:clang:latest:14.0
 PACKAGE_FORMAT = ipa
 INSTALL_TARGET_PROCESSES = LiveContainer
 include $(THEOS)/makefiles/common.mk
 
 # Build the UI library
 LIBRARY_NAME = LiveContainerUI
-$(LIBRARY_NAME)_FILES = LCAppDelegate.m LCRootViewController.m
+$(LIBRARY_NAME)_FILES = LCAppDelegate.m LCRootViewController.m unarchive.m
 $(LIBRARY_NAME)_CFLAGS = -fobjc-arc
 $(LIBRARY_NAME)_FRAMEWORKS = UIKit
+$(LIBRARY_NAME)_LIBRARIES = archive
 $(LIBRARY_NAME)_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 include $(THEOS_MAKE_PATH)/library.mk
 
