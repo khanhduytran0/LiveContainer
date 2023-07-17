@@ -43,6 +43,12 @@ Run unsigned iOS app without actually installing it!
 - Simulate App Group(?)
 - More(?)
 
+## Build
+- Install Theos
+- Run `
+make package PACKAGE_FORMAT=ipa
+` to build an ipa
+
 ## License
 [Apache License 2.0](https://github.com/khanhduytran0/LiveContainer/blob/main/LICENSE)
 
