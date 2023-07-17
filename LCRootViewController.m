@@ -110,9 +110,8 @@ static void patchExecutable(const char *path) {
         return;
     }
     NSError *error = nil;
-    NSString* AppPath = urls.firstObject.path;
     NSString* temp = NSTemporaryDirectory();
-    extract(AppPath, temp);
+    extract(urls.firstObject.path, temp);
     NSArray* PayloadContents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
         return [object hasSuffix:@".app"];
     }]];
@@ -131,7 +130,7 @@ static void patchExecutable(const char *path) {
         return;
     }
     [_objects insertObject:AppName atIndex:0];
-    [self.tableView insertRowsAtIndexPaths:@[ [NSIndexPath indexPathForRow:0 inSection:0] ] withRowAnimation:UITableViewRowAnimationAutomatic];
+    [self.tableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:0]] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
 #pragma mark - Table View Data Source
