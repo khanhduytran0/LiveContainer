@@ -69,16 +69,15 @@ static void patchExecutable(const char *path) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"error"];
         [self showDialogTitle:@"Error" message:appError];
     }
-
     self.docPath = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
-        .lastObject.path;
+.lastObject.path;
     self.bundlePath = [NSString stringWithFormat:@"%@/Applications", self.docPath];
     NSFileManager *fm = [NSFileManager defaultManager];
     [fm createDirectoryAtPath:self.bundlePath withIntermediateDirectories:YES attributes:nil error:nil];
-    self.objects = [fm contentsOfDirectoryAtPath:self.bundlePath error:nil].mutableCopy;
-
+    self.objects = [[fm contentsOfDirectoryAtPath:self.bundlePath error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
+        return [object hasSuffix:@".app"];
+    }]].mutableCopy;
     self.title = @"LiveContainer";
-
     //self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped:)];
 }
 
