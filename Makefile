@@ -18,7 +18,7 @@ APPLICATION_NAME = LiveContainer
 $(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m
 $(APPLICATION_NAME)_CODESIGN_FLAGS = -Sentitlements.xml
 $(APPLICATION_NAME)_CFLAGS = -fobjc-arc
-$(APPLICATION_NAME)_LDFLAGS = -e_LiveContainerMain
+$(APPLICATION_NAME)_LDFLAGS = -e_LiveContainerMain -rpath @loader_path/Frameworks
 $(APPLICATION_NAME)_FRAMEWORKS = UIKit
 #$(APPLICATION_NAME)_INSTALL_PATH = /Applications/LiveContainer.app
 include $(THEOS_MAKE_PATH)/application.mk
