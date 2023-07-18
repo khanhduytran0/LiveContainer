@@ -52,7 +52,6 @@ Requires SideStore; AltStore does not work because it expects the app opened bef
 - Querying URL schemes might not work(?)
 
 ## TODO
-- Handle fat binary
 - Isolating `NSFileManager.defaultManager` and `NSUserDefaults.userDefaults`
 - Auto lock orientation
 - Simulate App Group(?)

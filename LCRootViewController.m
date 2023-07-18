@@ -12,25 +12,9 @@ static uint32_t rnd32(uint32_t v, uint32_t r) {
     return (v + r) & ~r;
 }
 
-static void patchExecutable(const char *path) {
-    int fd = open(path, O_RDWR, (mode_t)0600);
-    struct stat s;
-    fstat(fd, &s);
-    s.st_size = MIN(s.st_size, 0x8000);
-    void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    struct mach_header_64 *header = (struct mach_header_64 *)map;
-    uint8_t *imageHeaderPtr = (uint8_t*)map + sizeof(struct mach_header_64);
-
-    // Literally convert an executable to a dylib
-    if (header->magic == MH_MAGIC_64) {
-        //assert(header->flags & MH_PIE);
-        header->filetype = MH_DYLIB;
-        header->flags &= ~MH_PIE;
-    }
-
-    // Add LC_ID_DYLIB
+static void insertDylibCommand(const char *path, struct mach_header_64 *header) {
     char *name = basename((char *)path);
-    struct dylib_command *dylib = (struct dylib_command *)(imageHeaderPtr + header->sizeofcmds);
+    struct dylib_command *dylib = (struct dylib_command *)(sizeof(struct mach_header_64) + (void *)header+header->sizeofcmds);
     dylib->cmd = LC_ID_DYLIB;
     dylib->cmdsize = sizeof(struct dylib_command) + rnd32((uint32_t)strlen(name) + 1, 8);
     dylib->dylib.name.offset = sizeof(struct dylib_command);
@@ -40,6 +24,31 @@ static void patchExecutable(const char *path) {
     strncpy((void *)dylib + dylib->dylib.name.offset, name, strlen(name));
     header->ncmds++;
     header->sizeofcmds += dylib->cmdsize;
+}
+
+static void patchExecSlice(const char *path, struct mach_header_64 *header) {
+    uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
+
+    // Literally convert an executable to a dylib
+    if (header->magic == MH_MAGIC_64) {
+        //assert(header->flags & MH_PIE);
+        header->filetype = MH_DYLIB;
+        header->flags &= ~MH_PIE;
+    }
+
+    // Add LC_ID_DYLIB
+    BOOL hasDylibCommand = NO;
+    struct load_command *command = (struct load_command *)imageHeaderPtr;
+    for(int i = 0; i < header->ncmds > 0; i++) {
+        if(command->cmd == LC_ID_DYLIB) {
+            hasDylibCommand = YES;
+            break;
+        }
+        command = (struct load_command *)((void *)command + command->cmdsize);
+    }
+    if (!hasDylibCommand) {
+        insertDylibCommand(path, header);
+    }
 
     // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
     struct segment_command_64 *seg = (struct segment_command_64 *)imageHeaderPtr;
@@ -49,10 +58,6 @@ static void patchExecutable(const char *path) {
         seg->vmaddr = 0x100000000 - 0x4000;
         seg->vmsize = 0x4000;
     }
-
-    msync(map, s.st_size, MS_SYNC);
-    munmap(map, s.st_size);
-    close(fd);
 }
 
 @interface LCRootViewController ()
@@ -61,6 +66,35 @@ static void patchExecutable(const char *path) {
 @end
 
 @implementation LCRootViewController
+
+- (void)patchExecutable:(const char *)path {
+    int fd = open(path, O_RDWR, (mode_t)0600);
+    struct stat s;
+    fstat(fd, &s);
+    void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    uint32_t magic = *(uint32_t *)map;
+    if (magic == FAT_CIGAM) {
+        // Find compatible slice
+        struct fat_header *header = (struct fat_header *)map;
+        struct fat_arch *arch = (struct fat_arch *)(map + sizeof(struct fat_header));
+        for (int i = 0; i < OSSwapInt32(header->nfat_arch); i++) {
+            if (OSSwapInt32(arch->cputype) == CPU_TYPE_ARM64) {
+                patchExecSlice(path, (struct mach_header_64 *)(map + OSSwapInt32(arch->offset)));
+            }
+            arch = (struct fat_arch *)((void *)arch + sizeof(struct fat_arch));
+        }
+    } else if (magic == MH_MAGIC_64) {
+        patchExecSlice(path, (struct mach_header_64 *)map);
+    } else {
+        [self showDialogTitle:@"Error" message:@"32-bit app is not supported"];
+    }
+
+    msync(map, s.st_size, MS_SYNC);
+    munmap(map, s.st_size);
+    close(fd);
+}
+
 - (void)loadView {
     [super loadView];
     NSString *appError = [NSUserDefaults.standardUserDefaults stringForKey:@"error"];
@@ -76,7 +110,10 @@ static void patchExecutable(const char *path) {
         return [object hasSuffix:@".app"];
     }]].mutableCopy;
     self.title = @"LiveContainer";
-    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped:)];
+    self.navigationItem.rightBarButtonItems = @[
+        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped:)],
+        [[UIBarButtonItem alloc] initWithTitle:@"Launch" style:UIBarButtonItemStyleDone target:self action:@selector(launchAppTapped)],
+    ];
 }
 
 - (void)showDialogTitle:(NSString *)title message:(NSString *)message {
@@ -207,11 +244,12 @@ static void patchExecutable(const char *path) {
         [self showDialogTitle:@"Error" message:@"Info.plist not found"];
         return;
     }
-    if ([info[@"LCPatchRevision"] intValue] < 2) {
-        info[@"LCPatchRevision"] = @(2);
-        [info writeToFile:infoPath atomically:YES];
+    int currentPatchRev = 3;
+    if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
-        patchExecutable(execPath.UTF8String);
+        [self patchExecutable:execPath.UTF8String];
+        info[@"LCPatchRevision"] = @(3);
+        [info writeToFile:infoPath atomically:YES];
     }
     exit(0);
     //NSString *dataPath = [NSString stringWithFormat:@"%@/Data/Application/%@", self.docPath, info[@"LCDataUUID"]];
