@@ -220,7 +220,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     if (!version) {
         version = info[@"CFBundleVersion"];
     }
-    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ - %@", info[@"CFBundleIdentifier"], version];
+    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ • %@", version, info[@"CFBundleIdentifier"]];
     if (info[@"CFBundleDisplayName"]) {
         cell.textLabel.text = info[@"CFBundleDisplayName"];
     } else if (info[@"CFBundleName"]) {
