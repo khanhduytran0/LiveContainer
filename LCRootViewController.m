@@ -209,6 +209,8 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier];
+        cell.detailTextLabel.numberOfLines = 0;
+        cell.detailTextLabel.lineBreakMode = NSLineBreakByWordWrapping;
     }
     NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", self.bundlePath, self.objects[indexPath.row]];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
@@ -220,7 +222,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     if (!version) {
         version = info[@"CFBundleVersion"];
     }
-    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ • %@", version, info[@"CFBundleIdentifier"]];
+    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ - %@\n%@", version, info[@"CFBundleIdentifier"], info[@"LCDataUUID"]];
     if (info[@"CFBundleDisplayName"]) {
         cell.textLabel.text = info[@"CFBundleDisplayName"];
     } else if (info[@"CFBundleName"]) {
