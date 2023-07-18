@@ -251,6 +251,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
     if (error) {
         [self showDialogTitle:@"Error" message:error.localizedDescription];
+        return;
     }
     [self.objects removeObjectAtIndex:indexPath.row];
     [tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
