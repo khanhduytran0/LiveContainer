@@ -139,7 +139,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 
 - (void)addButtonTapped {
     UIDocumentPickerViewController* documentPickerVC = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[[UTType typeWithFilenameExtension:@"ipa" conformingToType:UTTypeData]]];
-    documentPickerVC.allowsMultipleSelection = NO;
+    documentPickerVC.allowsMultipleSelection = YES;
     documentPickerVC.delegate = self;
     [self presentViewController:documentPickerVC animated:YES completion:nil];
 }
@@ -165,33 +165,35 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 }
 
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
-    BOOL isAccess = [urls.firstObject startAccessingSecurityScopedResource];
-    if(!isAccess) {
-        return;
+    for (NSURL* url in urls) {
+        BOOL isAccess = [url startAccessingSecurityScopedResource];
+        if(!isAccess) {
+            return;
+        }
+        NSError *error = nil;
+        NSString* temp = NSTemporaryDirectory();
+        extract(url.path, temp);
+        NSArray* PayloadContents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
+            return [object hasSuffix:@".app"];
+        }]];
+        if (!PayloadContents.firstObject) {
+            [self showDialogTitle:@"Error" message:@"App bundle not found"];
+            return;
+        }
+        NSString* AppName = PayloadContents[0];
+        [[NSFileManager defaultManager] copyItemAtPath:[temp stringByAppendingFormat:@"/Payload/%@", AppName] toPath: [self.bundlePath stringByAppendingPathComponent: AppName] error:&error];
+        if (error) {
+            [self showDialogTitle:@"Error" message:error.localizedDescription];
+            return;
+        }
+        [[NSFileManager defaultManager] removeItemAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:&error];
+        if (error) {
+            [self showDialogTitle:@"Error" message:error.localizedDescription];
+            return;
+        }
+        [_objects insertObject:AppName atIndex:0];
+        [self.tableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:0]] withRowAnimation:UITableViewRowAnimationAutomatic];
     }
-    NSError *error = nil;
-    NSString* temp = NSTemporaryDirectory();
-    extract(urls.firstObject.path, temp);
-    NSArray* PayloadContents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
-        return [object hasSuffix:@".app"];
-    }]];
-    if (!PayloadContents.firstObject) {
-        [self showDialogTitle:@"Error" message:@"App bundle not found"];
-        return;
-    }
-    NSString* AppName = PayloadContents[0];
-    [[NSFileManager defaultManager] copyItemAtPath:[temp stringByAppendingFormat:@"/Payload/%@", AppName] toPath: [self.bundlePath stringByAppendingPathComponent: AppName] error:&error];
-    if (error) {
-        [self showDialogTitle:@"Error" message:error.localizedDescription];
-        return;
-    }
-    [[NSFileManager defaultManager] removeItemAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:&error];
-    if (error) {
-        [self showDialogTitle:@"Error" message:error.localizedDescription];
-        return;
-    }
-    [_objects insertObject:AppName atIndex:0];
-    [self.tableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:0]] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
