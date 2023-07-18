@@ -214,7 +214,11 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         info[@"LCDataUUID"] = NSUUID.UUID.UUIDString;
         [info writeToFile:infoPath atomically:YES];
     }
-    cell.detailTextLabel.text = info[@"CFBundleIdentifier"];
+    NSString* version = info[@"CFBundleShortVersionString"];
+    if (!version) {
+        version = info[@"CFBundleVersion"];
+    }
+    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ - %@", info[@"CFBundleIdentifier"], version];
     if (info[@"CFBundleDisplayName"]) {
         cell.textLabel.text = info[@"CFBundleDisplayName"];
     } else if (info[@"CFBundleName"]) {
