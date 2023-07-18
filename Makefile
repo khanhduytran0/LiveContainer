@@ -8,7 +8,7 @@ include $(THEOS)/makefiles/common.mk
 LIBRARY_NAME = LiveContainerUI
 $(LIBRARY_NAME)_FILES = LCAppDelegate.m LCRootViewController.m unarchive.m
 $(LIBRARY_NAME)_CFLAGS = -fobjc-arc
-$(LIBRARY_NAME)_FRAMEWORKS = UIKit
+$(LIBRARY_NAME)_FRAMEWORKS = QuartzCore UIKit UniformTypeIdentifiers
 $(LIBRARY_NAME)_LIBRARIES = archive
 $(LIBRARY_NAME)_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 include $(THEOS_MAKE_PATH)/library.mk

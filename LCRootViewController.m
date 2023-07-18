@@ -1,11 +1,13 @@
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import "LCRootViewController.h"
+#import "UIKitPrivate.h"
 #import "unarchive.h"
+
 #include <libgen.h>
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-@import UniformTypeIdentifiers;
 
 static uint32_t rnd32(uint32_t v, uint32_t r) {
     r--;
@@ -111,36 +113,60 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     }]].mutableCopy;
     self.title = @"LiveContainer";
     self.navigationItem.rightBarButtonItems = @[
-        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped:)],
-        [[UIBarButtonItem alloc] initWithTitle:@"Launch" style:UIBarButtonItemStyleDone target:self action:@selector(launchAppTapped)],
+        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemPlay target:self action:@selector(launchButtonTapped)],
+        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped)]
     ];
+    self.navigationItem.leftBarButtonItems[0].enabled = NO;
 }
 
 - (void)showDialogTitle:(NSString *)title message:(NSString *)message {
+    [self showDialogTitle:title message:message handler:nil];
+}
+- (void)showDialogTitle:(NSString *)title message:(NSString *)message handler:(void(^)(UIAlertAction *))handler {
     UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
         message:message
         preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
+    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:handler];
     [alert addAction:okAction];
     UIAlertAction* copyAction = [UIAlertAction actionWithTitle:@"Copy" style:UIAlertActionStyleDefault
         handler:^(UIAlertAction * action) {
             UIPasteboard.generalPasteboard.string = message;
+            if (handler) handler(action);
         }];
     [alert addAction:copyAction];
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (void)addButtonTapped:(id)sender {
+- (void)addButtonTapped {
     UIDocumentPickerViewController* documentPickerVC = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[[UTType typeWithFilenameExtension:@"ipa" conformingToType:UTTypeData]]];
     documentPickerVC.allowsMultipleSelection = NO;
     documentPickerVC.delegate = self;
     [self presentViewController:documentPickerVC animated:YES completion:nil];
 }
 
+- (void)launchButtonTapped {
+    if (!self.tableView.indexPathForSelectedRow) {
+        return;
+    }
+
+    NSURL *sidejitURL = [NSURL URLWithString:[NSString stringWithFormat:@"sidestore://sidejit-enable?bid=%@", NSBundle.mainBundle.bundleIdentifier]];
+    if ([UIApplication.sharedApplication canOpenURL:sidejitURL]) {
+        [UIApplication.sharedApplication openURL:sidejitURL options:@{} completionHandler:^(BOOL b){
+            exit(0);
+        }];
+        return;
+    }
+
+    [self showDialogTitle:@"Instruction" message:@"To use this button, you need a build of SideStore that supports enabling JIT through URL scheme. Otherwise, you need to manually enable it."
+    handler:^(UIAlertAction * action) {
+        [UIApplication.sharedApplication suspend];
+        exit(0);
+    }];
+}
+
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
     BOOL isAccess = [urls.firstObject startAccessingSecurityScopedResource];
-    if(!isAccess)
-    {
+    if(!isAccess) {
         return;
     }
     NSError *error = nil;
@@ -149,11 +175,12 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     NSArray* PayloadContents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
         return [object hasSuffix:@".app"];
     }]];
-    if (!PayloadContents) {
+    if (!PayloadContents.firstObject) {
+        [self showDialogTitle:@"Error" message:@"App bundle not found"];
         return;
     }
     NSString* AppName = PayloadContents[0];
-    [[NSFileManager defaultManager] copyItemAtPath:[[temp stringByAppendingPathComponent: @"Payload"] stringByAppendingPathComponent: AppName] toPath: [self.bundlePath stringByAppendingPathComponent: AppName] error:&error];
+    [[NSFileManager defaultManager] copyItemAtPath:[temp stringByAppendingFormat:@"/Payload/%@", AppName] toPath: [self.bundlePath stringByAppendingPathComponent: AppName] error:&error];
     if (error) {
         [self showDialogTitle:@"Error" message:error.localizedDescription];
         return;
@@ -211,12 +238,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     cell.preservesSuperviewLayoutMargins = NO;
     cell.separatorInset = UIEdgeInsetsZero;
     cell.layoutMargins = UIEdgeInsetsZero;
-    CGSize itemSize = CGSizeMake(60, 60);
-    UIGraphicsBeginImageContextWithOptions(itemSize, NO, UIScreen.mainScreen.scale);
-    CGRect imageRect = CGRectMake(0.0, 0.0, itemSize.width, itemSize.height);
-    [cell.imageView.image drawInRect:imageRect];
-    cell.imageView.image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
+    cell.imageView.image = [cell.imageView.image _imageWithSize:CGSizeMake(60, 60)];
     return cell;
 }
 
@@ -235,6 +257,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    self.navigationItem.leftBarButtonItems[0].enabled = YES;
     //[tableView deselectRowAtIndexPath:indexPath animated:YES];
     [NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
     NSString *appPath = [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]];
@@ -251,8 +274,5 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         info[@"LCPatchRevision"] = @(3);
         [info writeToFile:infoPath atomically:YES];
     }
-    exit(0);
-    //NSString *dataPath = [NSString stringWithFormat:@"%@/Data/Application/%@", self.docPath, info[@"LCDataUUID"]];
-    // TODO
 }
 @end
