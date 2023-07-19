@@ -323,7 +323,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
     UIAlertController* uninstallAlert = [UIAlertController alertControllerWithTitle:@"Confirm Uninstallation" message:[NSString stringWithFormat:@"Are you sure you want to uninstall %@?", [appInfo displayName]] preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* uninstallApp = [UIAlertAction actionWithTitle:@"Uninstall" style:UIAlertActionStyleDestructive handler:^(UIAlertAction* action) {
-	     NSError *error = nil;
+	NSError *error = nil;
         [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
         if (error) {
             [self showDialogTitle:@"Error" message:error.localizedDescription];
@@ -331,7 +331,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         }
         [self.objects removeObjectAtIndex:indexPath.row];
         [self.tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
-	 }];
+    }];
     [uninstallAlert addAction:uninstallApp];
     UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
     [uninstallAlert addAction:cancelAction];
