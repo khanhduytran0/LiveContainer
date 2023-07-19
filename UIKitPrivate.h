@@ -7,3 +7,12 @@
 @interface UIApplication(private)
 - (void)suspend;
 @end
+
+@interface UIContextMenuInteraction(private)
+- (void)_presentMenuAtLocation:(CGPoint)location;
+@end
+
+@interface _UIContextMenuStyle : NSObject <NSCopying>
+@property(nonatomic) NSInteger preferredLayout;
++ (instancetype)defaultStyle;
+@end

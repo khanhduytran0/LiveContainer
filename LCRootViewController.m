@@ -63,7 +63,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 }
 
 @interface LCRootViewController ()
-@property(nonatomic) NSMutableArray *objects;
+@property(atomic) NSMutableArray<NSString *> *objects;
 @property(nonatomic) NSString *bundlePath, *docPath;
 @end
 
@@ -104,9 +104,9 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"error"];
         [self showDialogTitle:@"Error" message:appError];
     }
-    self.docPath = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject.path;
-    self.bundlePath = [NSString stringWithFormat:@"%@/Applications", self.docPath];
     NSFileManager *fm = [NSFileManager defaultManager];
+    self.docPath = [fm URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject.path;
+    self.bundlePath = [NSString stringWithFormat:@"%@/Applications", self.docPath];
     [fm createDirectoryAtPath:self.bundlePath withIntermediateDirectories:YES attributes:nil error:nil];
     self.objects = [[fm contentsOfDirectoryAtPath:self.bundlePath error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
         return [object hasSuffix:@".app"];
@@ -164,36 +164,115 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     }];
 }
 
-- (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
-    for (NSURL* url in urls) {
-        BOOL isAccess = [url startAccessingSecurityScopedResource];
-        if(!isAccess) {
-            return;
-        }
-        NSError *error = nil;
-        NSString* temp = NSTemporaryDirectory();
-        extract(url.path, temp);
-        NSArray* PayloadContents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
-            return [object hasSuffix:@".app"];
-        }]];
-        if (!PayloadContents.firstObject) {
-            [self showDialogTitle:@"Error" message:@"App bundle not found"];
-            return;
-        }
-        NSString* AppName = PayloadContents[0];
-        [[NSFileManager defaultManager] copyItemAtPath:[temp stringByAppendingFormat:@"/Payload/%@", AppName] toPath: [self.bundlePath stringByAppendingPathComponent: AppName] error:&error];
-        if (error) {
-            [self showDialogTitle:@"Error" message:error.localizedDescription];
-            return;
-        }
-        [[NSFileManager defaultManager] removeItemAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:&error];
-        if (error) {
-            [self showDialogTitle:@"Error" message:error.localizedDescription];
-            return;
-        }
-        [_objects insertObject:AppName atIndex:0];
-        [self.tableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:0]] withRowAnimation:UITableViewRowAnimationAutomatic];
+- (NSString *)performInstallIPA:(NSURL *)url {
+    if(![url startAccessingSecurityScopedResource]) {
+        return @"Failed to access IPA";
     }
+    NSError *error = nil;
+    NSFileManager *fm = NSFileManager.defaultManager;
+    NSString* temp = NSTemporaryDirectory();
+    extract(url.path, temp);
+    [url stopAccessingSecurityScopedResource];
+
+    NSArray* PayloadContents = [[fm contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
+        return [object hasSuffix:@".app"];
+    }]];
+    if (!PayloadContents.firstObject) {
+        return @"App bundle not found";
+    }
+
+    NSString *AppName = PayloadContents[0];
+    NSString *oldAppName = AppName;
+    NSString *outPath = [self.bundlePath stringByAppendingPathComponent: AppName];
+
+    __block int selectedAction = -1;
+    if ([fm fileExistsAtPath:outPath isDirectory:nil]) {
+        dispatch_group_t group = dispatch_group_create();
+        dispatch_group_enter(group);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Install"
+                message:@"There is an existing application with the same bundle folder name, what would you like to do?"
+                preferredStyle:UIAlertControllerStyleAlert];
+            id handler = ^(UIAlertAction *action) {
+                selectedAction = [alert.actions indexOfObject:action];
+                if (selectedAction == 0) { // Replace
+                    [self deleteAppAtIndexPath:[NSIndexPath indexPathForRow:[self.objects indexOfObject:AppName] inSection:0]];
+                }
+                dispatch_group_leave(group);
+            };
+            for (NSString *action in @[@"Replace", @"Keep both, share data", @"Keep both, don't share data"]) {
+                [alert addAction:[UIAlertAction actionWithTitle:action style:UIAlertActionStyleDefault handler:handler]];
+            }
+            [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:handler]];
+            [self presentViewController:alert animated:YES completion:nil];
+        });
+        dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    }
+
+    NSString *dataUUID = NSUUID.UUID.UUIDString;
+    switch (selectedAction) {
+        case 0: // Replace, handled in the action block
+            break;
+        case 1: // Keep both, share data
+            dataUUID = [NSDictionary dictionaryWithContentsOfFile:
+                [outPath stringByAppendingPathComponent:@"Info.plist"]][@"LCDataUUID"];
+        case 2: // Keep both, don't share data
+            AppName = [NSString stringWithFormat:@"%@%ld.app", [AppName substringToIndex:AppName.length-4], (long)CFAbsoluteTimeGetCurrent()];
+            outPath = [self.bundlePath stringByAppendingPathComponent:AppName];
+            break;
+    }
+    NSString *payloadPath = [temp stringByAppendingPathComponent:@"Payload"];
+    if (selectedAction != 3) { // Did not cancel
+        self.objects[0] = AppName;
+        [fm moveItemAtPath:[payloadPath stringByAppendingPathComponent:oldAppName] toPath:outPath error:&error];
+        // Write data UUID
+        NSString *infoPath = [outPath stringByAppendingPathComponent:@"Info.plist"];
+        NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
+        info[@"LCDataUUID"] = dataUUID;
+        [info writeToFile:infoPath atomically:YES];
+    }
+    [fm removeItemAtPath:payloadPath error:(selectedAction==3 ? &error : nil)];
+    if (error) {
+        return error.localizedDescription;
+    }
+
+    if (selectedAction == 3) {
+        return @""; // Cancelled
+    } else {
+        return nil; // Succeeded
+    }
+}
+- (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSMutableString *errorString = [NSMutableString string];
+        NSIndexPath *indexPath = [NSIndexPath indexPathForRow:0 inSection:0];
+        for (NSURL* url in urls) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.objects insertObject:@"" atIndex:0];
+                [self.tableView insertRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+            });
+
+            NSString *error = [self performInstallIPA:url];
+            if (error.length > 0) {
+                [errorString appendFormat:@"%@: %@\n", url.lastPathComponent, error];
+            }
+
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (error) {
+                    [self.objects removeObjectAtIndex:indexPath.row];
+                    [self.tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+                    return;
+                }
+                [self.tableView reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+                [self patchExecAtIndexPathIfNeed:indexPath];
+            });
+        }
+
+        if (errorString.length == 0) return;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self showDialogTitle:@"Error" message:errorString];
+        });
+    });
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -209,9 +288,26 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier];
+        cell.preservesSuperviewLayoutMargins = NO;
+        cell.separatorInset = UIEdgeInsetsZero;
+        cell.layoutMargins = UIEdgeInsetsZero;
         cell.detailTextLabel.numberOfLines = 0;
         cell.detailTextLabel.lineBreakMode = NSLineBreakByWordWrapping;
+        cell.imageView.layer.borderWidth = 1;
+        cell.imageView.layer.borderColor = [UIColor.labelColor colorWithAlphaComponent:0.1].CGColor;
+        cell.imageView.layer.cornerRadius = 13.5;
+        cell.imageView.layer.masksToBounds = YES;
+        cell.imageView.layer.cornerCurve = kCACornerCurveContinuous;
     }
+
+    cell.userInteractionEnabled = self.objects[indexPath.row].length > 0;
+    if (!cell.userInteractionEnabled) {
+        cell.textLabel.text = @"Installing";
+        cell.detailTextLabel.text = nil;
+        cell.imageView.image = [[UIImage imageNamed:@"DefaultIcon"] _imageWithSize:CGSizeMake(60, 60)];
+        return cell;
+    }
+
     NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", self.bundlePath, self.objects[indexPath.row]];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
     if (!info[@"LCDataUUID"]) {
@@ -232,21 +328,11 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     } else {
         cell.textLabel.text = self.objects[indexPath.row];
     }
-    cell.imageView.layer.borderWidth = 1;
-    cell.imageView.layer.borderColor = [UIColor.labelColor colorWithAlphaComponent:0.1].CGColor;
-    cell.imageView.layer.cornerRadius = 13.5;
-    cell.imageView.layer.masksToBounds = YES;
-    cell.imageView.layer.cornerCurve = kCACornerCurveContinuous;
     UIImage* icon = [UIImage imageNamed:[info valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]] compatibleWithTraitCollection:nil];
-    if(icon) {
-        cell.imageView.image = icon;
-    } else {
-        cell.imageView.image = [UIImage imageNamed:@"DefaultIcon"];
+    if(!icon) {
+        icon = [UIImage imageNamed:@"DefaultIcon"];
     }
-    cell.preservesSuperviewLayoutMargins = NO;
-    cell.separatorInset = UIEdgeInsetsZero;
-    cell.layoutMargins = UIEdgeInsetsZero;
-    cell.imageView.image = [cell.imageView.image _imageWithSize:CGSizeMake(60, 60)];
+    cell.imageView.image = [icon _imageWithSize:CGSizeMake(60, 60)];
     return cell;
 }
 
@@ -254,7 +340,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     return 80.0f;
 }
 
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
+- (void)deleteAppAtIndexPath:(NSIndexPath *)indexPath {
     NSError *error = nil;
     [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
     if (error) {
@@ -262,13 +348,25 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         return;
     }
     [self.objects removeObjectAtIndex:indexPath.row];
-    [tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
+    [self.tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
+}
+- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
+    [self deleteAppAtIndexPath:indexPath];
+}
+
+- (UITableViewCellEditingStyle)tableView:(UITableView *)tableView editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    return self.objects[indexPath.row].length==0 ? UITableViewCellEditingStyleNone : UITableViewCellEditingStyleDelete;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     self.navigationItem.leftBarButtonItems[0].enabled = YES;
     //[tableView deselectRowAtIndexPath:indexPath animated:YES];
     [NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
+    [self patchExecAtIndexPathIfNeed:indexPath];
+}
+
+- (void)patchExecAtIndexPathIfNeed:(NSIndexPath *)indexPath {
     NSString *appPath = [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]];
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
@@ -276,12 +374,14 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [self showDialogTitle:@"Error" message:@"Info.plist not found"];
         return;
     }
-    int currentPatchRev = 3;
+
+    int currentPatchRev = 4;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
         [self patchExecutable:execPath.UTF8String];
-        info[@"LCPatchRevision"] = @(3);
+        info[@"LCPatchRevision"] = @(currentPatchRev);
         [info writeToFile:infoPath atomically:YES];
     }
 }
+
 @end
