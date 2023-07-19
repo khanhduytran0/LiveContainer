@@ -2,6 +2,7 @@
 #import "LCRootViewController.h"
 #import "UIKitPrivate.h"
 #import "unarchive.h"
+#import "AppInfo.h"
 
 #include <libgen.h>
 #include <mach-o/fat.h>
@@ -307,32 +308,10 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         cell.imageView.image = [[UIImage imageNamed:@"DefaultIcon"] _imageWithSize:CGSizeMake(60, 60)];
         return cell;
     }
-
-    NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", self.bundlePath, self.objects[indexPath.row]];
-    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
-    if (!info[@"LCDataUUID"]) {
-        info[@"LCDataUUID"] = NSUUID.UUID.UUIDString;
-        [info writeToFile:infoPath atomically:YES];
-    }
-    NSString* version = info[@"CFBundleShortVersionString"];
-    if (!version) {
-        version = info[@"CFBundleVersion"];
-    }
-    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ - %@\n%@", version, info[@"CFBundleIdentifier"], info[@"LCDataUUID"]];
-    if (info[@"CFBundleDisplayName"]) {
-        cell.textLabel.text = info[@"CFBundleDisplayName"];
-    } else if (info[@"CFBundleName"]) {
-        cell.textLabel.text = info[@"CFBundleName"];
-    } else if (info[@"CFBundleExecutable"]) {
-        cell.textLabel.text = info[@"CFBundleExecutable"];
-    } else {
-        cell.textLabel.text = self.objects[indexPath.row];
-    }
-    UIImage* icon = [UIImage imageNamed:[info valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]] compatibleWithTraitCollection:nil];
-    if(!icon) {
-        icon = [UIImage imageNamed:@"DefaultIcon"];
-    }
-    cell.imageView.image = [icon _imageWithSize:CGSizeMake(60, 60)];
+    AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
+    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ - %@\n%@", [appInfo version], [appInfo bundleIdentifier], [appInfo LCDataUUID]];
+    cell.textLabel.text = [appInfo displayName];
+    cell.imageView.image = [[appInfo icon] _imageWithSize:CGSizeMake(60, 60)];
     return cell;
 }
 
@@ -341,21 +320,10 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 }
 
 - (void)deleteAppAtIndexPath:(NSIndexPath *)indexPath {
-    NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", self.bundlePath, self.objects[indexPath.row]];
-    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
-    NSString* name = nil;
-    if (info[@"CFBundleDisplayName"]) {
-        name = info[@"CFBundleDisplayName"];
-    } else if (info[@"CFBundleName"]) {
-        name = info[@"CFBundleName"];
-    } else if (info[@"CFBundleExecutable"]) {
-        name = info[@"CFBundleExecutable"];
-    } else {
-        name = self.objects[indexPath.row];
-    }
-    UIAlertController* uninstallAlert = [UIAlertController alertControllerWithTitle:@"Confirm Uninstallation" message:[NSString stringWithFormat:@"Are you sure you want to uninstall %@?", name] preferredStyle:UIAlertControllerStyleAlert];
+    AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
+    UIAlertController* uninstallAlert = [UIAlertController alertControllerWithTitle:@"Confirm Uninstallation" message:[NSString stringWithFormat:@"Are you sure you want to uninstall %@?", [appInfo displayName]] preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* uninstallApp = [UIAlertAction actionWithTitle:@"Uninstall" style:UIAlertActionStyleDestructive handler:^(UIAlertAction* action) {
-	    NSError *error = nil;
+	     NSError *error = nil;
         [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
         if (error) {
             [self showDialogTitle:@"Error" message:error.localizedDescription];
@@ -363,7 +331,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         }
         [self.objects removeObjectAtIndex:indexPath.row];
         [self.tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
-	}];
+	 }];
     [uninstallAlert addAction:uninstallApp];
     UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
     [uninstallAlert addAction:cancelAction];
