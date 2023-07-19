@@ -341,14 +341,33 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 }
 
 - (void)deleteAppAtIndexPath:(NSIndexPath *)indexPath {
-    NSError *error = nil;
-    [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
-    if (error) {
-        [self showDialogTitle:@"Error" message:error.localizedDescription];
-        return;
+    NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", self.bundlePath, self.objects[indexPath.row]];
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
+    NSString* name = nil;
+    if (info[@"CFBundleDisplayName"]) {
+        name = info[@"CFBundleDisplayName"];
+    } else if (info[@"CFBundleName"]) {
+        name = info[@"CFBundleName"];
+    } else if (info[@"CFBundleExecutable"]) {
+        name = info[@"CFBundleExecutable"];
+    } else {
+        name = self.objects[indexPath.row];
     }
-    [self.objects removeObjectAtIndex:indexPath.row];
-    [self.tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
+    UIAlertController* uninstallAlert = [UIAlertController alertControllerWithTitle:@"Confirm Uninstallation" message:[NSString stringWithFormat:@"Are you sure you want to uninstall %@?", name] preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction* uninstallApp = [UIAlertAction actionWithTitle:@"Uninstall" style:UIAlertActionStyleDestructive handler:^(UIAlertAction* action) {
+	    NSError *error = nil;
+        [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
+        if (error) {
+            [self showDialogTitle:@"Error" message:error.localizedDescription];
+            return;
+        }
+        [self.objects removeObjectAtIndex:indexPath.row];
+        [self.tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
+	}];
+    [uninstallAlert addAction:uninstallApp];
+    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
+    [uninstallAlert addAction:cancelAction];
+    [self presentViewController:uninstallAlert animated:YES completion:nil];
 }
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
     [self deleteAppAtIndexPath:indexPath];
