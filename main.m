@@ -56,28 +56,24 @@ static BOOL overwriteMainBundle(NSBundle *newBundle) {
 static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* context) {
     struct __darwin_ucontext *ucontext = (struct __darwin_ucontext *)context;
 
-    // Don't know if we should explicit check == 0x41414141, just leave this for safety
-    uint64_t check = ucontext->uc_mcontext->__ss.__x[0] - 0x41414141;
-    if (check >= 0 && check <= PATH_MAX) {
-        char *path = (char *)ucontext->uc_mcontext->__ss.__x[1];
-        // Seek back to /private/var
-        while (strncmp(path, "/private/var", 12)) {
-            --path;
-        }
-        char *newPath = (char *)_dyld_get_image_name(0);
-        size_t maxLen = strlen(path);
-        size_t newLen = strlen(newPath);
-        // Check if it's long enough...
-        assert(maxLen >= newLen);
-        builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
-        bzero(path, maxLen);
-        strncpy(path, newPath, newLen);
-    }
+    // x19: size pointer
+    // x20: output buffer
+    // x21: executable_path
 
-    // Jump to return
-    while (*(uint32_t *)ucontext->uc_mcontext->__ss.__pc != 0xD65F03C0) {
-        ucontext->uc_mcontext->__ss.__pc += 4;
-    }
+    // Ensure we're not getting SIGSEGV twice
+    static uint32_t fakeSize = 0;
+    assert(ucontext->uc_mcontext->__ss.__x[19] == 0);
+    ucontext->uc_mcontext->__ss.__x[19] = (uint64_t)&fakeSize;
+
+    char *path = (char *)ucontext->uc_mcontext->__ss.__x[21];
+    char *newPath = (char *)_dyld_get_image_name(0);
+    size_t maxLen = strlen(path);
+    size_t newLen = strlen(newPath);
+    // Check if it's long enough...
+    assert(maxLen >= newLen);
+    builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    bzero(path, maxLen);
+    strncpy(path, newPath, newLen);
 }
 static void overwriteExecPath(NSString *bundlePath) {
     // Silly workaround: we have set our executable name 100 characters long, now just overwrite its path with our fake executable file
@@ -107,11 +103,9 @@ static void overwriteExecPath(NSString *bundlePath) {
         sa.sa_flags = SA_SIGINFO;
         sigaction(SIGSEGV, &sa, &saOld);
         // Jump to overwriteExecPath_handler()
-        _NSGetExecutablePath((char *)0x41414141, &len);
+        _NSGetExecutablePath((char *)0x41414141, NULL);
         sigaction(SIGSEGV, &saOld, NULL);
     }
-
-    NSLog(@"Done: %@", bundlePath);
 }
 
 static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
