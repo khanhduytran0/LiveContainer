@@ -1,5 +1,7 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import "LCGuestAppConfigViewController.h"
 #import "LCRootViewController.h"
+#import "MBRoundProgressView.h"
 #import "UIKitPrivate.h"
 #import "unarchive.h"
 #import "AppInfo.h"
@@ -66,6 +68,8 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 @interface LCRootViewController ()
 @property(atomic) NSMutableArray<NSString *> *objects;
 @property(nonatomic) NSString *bundlePath, *docPath;
+
+@property(nonatomic) MBRoundProgressView *progressView;
 @end
 
 @implementation LCRootViewController
@@ -100,6 +104,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 
 - (void)loadView {
     [super loadView];
+
     NSString *appError = [NSUserDefaults.standardUserDefaults stringForKey:@"error"];
     if (appError) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"error"];
@@ -118,6 +123,11 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped)]
     ];
     self.navigationItem.leftBarButtonItems[0].enabled = NO;
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self.tableView reloadData];
 }
 
 - (void)showDialogTitle:(NSString *)title message:(NSString *)message {
@@ -165,14 +175,14 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     }];
 }
 
-- (NSString *)performInstallIPA:(NSURL *)url {
+- (NSString *)performInstallIPA:(NSURL *)url progress:(NSProgress *)progress {
     if(![url startAccessingSecurityScopedResource]) {
         return @"Failed to access IPA";
     }
     NSError *error = nil;
     NSFileManager *fm = NSFileManager.defaultManager;
     NSString* temp = NSTemporaryDirectory();
-    extract(url.path, temp);
+    extract(url.path, temp, progress);
     [url stopAccessingSecurityScopedResource];
 
     NSArray* PayloadContents = [[fm contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
@@ -217,6 +227,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         case 1: // Keep both, share data
             dataUUID = [NSDictionary dictionaryWithContentsOfFile:
                 [outPath stringByAppendingPathComponent:@"Info.plist"]][@"LCDataUUID"];
+            // note: don't break; here!
         case 2: // Keep both, don't share data
             AppName = [NSString stringWithFormat:@"%@%ld.app", [AppName substringToIndex:AppName.length-4], (long)CFAbsoluteTimeGetCurrent()];
             outPath = [self.bundlePath stringByAppendingPathComponent:AppName];
@@ -244,21 +255,27 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     }
 }
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    NSProgress *progress = [NSProgress new];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSMutableString *errorString = [NSMutableString string];
         NSIndexPath *indexPath = [NSIndexPath indexPathForRow:0 inSection:0];
         for (NSURL* url in urls) {
             dispatch_async(dispatch_get_main_queue(), ^{
+                [progress addObserver:self forKeyPath:@"fractionCompleted" options:NSKeyValueObservingOptionNew context:nil];
+                progress.completedUnitCount = 0;
+                progress.totalUnitCount = 0;
                 [self.objects insertObject:@"" atIndex:0];
                 [self.tableView insertRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
             });
 
-            NSString *error = [self performInstallIPA:url];
+            NSString *error = [self performInstallIPA:url progress:progress];
             if (error.length > 0) {
                 [errorString appendFormat:@"%@: %@\n", url.lastPathComponent, error];
             }
 
             dispatch_async(dispatch_get_main_queue(), ^{
+                [self.progressView removeFromSuperview];
+                [progress removeObserver:self forKeyPath:@"fractionCompleted"];
                 if (error) {
                     [self.objects removeObjectAtIndex:indexPath.row];
                     [self.tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
@@ -274,6 +291,17 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
             [self showDialogTitle:@"Error" message:errorString];
         });
     });
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if ([keyPath isEqualToString:@"fractionCompleted"]) {
+        NSProgress *progress = (NSProgress *)object;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.progressView.progress = progress.fractionCompleted;
+        });
+    } else {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+    }
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -303,13 +331,18 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 
     cell.userInteractionEnabled = self.objects[indexPath.row].length > 0;
     if (!cell.userInteractionEnabled) {
+        if (!self.progressView) {
+            self.progressView = [[MBRoundProgressView alloc] initWithFrame:CGRectMake(0, 0, 60, 60)];
+        }
+
         cell.textLabel.text = @"Installing";
         cell.detailTextLabel.text = nil;
         cell.imageView.image = [[UIImage imageNamed:@"DefaultIcon"] _imageWithSize:CGSizeMake(60, 60)];
+        [cell.imageView addSubview:self.progressView];
         return cell;
     }
     AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
-    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ - %@\n%@", [appInfo version], [appInfo bundleIdentifier], [appInfo LCDataUUID]];
+    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ - %@\n%@", [appInfo version], [appInfo bundleIdentifier], [appInfo dataUUID]];
     cell.textLabel.text = [appInfo displayName];
     cell.imageView.image = [[appInfo icon] _imageWithSize:CGSizeMake(60, 60)];
     return cell;
@@ -369,6 +402,42 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         info[@"LCPatchRevision"] = @(currentPatchRev);
         [info writeToFile:infoPath atomically:YES];
     }
+}
+
+- (UIContextMenuConfiguration *)tableView:(UITableView *)tableView contextMenuConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath point:(CGPoint)point {
+    if (self.objects[indexPath.row].length == 0) return nil;
+
+    AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
+    NSArray *menuItems = @[
+        [UIAction
+            actionWithTitle:@"Edit"
+            image:[UIImage systemImageNamed:@"pencil"]
+            identifier:nil
+            handler:^(UIAction *action) {
+                LCGuestAppConfigViewController *vc = [LCGuestAppConfigViewController new];
+                vc.info = appInfo;
+                UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
+                [self presentViewController:nav animated:YES completion:nil];
+            }
+        ],
+        [UIAction
+            actionWithTitle:@"Open data folder"
+            image:[UIImage systemImageNamed:@"folder"]
+            identifier:nil
+            handler:^(UIAction *action) {
+                NSString *url = [NSString stringWithFormat:@"shareddocuments://%@/Data/Application/%@", self.docPath, appInfo.dataUUID];
+                [UIApplication.sharedApplication openURL:[NSURL URLWithString:url] options:@{} completionHandler:nil];
+            }
+        ]
+    ];
+
+    return [UIContextMenuConfiguration
+        configurationWithIdentifier:nil
+        previewProvider:nil
+        actionProvider:^UIMenu *(NSArray<UIMenuElement *> *suggestedActions) {
+            return [UIMenu menuWithTitle:self.objects[indexPath.row] children:menuItems];
+        }
+    ];
 }
 
 @end

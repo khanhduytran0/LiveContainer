@@ -4,7 +4,7 @@
 #include <libarchive/archive_entry.h>
 
 static int
-copy_data(struct archive *ar, struct archive *aw)
+copy_data(struct archive *ar, struct archive *aw, NSProgress *progress)
 {
   int r;
   const void *buff;
@@ -22,10 +22,11 @@ copy_data(struct archive *ar, struct archive *aw)
       fprintf(stderr, "%s\n", archive_error_string(aw));
       return (r);
     }
+    progress.completedUnitCount += size;
   }
 }
 
-int extract(NSString* fileToExtract, NSString* extractionPath)
+int extract(NSString* fileToExtract, NSString* extractionPath, NSProgress* progress)
 {
     struct archive *a;
     struct archive *ext;
@@ -39,23 +40,46 @@ int extract(NSString* fileToExtract, NSString* extractionPath)
     flags |= ARCHIVE_EXTRACT_ACL;
     flags |= ARCHIVE_EXTRACT_FFLAGS;
 
+    // Calculate decompressed size
     a = archive_read_new();
     archive_read_support_format_all(a);
     archive_read_support_filter_all(a);
+    if ((r = archive_read_open_filename(a, fileToExtract.fileSystemRepresentation, 10240))) {
+        archive_read_free(a);
+        return 1;
+    }
+    while ((r = archive_read_next_header(a, &entry)) != ARCHIVE_EOF) {
+        if (r < ARCHIVE_OK)
+            fprintf(stderr, "%s\n", archive_error_string(a));
+        if (r < ARCHIVE_WARN) {
+            archive_read_close(a);
+            archive_read_free(a);
+            return 1;
+        }
+        progress.totalUnitCount += archive_entry_size(entry);
+    }
+    archive_read_close(a);
+    archive_read_free(a);
+
+    // Re-open the archive and extract
+    a = archive_read_new();
+    archive_read_support_format_all(a);
+    archive_read_support_filter_all(a);
+    if ((r = archive_read_open_filename(a, fileToExtract.fileSystemRepresentation, 10240))) {
+        archive_read_free(a);
+        return 1;
+    }
     ext = archive_write_disk_new();
     archive_write_disk_set_options(ext, flags);
     archive_write_disk_set_standard_lookup(ext);
-    if ((r = archive_read_open_filename(a, fileToExtract.fileSystemRepresentation, 10240)))
-        return 1;
-    for (;;)
-    {
-        r = archive_read_next_header(a, &entry);
+
+    while ((r = archive_read_next_header(a, &entry)) != ARCHIVE_EOF) {
         if (r == ARCHIVE_EOF)
             break;
         if (r < ARCHIVE_OK)
             fprintf(stderr, "%s\n", archive_error_string(a));
         if (r < ARCHIVE_WARN)
-            return 1;
+            break;
         
         NSString* currentFile = [NSString stringWithUTF8String:archive_entry_pathname(entry)];
         NSString* fullOutputPath = [extractionPath stringByAppendingPathComponent:currentFile];
@@ -66,17 +90,17 @@ int extract(NSString* fileToExtract, NSString* extractionPath)
         if (r < ARCHIVE_OK)
             fprintf(stderr, "%s\n", archive_error_string(ext));
         else if (archive_entry_size(entry) > 0) {
-            r = copy_data(a, ext);
+            r = copy_data(a, ext, progress);
             if (r < ARCHIVE_OK)
                 fprintf(stderr, "%s\n", archive_error_string(ext));
             if (r < ARCHIVE_WARN)
-                return 1;
+                break;
         }
         r = archive_write_finish_entry(ext);
         if (r < ARCHIVE_OK)
             fprintf(stderr, "%s\n", archive_error_string(ext));
         if (r < ARCHIVE_WARN)
-            return 1;
+            break;
     }
     archive_read_close(a);
     archive_read_free(a);

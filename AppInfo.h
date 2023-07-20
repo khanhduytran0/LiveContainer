@@ -12,6 +12,8 @@
 - (NSString*)bundlePath;
 - (NSString*)bundleIdentifier;
 - (NSString*)version;
-- (NSString*)LCDataUUID;
+- (NSString*)dataUUID;
+- (void)setDataUUID:(NSString *)uuid;
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
+- (void)save;
 @end

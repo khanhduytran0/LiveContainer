@@ -36,12 +36,16 @@
     return _info[@"CFBundleIdentifier"];
 }
 
-- (NSString*)LCDataUUID {
+- (NSString*)dataUUID {
     if (!_info[@"LCDataUUID"]) {
-        _info[@"LCDataUUID"] = NSUUID.UUID.UUIDString;
-        [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
+        self.dataUUID = NSUUID.UUID.UUIDString;
     }
     return _info[@"LCDataUUID"];
+}
+
+- (void)setDataUUID:(NSString *)uuid {
+    _info[@"LCDataUUID"] = uuid;
+    [self save];
 }
 
 - (NSString*)bundlePath {
@@ -58,5 +62,9 @@
         icon = [UIImage imageNamed:@"DefaultIcon"];
     }
     return icon;
+}
+
+- (void)save {
+    [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
 }
 @end
