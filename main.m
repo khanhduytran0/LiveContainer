@@ -111,6 +111,9 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     // Bypass library validation so we can load arbitrary binaries
     init_bypassDyldLibValidation();
 
+    // Bind _dyld_get_all_image_infos
+    dlopen("@executable_path/Frameworks/FixCydiaSubstrate.dylib", RTLD_GLOBAL | RTLD_NOW); dlerror();
+
     // Overwrite @executable_path
     const char **path = _CFGetProcessPath();
     const char *oldPath = *path;

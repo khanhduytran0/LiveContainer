@@ -6,6 +6,8 @@ Run unsigned iOS app without actually installing it!
 ## Building
 ```
 export THEOS=/path/to/theos
+git submodule init
+git submodule update
 make package
 ```
 
@@ -63,5 +65,6 @@ Requires SideStore; AltStore does not work because it expects the app opened bef
 ## Credits
 - [xpn's blogpost: Restoring Dyld Memory Loading](https://blog.xpnsec.com/restoring-dyld-memory-loading)
 - [LinusHenze's CFastFind](https://github.com/pinauten/PatchfinderUtils/blob/master/Sources/CFastFind/CFastFind.c): [MIT license](https://github.com/pinauten/PatchfinderUtils/blob/master/LICENSE)
-- @haxi0 for icon
+- [fishhook](https://github.com/facebook/fishhook): [BSD 3-Clause license](https://github.com/facebook/fishhook/blob/main/LICENSE)
 - [MBRoundProgressView](https://gist.github.com/saturngod/1224648)
+- @haxi0 for icon

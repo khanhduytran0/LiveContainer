@@ -4,13 +4,16 @@ PACKAGE_FORMAT = ipa
 INSTALL_TARGET_PROCESSES = LiveContainer
 include $(THEOS)/makefiles/common.mk
 
+LIBRARY_NAME = FixCydiaSubstrate LiveContainerUI
+# Build FixCydiaSubstrate
+FixCydiaSubstrate_FILES = FixCydiaSubstrate.c fishhook/fishhook.c
+FixCydiaSubstrate_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 # Build the UI library
-LIBRARY_NAME = LiveContainerUI
-$(LIBRARY_NAME)_FILES = LCAppDelegate.m LCConfigTableViewController.m LCGuestAppConfigViewController.m LCRootViewController.m MBRoundProgressView.m unarchive.m AppInfo.m
-$(LIBRARY_NAME)_CFLAGS = -fobjc-arc
-$(LIBRARY_NAME)_FRAMEWORKS = CoreGraphics QuartzCore UIKit UniformTypeIdentifiers
-$(LIBRARY_NAME)_LIBRARIES = archive
-$(LIBRARY_NAME)_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
+LiveContainerUI_FILES = LCAppDelegate.m LCConfigTableViewController.m LCGuestAppConfigViewController.m LCRootViewController.m MBRoundProgressView.m unarchive.m AppInfo.m
+LiveContainerUI_CFLAGS = -fobjc-arc
+LiveContainerUI_FRAMEWORKS = CoreGraphics QuartzCore UIKit UniformTypeIdentifiers
+LiveContainerUI_LIBRARIES = archive
+LiveContainerUI_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 include $(THEOS_MAKE_PATH)/library.mk
 
 # Build the app

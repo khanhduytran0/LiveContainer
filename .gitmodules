@@ -1,0 +1,3 @@
+[submodule "fishhook"]
+	path = fishhook
+	url = https://github.com/khanhduytran0/fishhook

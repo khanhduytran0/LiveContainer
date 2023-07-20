@@ -17,7 +17,10 @@ jobs:
         uses: Randomblock1/theos-action@v1.1
 
       - name: Build
-        run:  make package FINALPACKAGE=1
+        run: |
+          git submodule init
+          git submodule update
+          make package FINALPACKAGE=1
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
