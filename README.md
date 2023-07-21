@@ -3,6 +3,9 @@ Run unsigned iOS app without actually installing it!
 - Allows you to install unlimited apps (10 apps limit of free developer account do not apply here!)
 - Codesigning is entirely bypassed (requires JIT), no need to sign your apps before installing.
 
+## Compatibility
+Unfortunately not all apps work in LiveContainer so we have a [compatibility list](https://github.com/khanhduytran0/LiveContainer/labels/compatibility) to tell if there is apps that have issues. If they arent on this list. Then its likely going run. However, if it doesnt work please make a [github issue](https://github.com/khanhduytran0/LiveContainer/issues/new/choose) about it.
+
 ## Building
 ```
 export THEOS=/path/to/theos
