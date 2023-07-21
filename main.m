@@ -71,7 +71,8 @@ static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* cont
     size_t newLen = strlen(newPath);
     // Check if it's long enough...
     assert(maxLen >= newLen);
-    builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    assert(ret == KERN_SUCCESS);
     bzero(path, maxLen);
     strncpy(path, newPath, newLen);
 }
