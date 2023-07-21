@@ -77,11 +77,11 @@ static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* cont
         strncpy(path, newPath, newLen);
     } else {
         // For some reason, changing protection may fail, let's overwrite pointer instead
-        // Given x6 is the closest one to reach process.mainExecutablePath
-        assert(ucontext->uc_mcontext->__ss.__x[6] >= 0x100000000);
-        char **ptrToSomewhere = (char **)ucontext->uc_mcontext->__ss.__x[6];
-        for (int i = 0; i < 0x4000; i++) {
-            ptrToSomewhere -= 8;
+        // Given x22 is the closest one to reach process.mainExecutablePath
+        assert(ucontext->uc_mcontext->__ss.__x[22] >= 0x100000000);
+        char **ptrToSomewhere = (char **)ucontext->uc_mcontext->__ss.__x[22];
+        for (int i = 0; i < 10; i++) {
+            ++ptrToSomewhere;
             if (*ptrToSomewhere == path) {
                 break;
             }
