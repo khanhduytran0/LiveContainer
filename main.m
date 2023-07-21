@@ -149,7 +149,7 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     init_bypassDyldLibValidation();
 
     // Bind _dyld_get_all_image_infos
-    dlopen("@executable_path/Frameworks/FixCydiaSubstrate.dylib", RTLD_GLOBAL | RTLD_NOW); dlerror();
+    init_fixCydiaSubstrate();
 
     // Overwrite @executable_path
     const char **path = _CFGetProcessPath();

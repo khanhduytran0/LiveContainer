@@ -82,26 +82,7 @@ static bool searchAndPatch(char *name, char *base, char *signature, int length, 
 }
 
 static void *getDyldBase(void) {
-    struct task_dyld_info dyld_info;
-    mach_vm_address_t image_infos;
-    struct dyld_all_image_infos *infos;
-    
-    mach_msg_type_number_t count = TASK_DYLD_INFO_COUNT;
-    kern_return_t ret;
-    
-    ret = task_info(mach_task_self_,
-                    TASK_DYLD_INFO,
-                    (task_info_t)&dyld_info,
-                    &count);
-    
-    if (ret != KERN_SUCCESS) {
-        return NULL;
-    }
-    
-    image_infos = dyld_info.all_image_info_addr;
-    
-    infos = (struct dyld_all_image_infos *)image_infos;
-    return (void *)infos->dyldImageLoadAddress;
+    return (void *)_alt_dyld_get_all_image_infos()->dyldImageLoadAddress;
 }
 
 static void* hooked_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
