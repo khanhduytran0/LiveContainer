@@ -72,9 +72,26 @@ static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* cont
     // Check if it's long enough...
     assert(maxLen >= newLen);
     kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
-    assert(ret == KERN_SUCCESS);
-    bzero(path, maxLen);
-    strncpy(path, newPath, newLen);
+    if (ret == KERN_SUCCESS) {
+        bzero(path, maxLen);
+        strncpy(path, newPath, newLen);
+    } else {
+        // For some reason, changing protection may fail, let's overwrite pointer instead
+        // Given x6 is the closest one to reach process.mainExecutablePath
+        assert(ucontext->uc_mcontext->__ss.__x[6] >= 0x100000000);
+        char **ptrToSomewhere = (char **)ucontext->uc_mcontext->__ss.__x[6];
+        for (int i = 0; i < 0x4000; i++) {
+            ptrToSomewhere -= 8;
+            if (*ptrToSomewhere == path) {
+                break;
+            }
+        }
+        assert(*ptrToSomewhere == path);
+        ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)ptrToSomewhere, sizeof(void *), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+        // fails again?
+        assert(ret == KERN_SUCCESS);
+        *ptrToSomewhere = newPath;
+    }
 }
 static void overwriteExecPath(NSString *bundlePath) {
     // Silly workaround: we have set our executable name 100 characters long, now just overwrite its path with our fake executable file
