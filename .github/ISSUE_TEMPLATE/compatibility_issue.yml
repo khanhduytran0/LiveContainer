@@ -11,7 +11,7 @@ body:
     id: description
     attributes:
       label: Describe the issue
-      description: What is the probldm? How did you discover it?
+      description: What is the problem? How did you discover it?
       placeholder: Please be concise with your explaination.
     validations:
       required: true
@@ -26,7 +26,7 @@ body:
     id: app-version
     attributes:
       label: What version of LiveContainer are you using?
-      description: To retrieve this, go to `Settings app > general > iphone/ipad storage > LiveContainer` then copy the version below name.
+      description: To retrieve this, go to `Settings app > General > iPhone/iPad storage > LiveContainer` then copy the version below name.
     validations:
       required: true
   - type: textarea
