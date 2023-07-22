@@ -1,0 +1,37 @@
+name: Bug Report
+description: Report a bug
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! Before you continue filling out the report, please **[search in GitHub Issues](https://github.com/khanhduytran0/LiveContainer/issues) for the bug you are experiencing.**
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: What is the bug and how did you discover it?
+      placeholder: Please be concise with your description.
+    validations:
+      required: true
+  - type: textarea
+    id: how-to-reproduce
+    attributes:
+      label: Instructions to reproduce
+      description: Please include consistent instructions for reproducing the bug.
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: What version of LiveContainer are you using?
+      description: To retrieve this, go to `Settings app > general > iphone/ipad storage > LiveContainer` then copy the version below name.
+    validations:
+      required: true
+  - type: textarea
+    id: other-info
+    attributes:
+      label: Other info
+      description: If you have any other info that might be useful, or if you found a workaround, please put it here.
