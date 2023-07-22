@@ -5,6 +5,25 @@ void __assert_rtn(const char* func, const char* file, int line, const char* fail
     abort(); // silent compiler warning
 }
 
+uint64_t aarch64_get_tbnz_jump_address(uint32_t instruction, uint64_t pc) {
+    // Check that this is a tbnz instruction
+    if ((instruction & 0xFF000000) != 0x37000000) {
+        return 0;
+    }
+
+    uint32_t imm = ((instruction >> 5) & 0xFFFF) * 4;
+    return imm + pc;
+}
+
+const char *LCHomePath() {
+    static const char *path;
+    if (path) return path;
+    const char *pathEnv = getenv("HOME");
+    path = calloc(1, strlen(pathEnv)+1);
+    strncpy((char *)path, pathEnv, strlen(pathEnv));
+    return path;
+}
+
 // https://github.com/pinauten/PatchfinderUtils/blob/master/Sources/CFastFind/CFastFind.c
 //
 //  CFastFind.c

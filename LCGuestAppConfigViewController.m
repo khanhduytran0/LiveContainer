@@ -52,6 +52,16 @@
               @"enableCondition": ^BOOL(){
                   return NO;
               }
+            },
+            @{@"key": @"ResetSettings",
+              @"icon": @"trash",
+              @"title": @"Reset NSUserDefaults",
+              @"type": self.typeButton,
+              @"showConfirmPrompt": @YES,
+              @"destructive": @YES,
+              @"action": ^void(){
+                  //[[NSUserDefaults alloc] initWithSuiteName:weakSelf.info.bundleIdentifier];
+              }
             }
         ]
     ];

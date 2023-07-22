@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import "LCAppDelegate.h"
+#import "UIKitPrivate.h"
 #import "utils.h"
 
 #include <mach/mach.h>
@@ -11,16 +12,7 @@
 #include <execinfo.h>
 #include <signal.h>
 #include <sys/mman.h>
-
-static NSBundle *overwrittenBundle;
-@implementation NSBundle(LC_iOS12)
-+ (id)hooked_mainBundle {
-    if (overwrittenBundle) {
-        return overwrittenBundle;
-    }
-    return self.hooked_mainBundle;
-}
-@end
+#include <stdlib.h>
 
 static int (*appMain)(int, char**);
 
@@ -36,7 +28,33 @@ static BOOL checkJITEnabled() {
     return (flags & CS_DEBUGGED) != 0;
 }
 
-static BOOL overwriteMainBundle(NSBundle *newBundle) {
+static uint64_t rnd64(uint64_t v, uint64_t r) {
+    r--;
+    return (v + r) & ~r;
+}
+
+static void overwriteMainCFBundle() {
+    // Overwrite CFBundleGetMainBundle
+    uint32_t *pc = (uint32_t *)CFBundleGetMainBundle;
+    void **mainBundleAddr = 0;
+    while (true) {
+        uint64_t addr = aarch64_get_tbnz_jump_address(*pc, (uint64_t)pc);
+        if (addr) {
+            // adrp <- pc-1
+            // tbnz <- pc
+            // ...
+            // ldr  <- addr
+            mainBundleAddr = (void **)aarch64_emulate_adrp_ldr(*(pc-1), *(uint32_t *)addr, (uint64_t)(pc-1));
+            break;
+        }
+        ++pc;
+    }
+    assert(mainBundleAddr != NULL);
+    *mainBundleAddr = (__bridge void *)NSBundle.mainBundle._cfBundle;
+}
+
+static void overwriteMainNSBundle(NSBundle *newBundle) {
+    // Overwrite NSBundle.mainBundle
     NSString *oldPath = NSBundle.mainBundle.executablePath;
     uint32_t *mainBundleImpl = (uint32_t *)method_getImplementation(class_getClassMethod(NSBundle.class, @selector(mainBundle)));
     for (int i = 0; i < 20; i++) {
@@ -50,7 +68,7 @@ static BOOL overwriteMainBundle(NSBundle *newBundle) {
         }
     }
 
-    return ![NSBundle.mainBundle.executablePath isEqualToString:oldPath];
+    assert(![NSBundle.mainBundle.executablePath isEqualToString:oldPath]);
 }
 
 static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* context) {
@@ -67,37 +85,33 @@ static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* cont
 
     char *path = (char *)ucontext->uc_mcontext->__ss.__x[21];
     char *newPath = (char *)_dyld_get_image_name(0);
-    size_t maxLen = strlen(path);
+    size_t maxLen = rnd64(strlen(path), 8);
     size_t newLen = strlen(newPath);
     // Check if it's long enough...
     assert(maxLen >= newLen);
-    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
-    if (ret == KERN_SUCCESS) {
-        bzero(path, maxLen);
-        strncpy(path, newPath, newLen);
-    } else {
-        // For some reason, changing protection may fail, let's overwrite pointer instead
-        // Given x22 is the closest one to reach process.mainExecutablePath
-        assert(ucontext->uc_mcontext->__ss.__x[22] >= 0x100000000);
-        char **ptrToSomewhere = (char **)ucontext->uc_mcontext->__ss.__x[22];
-        for (int i = 0; i < 10; i++) {
-            ++ptrToSomewhere;
-            if (*ptrToSomewhere == path) {
-                break;
-            }
-        }
-        assert(*ptrToSomewhere == path);
-        ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)ptrToSomewhere, sizeof(void *), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
-        // fails again?
-        assert(ret == KERN_SUCCESS);
-        *ptrToSomewhere = newPath;
+    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, rnd64(maxLen, 8), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+
+    // FIXME: mass vm_protect to avoid failing at any chance
+    if (ret != KERN_SUCCESS) {
+        ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE);
     }
+    if (ret != KERN_SUCCESS) {
+        ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    }
+    if (ret != KERN_SUCCESS) {
+        builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | VM_PROT_COPY);
+        ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    }
+
+    assert(ret == KERN_SUCCESS);
+    bzero(path, maxLen);
+    strncpy(path, newPath, newLen);
 }
 static void overwriteExecPath(NSString *bundlePath) {
     // Silly workaround: we have set our executable name 100 characters long, now just overwrite its path with our fake executable file
     char *path = (char *)_dyld_get_image_name(0);
     const char *newPath = [bundlePath stringByAppendingPathComponent:@"LiveContainer"].UTF8String;
-    size_t maxLen = strlen(path);
+    size_t maxLen = rnd64(strlen(path), 8);
     size_t newLen = strlen(newPath);
     // Check if it's long enough...
     assert(maxLen >= newLen);
@@ -105,7 +119,8 @@ static void overwriteExecPath(NSString *bundlePath) {
     close(open(newPath, O_CREAT | S_IRUSR | S_IWUSR));
 
     // Make it RW and overwrite now
-    builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    assert(ret == KERN_SUCCESS);
     bzero(path, maxLen);
     strncpy(path, newPath, newLen);
     // Don't change back to RO to avoid any issues related to memory access
@@ -207,19 +222,13 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     }
     NSLog(@"[LCBootstrap] loaded bundle");
 
-    if (@available(iOS 14.0, *)) {
-        if (!overwriteMainBundle(appBundle)) {
-            appError = @"Failed to overwrite main bundle";
-            *path = oldPath;
-            return appError;
-        }
-    } else {
-        // On iOS 12 (and 13?) direct overwriting also overwrites the underlying CFBundle,
-        // causing _GSRegisterPurpleNamedPortInPrivateNamespace to fail due to
-        // GetIdentifierCString returning guest app's identifier. Use a different route.
-        method_exchangeImplementations(class_getClassMethod(NSBundle.class, @selector(mainBundle)), class_getClassMethod(NSBundle.class, @selector(hooked_mainBundle)));
-        overwrittenBundle = appBundle;
-    }
+    // Overwrite NSBundle
+    overwriteMainNSBundle(appBundle);
+
+    // Overwrite CFBundle. This should only be done after run loop starts
+    dispatch_async(dispatch_get_main_queue(), ^{
+        overwriteMainCFBundle();
+    });
 
     // Overwrite executable info
     NSMutableArray<NSString *> *objcArgv = NSProcessInfo.processInfo.arguments.mutableCopy;
@@ -232,6 +241,10 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, appBundle.infoDictionary[@"LCDataUUID"]];
     setenv("CFFIXED_USER_HOME", newHomePath.UTF8String, 1);
     setenv("HOME", newHomePath.UTF8String, 1);
+    setenv("TMPDIR", [@(getenv("TMPDIR")) stringByAppendingFormat:@"/%@/tmp", appBundle.infoDictionary[@"LCDataUUID"]].UTF8String, 1);
+
+    // Overwrite NSUserDefaults
+    NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
 
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);
@@ -251,8 +264,8 @@ int LiveContainerMain(int argc, char *argv[]) {
     NSString *selectedApp = [NSUserDefaults.standardUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
         NSSetUncaughtExceptionHandler(&exceptionHandler);
+        LCHomePath(); // init host home path
         appError = invokeAppMain(selectedApp, argc, argv);
-        // don't return, let invokeAppMain takeover or continue to LiveContainerUI
     }
 
     if (appError) {

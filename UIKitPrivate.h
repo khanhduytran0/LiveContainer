@@ -1,5 +1,13 @@
 #import <UIKit/UIKit.h>
 
+@interface NSBundle(private)
+- (id)_cfBundle;
+@end
+
+@interface NSUserDefaults(private)
++ (void)setStandardUserDefaults:(id)defaults;
+@end
+
 @interface UIImage(private)
 - (UIImage *)_imageWithSize:(CGSize)size;
 @end
