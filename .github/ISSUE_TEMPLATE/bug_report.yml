@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report! Before you continue filling out the report, please **[search in GitHub Issues](https://github.com/SideStore/SideStore/issues?q=is%3Aissue+is%3Aopen) for the bug you are experiencing.**
+        Thanks for taking the time to fill out this bug report! Before you continue filling out the report, please **[search in GitHub Issues](https://github.com/khanhduytran0/LiveContainer/issues) for the bug you are experiencing.**
 
   - type: textarea
     id: description
