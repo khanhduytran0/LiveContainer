@@ -1,5 +1,4 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
-#import "LCGuestAppConfigViewController.h"
 #import "LCRootViewController.h"
 #import "MBRoundProgressView.h"
 #import "UIKitPrivate.h"
@@ -395,6 +394,11 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         return;
     }
 
+    // Setup data directory
+    NSString *dataPath = [NSString stringWithFormat:@"%@/Data/Application/%@", self.docPath, info[@"LCDataUUID"]];
+    [NSFileManager.defaultManager createDirectoryAtPath:dataPath withIntermediateDirectories:YES attributes:nil error:nil];
+
+    // Update patch
     int currentPatchRev = 4;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
@@ -407,19 +411,44 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 - (UIContextMenuConfiguration *)tableView:(UITableView *)tableView contextMenuConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath point:(CGPoint)point {
     if (self.objects[indexPath.row].length == 0) return nil;
 
+    NSFileManager *fm = NSFileManager.defaultManager;
     AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
-    NSArray *menuItems = @[
-        [UIAction
-            actionWithTitle:@"Edit"
-            image:[UIImage systemImageNamed:@"pencil"]
-            identifier:nil
+
+    NSString *dataPath = [NSString stringWithFormat:@"%@/Data/Application", self.docPath];
+    NSArray *dataFolderNames = [fm contentsOfDirectoryAtPath:dataPath error:nil];
+    NSMutableArray<UIAction *> *dataFolderItems = [NSMutableArray array];
+    dataFolderItems[0] = [UIAction
+        actionWithTitle:@"Add data folder"
+        image:[UIImage systemImageNamed:@"folder.badge.plus"]
+        identifier:nil
+        handler:^(UIAction *action) {
+            // TODO: custom name
+            appInfo.dataUUID = NSUUID.UUID.UUIDString;
+            NSString *uuidPath = [dataPath stringByAppendingPathComponent:appInfo.dataUUID];
+            [fm createDirectoryAtPath:uuidPath withIntermediateDirectories:YES attributes:nil error:nil];
+            [self.tableView reloadData];
+        }
+    ];
+    for (int i = 1; i < dataFolderNames.count; i++) {
+        dataFolderItems[i] = [UIAction
+            actionWithTitle:dataFolderNames[i]
+            image:nil identifier:nil
             handler:^(UIAction *action) {
-                LCGuestAppConfigViewController *vc = [LCGuestAppConfigViewController new];
-                vc.info = appInfo;
-                UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
-                [self presentViewController:nav animated:YES completion:nil];
-            }
-        ],
+                appInfo.dataUUID = dataFolderNames[i];
+                [self.tableView reloadData];
+            }];
+        if ([appInfo.dataUUID isEqualToString:dataFolderNames[i]]) {
+            dataFolderItems[i].state = UIMenuElementStateOn;
+        }
+    }
+
+    NSArray *menuItems = @[
+        [UIMenu
+            menuWithTitle:@"Change data folder"
+            image:[UIImage systemImageNamed:@"folder.badge.questionmark"]
+            identifier:nil
+            options:0
+            children:dataFolderItems],
         [UIAction
             actionWithTitle:@"Open data folder"
             image:[UIImage systemImageNamed:@"folder"]
@@ -427,8 +456,32 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
             handler:^(UIAction *action) {
                 NSString *url = [NSString stringWithFormat:@"shareddocuments://%@/Data/Application/%@", self.docPath, appInfo.dataUUID];
                 [UIApplication.sharedApplication openURL:[NSURL URLWithString:url] options:@{} completionHandler:nil];
-            }
-        ]
+            }],
+        [self
+            destructiveActionWithTitle:@"Reset settings"
+            image:[UIImage systemImageNamed:@"trash"]
+            handler:^(UIAction *action) {
+                // FIXME: delete non-standard user defaults?
+                NSError *error;
+                NSString *prefPath = [NSString stringWithFormat:@"%s/Library/Preferences/%@.plist", getenv("HOME"), appInfo.bundleIdentifier];
+                [fm removeItemAtPath:prefPath error:&error];
+                if (error) {
+                    [self showDialogTitle:@"Error" message:error.localizedDescription];
+                }
+            }],
+        [self
+            destructiveActionWithTitle:@"Reset app data"
+            image:[UIImage systemImageNamed:@"trash"]
+            handler:^(UIAction *action) {
+                NSError *error;
+                NSString *uuidPath = [dataPath stringByAppendingPathComponent:appInfo.dataUUID];
+                [fm removeItemAtPath:uuidPath error:&error];
+                if (error) {
+                    [self showDialogTitle:@"Error" message:error.localizedDescription];
+                    return;
+                }
+                [fm createDirectoryAtPath:uuidPath withIntermediateDirectories:YES attributes:nil error:nil];
+            }]
     ];
 
     return [UIContextMenuConfiguration
@@ -436,8 +489,23 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         previewProvider:nil
         actionProvider:^UIMenu *(NSArray<UIMenuElement *> *suggestedActions) {
             return [UIMenu menuWithTitle:self.objects[indexPath.row] children:menuItems];
-        }
-    ];
+        }];
+}
+
+- (UIMenu *)destructiveActionWithTitle:(NSString *)title image:(UIImage *)image handler:(id)handler {
+    UIAction *confirmAction = [UIAction
+        actionWithTitle:title
+        image:image
+        identifier:nil
+        handler:handler];
+    confirmAction.attributes = UIMenuElementAttributesDestructive;
+    UIMenu *menu = [UIMenu
+        menuWithTitle:title
+        image:image
+        identifier:nil
+        options:UIMenuOptionsDestructive
+        children:@[confirmAction]];
+    return menu;
 }
 
 @end
