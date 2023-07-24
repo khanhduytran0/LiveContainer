@@ -4,10 +4,18 @@ PACKAGE_FORMAT = ipa
 INSTALL_TARGET_PROCESSES = LiveContainer
 include $(THEOS)/makefiles/common.mk
 
+CONFIG_TYPE = $(if $(FINALPACKAGE),release,debug)
+CONFIG_BRANCH = $(shell git branch --show-current)
+CONFIG_COMMIT = $(shell git log --oneline | sed '2,10000000d' | cut -b 1-7)
+
 # Build the UI library
 LIBRARY_NAME = LiveContainerUI
 LiveContainerUI_FILES = LCAppDelegate.m LCRootViewController.m MBRoundProgressView.m unarchive.m AppInfo.m
-LiveContainerUI_CFLAGS = -fobjc-arc
+LiveContainerUI_CFLAGS = \
+  -fobjc-arc \
+  -DCONFIG_TYPE=\"$(CONFIG_TYPE)\" \
+  -DCONFIG_BRANCH=\"$(CONFIG_BRANCH)\" \
+  -DCONFIG_COMMIT=\"$(CONFIG_COMMIT)\"
 LiveContainerUI_FRAMEWORKS = CoreGraphics QuartzCore UIKit UniformTypeIdentifiers
 LiveContainerUI_LIBRARIES = archive
 LiveContainerUI_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks

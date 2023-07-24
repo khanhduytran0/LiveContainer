@@ -307,6 +307,12 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     return 1;
 }
 
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    return [NSString stringWithFormat:@"Version %@-%s (%s/%s)",
+        NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"],
+        CONFIG_TYPE, CONFIG_BRANCH, CONFIG_COMMIT];
+}
+
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     return _objects.count;
 }
