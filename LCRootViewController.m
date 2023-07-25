@@ -313,6 +313,24 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         CONFIG_TYPE, CONFIG_BRANCH, CONFIG_COMMIT];
 }
 
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    UITableViewHeaderFooterView *header = [UITableViewHeaderFooterView new];
+    header.text = [self tableView:tableView titleForHeaderInSection:section];
+    UIButton *hiddenHeaderButton = [[UIButton alloc] initWithFrame:header.frame];
+    hiddenHeaderButton.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    hiddenHeaderButton.menu = [UIMenu menuWithChildren:@[
+        [UIAction
+            actionWithTitle:@"Copy"
+            image:[UIImage systemImageNamed:@"doc.on.clipboard"]
+            identifier:nil
+            handler:^(UIAction *action) {
+                UIPasteboard.generalPasteboard.string = header.textLabel.text;
+            }],
+    ]];
+    [header addSubview:hiddenHeaderButton];
+    return header;
+}
+
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     return _objects.count;
 }

@@ -24,3 +24,8 @@
 @property(nonatomic) NSInteger preferredLayout;
 + (instancetype)defaultStyle;
 @end
+
+@interface UITableViewHeaderFooterView(private)
+- (void)setText:(NSString *)text;
+- (NSString *)text;
+@end

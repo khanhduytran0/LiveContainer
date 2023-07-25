@@ -27,7 +27,7 @@ body:
     id: app-version
     attributes:
       label: What version of LiveContainer are you using?
-      description: To retrieve this, go to `Settings app > general > iphone/ipad storage > LiveContainer` then copy the version below name.
+      description: To retrieve this, open LiveContainer, then hold and copy the version line.
     validations:
       required: true
   - type: textarea
