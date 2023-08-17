@@ -206,7 +206,9 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
             id handler = ^(UIAlertAction *action) {
                 selectedAction = [alert.actions indexOfObject:action];
                 if (selectedAction == 0) { // Replace
-                    [self deleteAppAtIndexPath:[NSIndexPath indexPathForRow:[self.objects indexOfObject:AppName] inSection:0]];
+                    NSIndexPath *indexPath = [NSIndexPath indexPathForRow:[self.objects indexOfObject:AppName] inSection:0];
+                    [self.objects removeObjectAtIndex:indexPath.row];
+                    [self.tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
                 }
                 dispatch_group_leave(group);
             };
@@ -219,15 +221,15 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
     }
 
-    NSString *dataUUID = NSUUID.UUID.UUIDString;
+    NSString *dataUUID = [NSDictionary dictionaryWithContentsOfFile:
+        [outPath stringByAppendingPathComponent:@"Info.plist"]][@"LCDataUUID"];
     switch (selectedAction) {
         case 0: // Replace, handled in the action block
+            [NSFileManager.defaultManager removeItemAtPath:outPath error:nil];
             break;
-        case 1: // Keep both, share data
-            dataUUID = [NSDictionary dictionaryWithContentsOfFile:
-                [outPath stringByAppendingPathComponent:@"Info.plist"]][@"LCDataUUID"];
-            // note: don't break; here!
         case 2: // Keep both, don't share data
+            dataUUID = NSUUID.UUID.UUIDString;
+        case 1: // Keep both, share data
             AppName = [NSString stringWithFormat:@"%@%ld.app", [AppName substringToIndex:AppName.length-4], (long)CFAbsoluteTimeGetCurrent()];
             outPath = [self.bundlePath stringByAppendingPathComponent:AppName];
             break;
