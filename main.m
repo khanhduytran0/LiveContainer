@@ -90,7 +90,12 @@ static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* cont
     // Check if it's long enough...
     assert(maxLen >= newLen);
     kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, rnd64(maxLen, 8), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    if (ret != KERN_SUCCESS) {
+        NSLog(@"Failed to remap rw for executable_path, some apps will not work!");
+        return;
+    }
 
+#if 0
     // FIXME: mass vm_protect to avoid failing at any chance
     if (ret != KERN_SUCCESS) {
         ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE);
@@ -102,8 +107,9 @@ static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* cont
         builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | VM_PROT_COPY);
         ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
     }
-
     assert(ret == KERN_SUCCESS);
+#endif
+
     bzero(path, maxLen);
     strncpy(path, newPath, newLen);
 }
