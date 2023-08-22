@@ -269,16 +269,16 @@ static void exceptionHandler(NSException *exception) {
 }
 
 int LiveContainerMain(int argc, char *argv[]) {
-    NSString *appError = nil;
     NSString *selectedApp = [NSUserDefaults.standardUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
         NSSetUncaughtExceptionHandler(&exceptionHandler);
         LCHomePath(); // init host home path
-        appError = invokeAppMain(selectedApp, argc, argv);
-    }
-
-    if (appError) {
-        [NSUserDefaults.standardUserDefaults setObject:appError forKey:@"error"];
+        NSString *appError = invokeAppMain(selectedApp, argc, argv);
+        if (appError) {
+            [NSUserDefaults.standardUserDefaults setObject:appError forKey:@"error"];
+            // potentially unrecovable state, exit now
+            return 1;
+        }
     }
 
     void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerUI.dylib", RTLD_LAZY);
