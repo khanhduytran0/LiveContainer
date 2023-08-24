@@ -22,6 +22,14 @@ Requires SideStore; AltStore does not work because it expects the app opened bef
 - Tap the play icon, it will jump to SideStore and exit.
 - In SideStore, hold down LiveContainer and tap `Enable JIT`. If you have SideStore build supporting JIT URL scheme, it jumps back to LiveContainer with JIT enabled and the guest app is ready to use.
 
+### Installing external tweaks
+This feature is currently incomplete so you'll have to do the following manually.
+- Create your tweak folder at `LiveContainer/Tweaks/<YourTweakBundleName>`.
+- Download `CydiaSubstrate.framework` (you can get it from tweaked apps, this will be bundled into LiveContainer later) and place it into the tweak folder.
+- For each tweak, you need to fix the CydiaSubstrate rpath to point to `@loader_path/CydiaSubstrate.framework/CydiaSubstrate` using `install_name_tool`.
+- Put your patched tweaks into the tweak folder.
+- In the app picker screen, hold the app entry to change the tweak folder.
+
 ## How does it work?
 
 ### Patching guest executable
@@ -29,6 +37,7 @@ Requires SideStore; AltStore does not work because it expects the app opened bef
   + Change `vmaddr` to `0xFFFFC000` (`0x100000000 - 0x4000`)
   + Change `vmsize` to `0x4000`
 - Change `MH_EXECUTE` to `MH_DYLIB`.
+- Inject a load command to load `TweakLoader.dylib`
 
 ### Patching `@executable_path`
 - Call `_dyld_get_image_name(0)` to get image name pointer.
@@ -43,6 +52,7 @@ Requires SideStore; AltStore does not work because it expects the app opened bef
 
 ### dlopening the executable
 - Call `dlopen` with the guest app's executable
+- TweakLoader loads all tweaks in the selected folder
 - Find the entry point
 - Jump to the entry point
 - The guest app's entry point calls `UIApplicationMain` and start up like any other iOS apps.

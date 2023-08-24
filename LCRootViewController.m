@@ -16,10 +16,10 @@ static uint32_t rnd32(uint32_t v, uint32_t r) {
     return (v + r) & ~r;
 }
 
-static void insertDylibCommand(const char *path, struct mach_header_64 *header) {
-    char *name = basename((char *)path);
+static void insertDylibCommand(uint32_t cmd, const char *path, struct mach_header_64 *header) {
+    const char *name = cmd==LC_ID_DYLIB ? basename((char *)path) : path;
     struct dylib_command *dylib = (struct dylib_command *)(sizeof(struct mach_header_64) + (void *)header+header->sizeofcmds);
-    dylib->cmd = LC_ID_DYLIB;
+    dylib->cmd = cmd;
     dylib->cmdsize = sizeof(struct dylib_command) + rnd32((uint32_t)strlen(name) + 1, 8);
     dylib->dylib.name.offset = sizeof(struct dylib_command);
     dylib->dylib.compatibility_version = 0x10000;
@@ -37,21 +37,31 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     if (header->magic == MH_MAGIC_64) {
         //assert(header->flags & MH_PIE);
         header->filetype = MH_DYLIB;
+        header->flags |= MH_NO_REEXPORTED_DYLIBS;
         header->flags &= ~MH_PIE;
     }
 
-    // Add LC_ID_DYLIB
-    BOOL hasDylibCommand = NO;
+    BOOL hasDylibCommand = NO,
+         hasLoaderCommand = NO;
+    const char *tweakLoaderPath = "@loader_path/../../Tweaks/TweakLoader.dylib";
     struct load_command *command = (struct load_command *)imageHeaderPtr;
     for(int i = 0; i < header->ncmds > 0; i++) {
         if(command->cmd == LC_ID_DYLIB) {
             hasDylibCommand = YES;
-            break;
+        } else if(command->cmd == LC_LOAD_DYLIB) {
+            struct dylib_command *dylib = (struct dylib_command *)command;
+            char *dylibName = (void *)dylib + dylib->dylib.name.offset;
+            if (!strncmp(dylibName, tweakLoaderPath, strlen(tweakLoaderPath))) {
+                hasLoaderCommand = YES;
+            }
         }
         command = (struct load_command *)((void *)command + command->cmdsize);
     }
     if (!hasDylibCommand) {
-        insertDylibCommand(path, header);
+        insertDylibCommand(LC_ID_DYLIB, path, header);
+    }
+    if (!hasLoaderCommand) {
+        insertDylibCommand(LC_LOAD_DYLIB, tweakLoaderPath, header);
     }
 
     // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
@@ -66,7 +76,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 
 @interface LCRootViewController ()
 @property(atomic) NSMutableArray<NSString *> *objects;
-@property(nonatomic) NSString *bundlePath, *docPath;
+@property(nonatomic) NSString *bundlePath, *docPath, *tweakPath;
 
 @property(nonatomic) MBRoundProgressView *progressView;
 @end
@@ -109,13 +119,21 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"error"];
         [self showDialogTitle:@"Error" message:appError];
     }
+
     NSFileManager *fm = [NSFileManager defaultManager];
     self.docPath = [fm URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject.path;
+
     self.bundlePath = [NSString stringWithFormat:@"%@/Applications", self.docPath];
     [fm createDirectoryAtPath:self.bundlePath withIntermediateDirectories:YES attributes:nil error:nil];
     self.objects = [[fm contentsOfDirectoryAtPath:self.bundlePath error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
         return [object hasSuffix:@".app"];
     }]].mutableCopy;
+
+    // Setup tweak directory
+    self.tweakPath = [NSString stringWithFormat:@"%@/Tweaks", self.docPath];
+    [NSFileManager.defaultManager createDirectoryAtPath:self.tweakPath withIntermediateDirectories:NO attributes:nil error:nil];
+
+    // Setup action bar
     self.title = @"LiveContainer";
     self.navigationItem.rightBarButtonItems = @[
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemPlay target:self action:@selector(launchButtonTapped)],
@@ -144,6 +162,30 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
             if (handler) handler(action);
         }];
     [alert addAction:copyAction];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)showInputDialogTitle:(NSString *)title message:(NSString *)message placeholder:(NSString *)placeholder callback:(NSString *(^)(NSString *inputText))callback {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+        textField.placeholder = placeholder;
+        textField.clearButtonMode = UITextFieldViewModeWhileEditing;
+        textField.borderStyle = UITextBorderStyleRoundedRect;
+    }];
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        UITextField *textField = alert.textFields[0];
+        NSString *error = callback(textField.text.length == 0 ? placeholder : textField.text);
+        if (error) {
+            alert.message = error;
+        } else {
+            [self dismissViewControllerAnimated:YES completion:nil];
+        }
+    }];
+    okAction.shouldDismissHandler = ^{
+        return NO;
+    };
+    [alert addAction:okAction];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 
@@ -425,7 +467,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     [NSFileManager.defaultManager createDirectoryAtPath:dataPath withIntermediateDirectories:YES attributes:nil error:nil];
 
     // Update patch
-    int currentPatchRev = 4;
+    int currentPatchRev = 5;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
         [self patchExecutable:execPath.UTF8String];
@@ -445,18 +487,45 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     NSMutableArray<UIAction *> *dataFolderItems = [NSMutableArray array];
     dataFolderItems[0] = [UIAction
         actionWithTitle:@"Add data folder"
-        image:[UIImage systemImageNamed:@"folder.badge.plus"]
+        image:[UIImage systemImageNamed:@"plus"]
         identifier:nil
         handler:^(UIAction *action) {
-            // TODO: custom name
-            appInfo.dataUUID = NSUUID.UUID.UUIDString;
-            NSString *uuidPath = [dataPath stringByAppendingPathComponent:appInfo.dataUUID];
-            [fm createDirectoryAtPath:uuidPath withIntermediateDirectories:YES attributes:nil error:nil];
-            [self.tableView reloadData];
-        }
-    ];
-    for (int i = 1; i < dataFolderNames.count; i++) {
-        dataFolderItems[i] = [UIAction
+            [self showInputDialogTitle:dataFolderItems[0].title message:@"Enter name" placeholder:NSUUID.UUID.UUIDString callback:^(NSString *name) {
+                NSString *path = [dataPath stringByAppendingPathComponent:name];
+                NSError *error;
+                [fm createDirectoryAtPath:path withIntermediateDirectories:NO attributes:nil error:&error];
+                if (error) {
+                    return error.localizedDescription;
+                }
+                appInfo.dataUUID = name;
+                [self.tableView reloadData];
+                return (NSString *)nil;
+            }];
+        }];
+    dataFolderItems[1] = [UIAction
+        actionWithTitle:@"Rename data folder"
+        image:[UIImage systemImageNamed:@"pencil"]
+        identifier:nil
+        handler:^(UIAction *action) {
+            [self showInputDialogTitle:dataFolderItems[1].title message:@"Enter name" placeholder:appInfo.dataUUID callback:^(NSString *name) {
+                if ([name isEqualToString:appInfo.dataUUID]) {
+                    return (NSString *)nil;
+                }
+                NSString *source = [dataPath stringByAppendingPathComponent:appInfo.dataUUID];
+                NSString *dest = [dataPath stringByAppendingPathComponent:name];
+                NSError *error;
+                [fm moveItemAtPath:source toPath:dest error:&error];
+                if (error) {
+                    return error.localizedDescription;
+                }
+                appInfo.dataUUID = name;
+                [self.tableView reloadData];
+                return (NSString *)nil;
+            }];
+        }];
+    int reservedCount = dataFolderItems.count;
+    for (int i = 0; i < dataFolderNames.count; i++) {
+        dataFolderItems[i + reservedCount] = [UIAction
             actionWithTitle:dataFolderNames[i]
             image:nil identifier:nil
             handler:^(UIAction *action) {
@@ -464,11 +533,44 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
                 [self.tableView reloadData];
             }];
         if ([appInfo.dataUUID isEqualToString:dataFolderNames[i]]) {
-            dataFolderItems[i].state = UIMenuElementStateOn;
+            dataFolderItems[i + reservedCount].state = UIMenuElementStateOn;
+        }
+    }
+
+    NSArray *tweakFolderNames = [fm contentsOfDirectoryAtPath:self.tweakPath error:nil];
+    NSMutableArray<UIAction *> *tweakFolderItems = [NSMutableArray array];
+    tweakFolderItems[0] = [UIAction
+        actionWithTitle:@"<None>"
+        image:nil
+        identifier:nil
+        handler:^(UIAction *action) {
+            appInfo.tweakFolder = @"";
+        }];
+    if (appInfo.tweakFolder.length == 0) {
+        tweakFolderItems[0].state = UIMenuElementStateOn;
+    }
+
+    reservedCount = tweakFolderItems.count;
+    for (int i = 0; i < tweakFolderNames.count; i++) {
+        tweakFolderItems[i + reservedCount] = [UIAction
+            actionWithTitle:tweakFolderNames[i]
+            image:nil identifier:nil
+            handler:^(UIAction *action) {
+                appInfo.tweakFolder = tweakFolderNames[i];
+                //[self.tableView reloadData];
+            }];
+        if ([appInfo.tweakFolder isEqualToString:tweakFolderNames[i]]) {
+            tweakFolderItems[i + reservedCount].state = UIMenuElementStateOn;
         }
     }
 
     NSArray *menuItems = @[
+        [UIMenu
+            menuWithTitle:@"Change tweak folder"
+            image:[UIImage systemImageNamed:@"gearshape.2"]
+            identifier:nil
+            options:0
+            children:tweakFolderItems],
         [UIMenu
             menuWithTitle:@"Change data folder"
             image:[UIImage systemImageNamed:@"folder.badge.questionmark"]

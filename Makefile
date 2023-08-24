@@ -9,7 +9,6 @@ CONFIG_BRANCH = $(shell git branch --show-current)
 CONFIG_COMMIT = $(shell git log --oneline | sed '2,10000000d' | cut -b 1-7)
 
 # Build the UI library
-LIBRARY_NAME = LiveContainerUI
 LiveContainerUI_FILES = LCAppDelegate.m LCRootViewController.m MBRoundProgressView.m unarchive.m AppInfo.m
 LiveContainerUI_CFLAGS = \
   -fobjc-arc \
@@ -19,6 +18,15 @@ LiveContainerUI_CFLAGS = \
 LiveContainerUI_FRAMEWORKS = CoreGraphics QuartzCore UIKit UniformTypeIdentifiers
 LiveContainerUI_LIBRARIES = archive
 LiveContainerUI_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
+
+# Build the tweak loader
+TweakLoader_FILES = TweakLoader.m
+TweakLoader_CFLAGS = \
+  -fobjc-arc
+TweakLoader_FRAMEWORKS = Foundation
+TweakLoader_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
+
+LIBRARY_NAME = LiveContainerUI TweakLoader
 include $(THEOS_MAKE_PATH)/library.mk
 
 # Build the app

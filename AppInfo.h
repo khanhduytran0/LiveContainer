@@ -13,7 +13,9 @@
 - (NSString*)bundleIdentifier;
 - (NSString*)version;
 - (NSString*)dataUUID;
+- (NSString*)tweakFolder;
 - (void)setDataUUID:(NSString *)uuid;
+- (void)setTweakFolder:(NSString *)tweakFolder;
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
 - (void)save;
 @end

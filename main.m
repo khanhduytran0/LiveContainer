@@ -176,13 +176,26 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         return appError;
     }
 
-    [NSUserDefaults.standardUserDefaults removeObjectForKey:@"selected"];
-
-    NSString *docPath = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
+    NSFileManager *fm = NSFileManager.defaultManager;
+    NSString *docPath = [fm URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
         .lastObject.path;
     NSString *bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", docPath, selectedApp];
     NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
     NSError *error;
+
+    // Setup tweak loader
+    NSString *tweakFolder = appBundle.infoDictionary[@"LCTweakFolder"];
+    if (tweakFolder) {
+        tweakFolder = [NSString stringWithFormat:@"%@/Tweaks/%@", docPath, tweakFolder];
+        setenv("LC_TWEAK_FOLDER", tweakFolder.UTF8String, 1);
+    }
+    // Update TweakLoader symlink
+    NSString *tweakLoaderPath = [docPath stringByAppendingPathComponent:@"Tweaks/TweakLoader.dylib"];
+    if (![fm fileExistsAtPath:tweakLoaderPath]) {
+        remove(tweakLoaderPath.UTF8String);
+        NSString *target = [NSBundle.mainBundle.privateFrameworksPath stringByAppendingPathComponent:@"TweakLoader.dylib"];
+        symlink(target.UTF8String, tweakLoaderPath.UTF8String);
+    }
 
     // Bypass library validation so we can load arbitrary binaries
     init_bypassDyldLibValidation();
@@ -250,7 +263,7 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     setenv("TMPDIR", [@(getenv("TMPDIR")) stringByAppendingFormat:@"/%@/tmp", appBundle.infoDictionary[@"LCDataUUID"]].UTF8String, 1);
     // Setup directories
     NSString *cachePath = [NSString stringWithFormat:@"%@/Library/Caches", newHomePath];
-    [NSFileManager.defaultManager createDirectoryAtPath:cachePath withIntermediateDirectories:YES attributes:nil error:nil];
+    [fm createDirectoryAtPath:cachePath withIntermediateDirectories:YES attributes:nil error:nil];
 
     // Overwrite NSUserDefaults
     NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
@@ -271,6 +284,7 @@ static void exceptionHandler(NSException *exception) {
 int LiveContainerMain(int argc, char *argv[]) {
     NSString *selectedApp = [NSUserDefaults.standardUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"selected"];
         NSSetUncaughtExceptionHandler(&exceptionHandler);
         LCHomePath(); // init host home path
         NSString *appError = invokeAppMain(selectedApp, argc, argv);

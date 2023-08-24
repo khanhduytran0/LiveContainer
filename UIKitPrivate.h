@@ -12,6 +12,10 @@
 - (UIImage *)_imageWithSize:(CGSize)size;
 @end
 
+@interface UIAlertAction(private)
+@property(nonatomic, copy) id shouldDismissHandler;
+@end
+
 @interface UIApplication(private)
 - (void)suspend;
 @end

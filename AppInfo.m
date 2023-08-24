@@ -43,8 +43,17 @@
     return _info[@"LCDataUUID"];
 }
 
+- (NSString*)tweakFolder {
+    return _info[@"LCTweakFolder"];
+}
+
 - (void)setDataUUID:(NSString *)uuid {
     _info[@"LCDataUUID"] = uuid;
+    [self save];
+}
+
+- (void)setTweakFolder:(NSString *)tweakFolder {
+    _info[@"LCTweakFolder"] = tweakFolder;
     [self save];
 }
 
