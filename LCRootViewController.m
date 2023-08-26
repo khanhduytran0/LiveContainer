@@ -537,7 +537,12 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         }
     }
 
-    NSArray *tweakFolderNames = [fm contentsOfDirectoryAtPath:self.tweakPath error:nil];
+    NSArray *tweakFolderNames = [[fm contentsOfDirectoryAtPath:self.tweakPath error:nil]
+    filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSString *name, NSDictionary *bindings) {
+        BOOL isDir = NO;
+        [fm fileExistsAtPath:[self.tweakPath stringByAppendingPathComponent:name] isDirectory:&isDir];
+        return isDir;
+    }]];
     NSMutableArray<UIAction *> *tweakFolderItems = [NSMutableArray array];
     tweakFolderItems[0] = [UIAction
         actionWithTitle:@"<None>"
