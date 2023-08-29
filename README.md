@@ -4,7 +4,7 @@ Run unsigned iOS app without actually installing it!
 - Codesigning is entirely bypassed (requires JIT), no need to sign your apps before installing.
 
 ## Compatibility
-Unfortunately not all apps work in LiveContainer so we have a [compatibility list](https://github.com/khanhduytran0/LiveContainer/labels/compatibility) to tell if there is apps that have issues. If they arent on this list. Then its likely going run. However, if it doesnt work please make a [github issue](https://github.com/khanhduytran0/LiveContainer/issues/new/choose) about it.
+Unfortunately, not all apps work in LiveContainer, so we have a [compatibility list](https://github.com/khanhduytran0/LiveContainer/labels/compatibility) to tell if there is apps that have issues. If they aren't on this list, then it's likely going run. However, if it doesn't work, please make an [issue](https://github.com/khanhduytran0/LiveContainer/issues/new/choose) about it.
 
 ## Building
 ```
@@ -40,8 +40,8 @@ This feature is currently incomplete so you'll have to do the following manually
 - Inject a load command to load `TweakLoader.dylib`
 
 ### Patching `@executable_path`
-- Call `_dyld_get_image_name(0)` to get image name pointer.
-- Overwrite its content with guest executable path.
+- Call `_NSGetExecutablePath` with an invalid buffer pointer input -> SIGSEGV
+- Do some [magic stuff](https://github.com/khanhduytran0/LiveContainer/blob/5ef1e6a/main.m#L74-L115) to overwrite the contents of executable_path.
 
 ### Patching `NSBundle.mainBundle`
 - This property is overwritten with the guest app's bundle.
@@ -64,10 +64,9 @@ This feature is currently incomplete so you'll have to do the following manually
 - arm64e executable is untested. It is recommended to use arm64 binary.
 - Only one guest app can run at a time. This is much more like 3 apps limit where you have to disable an app to run another (switching between app in LiveContainer is instant).
 - Remote push notification might not work. ~~If you have a paid developer account then you don't even have to use LiveContainer~~
-- Querying URL schemes might not work(?)
+- Querying custom URL schemes might not work(?)
 
 ## TODO
-- Isolating `NSFileManager.defaultManager` and `NSUserDefaults.userDefaults`
 - Auto lock orientation
 - Simulate App Group(?)
 - More(?)
