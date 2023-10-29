@@ -87,7 +87,7 @@ static void *getDyldBase(void) {
 
 static void* hooked_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
     void *map = __mmap(addr, len, prot, flags, fd, offset);
-    if (map == MAP_FAILED && (prot & PROT_EXEC)) {
+    if (map == MAP_FAILED && fd && (prot & PROT_EXEC)) {
         map = __mmap(addr, len, PROT_READ | PROT_WRITE, flags | MAP_PRIVATE | MAP_ANON, 0, 0);
         void *memoryLoadedFile = __mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, offset);
         memcpy(map, memoryLoadedFile, len);
