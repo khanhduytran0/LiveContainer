@@ -263,8 +263,9 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
     }
 
-    NSString *dataUUID = [NSDictionary dictionaryWithContentsOfFile:
-        [outPath stringByAppendingPathComponent:@"Info.plist"]][@"LCDataUUID"];
+    AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath:outPath];
+    NSString *dataUUID = appInfo.dataUUID;
+    NSString *tweakFolder = appInfo.tweakFolder ?: @"";
     switch (selectedAction) {
         case 0: // Replace, handled in the action block
             [NSFileManager.defaultManager removeItemAtPath:outPath error:nil];
@@ -280,11 +281,11 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     if (selectedAction != 3) { // Did not cancel
         self.objects[0] = AppName;
         [fm moveItemAtPath:[payloadPath stringByAppendingPathComponent:oldAppName] toPath:outPath error:&error];
+        // Reconstruct AppInfo with the new Info.plist
+        appInfo = [[AppInfo alloc] initWithBundlePath:outPath];
         // Write data UUID
-        NSString *infoPath = [outPath stringByAppendingPathComponent:@"Info.plist"];
-        NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
-        info[@"LCDataUUID"] = dataUUID;
-        [info writeToFile:infoPath atomically:YES];
+        appInfo.dataUUID = dataUUID;
+        appInfo.tweakFolder = tweakFolder;
     }
     [fm removeItemAtPath:payloadPath error:(selectedAction==3 ? &error : nil)];
     if (error) {
