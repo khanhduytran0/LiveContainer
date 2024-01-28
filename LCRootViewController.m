@@ -201,7 +201,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         return;
     }
 
-    NSURL *sidejitURL = [NSURL URLWithString:[NSString stringWithFormat:@"sidestore://sidejit-enable?bid=%@", NSBundle.mainBundle.bundleIdentifier]];
+    NSURL *sidejitURL = [NSURL URLWithString:[NSString stringWithFormat:@"apple-magnifier://enable-jit?bundle-id=%@", NSBundle.mainBundle.bundleIdentifier]];
     if ([UIApplication.sharedApplication canOpenURL:sidejitURL]) {
         [UIApplication.sharedApplication openURL:sidejitURL options:@{} completionHandler:^(BOOL b){
             exit(0);
