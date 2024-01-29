@@ -20,8 +20,7 @@ jobs:
         run: |
           git submodule init
           git submodule update
-          make package
-          # FINALPACKAGE=1
+          make package FINALPACKAGE=1
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
