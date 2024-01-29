@@ -10,19 +10,18 @@
 
 #include <dlfcn.h>
 #include <execinfo.h>
-#include <libgen.h>
 #include <signal.h>
-#include <spawn.h>
 #include <sys/mman.h>
 #include <stdlib.h>
 
 static int (*appMain)(int, char**);
 
-static BOOL isSandboxed() {
-    return access("/var/mobile", R_OK) != 0;
-}
+static BOOL checkJITEnabled() {
+    // check if jailbroken
+    if (access("/var/mobile", R_OK) == 0) {
+        return YES;
+    }
 
-static BOOL isJITEnabled() {
     // check csflags
     int flags;
     csops(getpid(), 0, &flags, sizeof(flags));
@@ -166,52 +165,15 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     return (void *)header + entryoff;
 }
 
-static BOOL enableJITSpawnPtrace(char *argv[]) {
-    if (isSandboxed()) {
-        return NO;
-    }
-
-    int pid;
-    int ret = posix_spawnp(&pid, argv[0], NULL, NULL, (char *[]){argv[0], "", NULL}, environ);
-    if (ret == 0) {
-        // Cleanup child process
-        waitpid(pid, NULL, WUNTRACED);
-        ptrace(PT_DETACH, pid, NULL, 0);
-        kill(pid, SIGTERM);
-        wait(NULL);
-
-        if (isJITEnabled()) {
-            NSLog(@"JIT has been enabled");
-#if 0
-            // Drop ourselves back to sandboxed app
-            char path[PATH_MAX];
-            sprintf(path, "%s/LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou", dirname(argv[0]));
-            execv(path, (char *[]){argv[0], NULL});
-#endif
-            return 1;
-        } else {
-            NSLog(@"Failed to enable JIT: unknown reason");
-            return NO;
-        }
-    } else {
-        NSLog(@"Failed to enable JIT: posix_spawn() failed errno %d", errno);
-        return NO;
-    }
-}
-
 static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *appError = nil;
-
-    
     // First of all, let's check if we have JIT
-    if (!isJITEnabled() && !enableJITSpawnPtrace(argv)) {
-        for (int i = 0; i < 10 && !isJITEnabled(); i++) {
-            usleep(1000*100);
-        }
-        if (!isJITEnabled()) {
-            appError = @"JIT was not enabled";
-            return appError;
-        }
+    for (int i = 0; i < 10 && !checkJITEnabled(); i++) {
+        usleep(1000*100);
+    }
+    if (!checkJITEnabled()) {
+        appError = @"JIT was not enabled";
+        return appError;
     }
 
     NSFileManager *fm = NSFileManager.defaultManager;
@@ -320,13 +282,6 @@ static void exceptionHandler(NSException *exception) {
 }
 
 int LiveContainerMain(int argc, char *argv[]) {
-    if (!isJITEnabled() && argc == 2) {
-        // Child process can call to PT_TRACE_ME
-        // then both parent and child processes get CS_DEBUGGED
-        int ret = ptrace(PT_TRACE_ME, 0, 0, 0);
-        return ret;
-    }
-
     NSString *selectedApp = [NSUserDefaults.standardUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"selected"];
