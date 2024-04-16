@@ -31,9 +31,9 @@ include $(THEOS_MAKE_PATH)/library.mk
 
 # Build the app
 APPLICATION_NAME = LiveContainer
-$(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m FixCydiaSubstrate.c fishhook/fishhook.c
+$(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m ElleKitJITLessHook.m FixCydiaSubstrate.c fishhook/fishhook.c mach_excServer.c
 $(APPLICATION_NAME)_CODESIGN_FLAGS = -Sentitlements.xml
-$(APPLICATION_NAME)_CFLAGS = -fobjc-arc
+$(APPLICATION_NAME)_CFLAGS = -fobjc-arc -Wno-error
 $(APPLICATION_NAME)_LDFLAGS = -e_LiveContainerMain -rpath @loader_path/Frameworks
 $(APPLICATION_NAME)_FRAMEWORKS = UIKit
 #$(APPLICATION_NAME)_INSTALL_PATH = /Applications/LiveContainer.app

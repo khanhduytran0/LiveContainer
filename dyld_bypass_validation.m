@@ -15,9 +15,11 @@
 
 #include "utils.h"
 
+extern void EKJITLessHook(void* _target, void* _replacement, void** orig);
+
 #define ASM(...) __asm__(#__VA_ARGS__)
 // ldr x8, value; br x8; value: .ascii "\x41\x42\x43\x44\x45\x46\x47\x48"
-static char patch[] = {0x88,0x00,0x00,0x58,0x00,0x01,0x1f,0xd6,0x1f,0x20,0x03,0xd5,0x1f,0x20,0x03,0xd5,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41};
+//static char patch[] = {0x88,0x00,0x00,0x58,0x00,0x01,0x1f,0xd6,0x1f,0x20,0x03,0xd5,0x1f,0x20,0x03,0xd5,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41};
 
 // Signatures to search for
 static char mmapSig[] = {0xB0, 0x18, 0x80, 0xD2, 0x01, 0x10, 0x00, 0xD4};
@@ -26,12 +28,8 @@ static char fcntlSig[] = {0x90, 0x0B, 0x80, 0xD2, 0x01, 0x10, 0x00, 0xD4};
 extern void* __mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
 extern int __fcntl(int fildes, int cmd, void* param);
 
-// Since we're patching libsystem_kernel, we must avoid calling to its functions
-static void builtin_memcpy(char *target, char *source, size_t size) {
-    for (int i = 0; i < size; i++) {
-        target[i] = source[i];
-    }
-}
+typedef int (*fcntl_p)(int fildes, int cmd, void* param);
+typedef void* (*mmap_p)(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
 
 // Originated from _kernelrpc_mach_vm_protect_trap
 ASM(
@@ -42,27 +40,14 @@ _builtin_vm_protect:     \n
     ret
 );
 
-static bool redirectFunction(char *name, void *patchAddr, void *target) {
-    kern_return_t kret = builtin_vm_protect(mach_task_self(), (vm_address_t)patchAddr, sizeof(patch), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
-    if (kret != KERN_SUCCESS) {
-        NSLog(@"[DyldLVBypass] vm_protect(RW) fails at line %d", __LINE__);
-        return FALSE;
-    }
-    
-    builtin_memcpy((char *)patchAddr, patch, sizeof(patch));
-    *(void **)((char*)patchAddr + 16) = target;
-    
-    kret = builtin_vm_protect(mach_task_self(), (vm_address_t)patchAddr, sizeof(patch), false, PROT_READ | PROT_EXEC);
-    if (kret != KERN_SUCCESS) {
-        NSLog(@"[DyldLVBypass] vm_protect(RX) fails at line %d", __LINE__);
-        return FALSE;
-    }
+static bool redirectFunction(char *name, void *patchAddr, void *target, void **orig) {
+    EKJITLessHook(patchAddr, target, orig);
     
     NSLog(@"[DyldLVBypass] hook %s succeed!", name);
     return TRUE;
 }
 
-static bool searchAndPatch(char *name, char *base, char *signature, int length, void *target) {
+static bool searchAndPatch(char *name, char *base, char *signature, int length, void *target, void **orig) {
     char *patchAddr = NULL;
     
     for(int i=0; i < 0x100000; i++) {
@@ -78,18 +63,20 @@ static bool searchAndPatch(char *name, char *base, char *signature, int length, 
     }
     
     NSLog(@"[DyldLVBypass] found %s at %p", name, patchAddr);
-    return redirectFunction(name, patchAddr, target);
+    return redirectFunction(name, patchAddr, target, orig);
 }
 
 static void *getDyldBase(void) {
     return (void *)_alt_dyld_get_all_image_infos()->dyldImageLoadAddress;
 }
 
-static void* hooked_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
-    void *map = __mmap(addr, len, prot, flags, fd, offset);
+// mmap
+
+static void* common_hooked_mmap(mmap_p orig, void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
+    void *map = orig(addr, len, prot, flags, fd, offset);
     if (map == MAP_FAILED && fd && (prot & PROT_EXEC)) {
-        map = __mmap(addr, len, PROT_READ | PROT_WRITE, flags | MAP_PRIVATE | MAP_ANON, 0, 0);
-        void *memoryLoadedFile = __mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, offset);
+        map = orig(addr, len, PROT_READ | PROT_WRITE, flags | MAP_PRIVATE | MAP_ANON, 0, 0);
+        void *memoryLoadedFile = orig(NULL, len, PROT_READ, MAP_PRIVATE, fd, offset);
         memcpy(map, memoryLoadedFile, len);
         munmap(memoryLoadedFile, len);
         mprotect(map, len, prot);
@@ -97,13 +84,19 @@ static void* hooked_mmap(void *addr, size_t len, int prot, int flags, int fd, of
     return map;
 }
 
-static int hooked___fcntl(int fildes, int cmd, void *param) {
+static void* hooked_dyld_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
+    return common_hooked_mmap(__mmap, addr, len, prot, flags, fd, offset);
+}
+
+// fcntl
+
+static int common_hooked_fcntl(fcntl_p orig, int fildes, int cmd, void *param) {
     if (cmd == F_ADDFILESIGS_RETURN) {
         char filePath[PATH_MAX];
         bzero(filePath, PATH_MAX);
         
         // Check if the file is our "in-memory" file
-        if (__fcntl(fildes, F_GETPATH, filePath) != -1) {
+        if (orig(fildes, F_GETPATH, filePath) != -1) {
             const char *homeDir = LCHomePath();
             if (!strncmp(filePath, homeDir, strlen(homeDir))) {
                 fsignatures_t *fsig = (fsignatures_t*)param;
@@ -121,15 +114,11 @@ static int hooked___fcntl(int fildes, int cmd, void *param) {
     }
     
     // If for another command or file, we pass through
-    return __fcntl(fildes, cmd, param);
+    return orig(fildes, cmd, param);
 }
 
-static int hooked_fcntl(int fildes, int cmd, ...) {
-    va_list ap;
-    va_start(ap, cmd);
-    void *param = va_arg(ap, void *);
-    va_end(ap);
-    return hooked___fcntl(fildes, cmd, param);
+static int hooked_dyld_fcntl(int fildes, int cmd, void *param) {
+    return common_hooked_fcntl(__fcntl, fildes, cmd, param);
 }
 
 void init_bypassDyldLibValidation() {
@@ -144,8 +133,6 @@ void init_bypassDyldLibValidation() {
     //signal(SIGBUS, SIG_IGN);
     
     char *dyldBase = getDyldBase();
-    redirectFunction("mmap", mmap, hooked_mmap);
-    redirectFunction("fcntl", fcntl, hooked_fcntl);
-    searchAndPatch("dyld_mmap", dyldBase, mmapSig, sizeof(mmapSig), hooked_mmap);
-    searchAndPatch("dyld_fcntl", dyldBase, fcntlSig, sizeof(fcntlSig), hooked___fcntl);
+    searchAndPatch("dyld_mmap", dyldBase, mmapSig, sizeof(mmapSig), hooked_dyld_mmap, NULL);
+    searchAndPatch("dyld_fcntl", dyldBase, fcntlSig, sizeof(fcntlSig), hooked_dyld_fcntl, NULL);
 }
