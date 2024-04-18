@@ -209,7 +209,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         return;
     }
 
-    [self showDialogTitle:@"Instruction" message:@"Setting up JIT-less allows you to use LiveContainer without having to enable JIT. LiveContainer needs to safely obtain the certificate password from SideStore. Press OK to continue."
+    [self showDialogTitle:@"Instruction" message:@"Setting up JIT-less allows you to use LiveContainer without having to enable JIT. LiveContainer needs to safely obtain the certificate from SideStore. Press OK to continue."
     handler:^(UIAlertAction * action) {
         [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:@"sidestore://install?url=%@", url]] options:@{} completionHandler:nil];
     }];
