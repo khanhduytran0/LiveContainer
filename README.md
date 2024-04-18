@@ -1,7 +1,7 @@
 # LiveContainer
-Run unsigned iOS app without actually installing it!
+Run iOS app without actually installing it!
 - Allows you to install unlimited apps (10 apps limit of free developer account do not apply here!), have multiple versions of an app installed and multiple data containers.
-- Codesigning is entirely bypassed (requires JIT), no need to sign your apps before installing.
+- When JIT is available, codesign is entirely bypassed, no need to sign your apps before installing. Otherwise, app will be signed with the same certificate used by LiveContainer.
 
 ## Compatibility
 Unfortunately, not all apps work in LiveContainer, so we have a [compatibility list](https://github.com/khanhduytran0/LiveContainer/labels/compatibility) to tell if there is apps that have issues. If they aren't on this list, then it's likely going run. However, if it doesn't work, please make an [issue](https://github.com/khanhduytran0/LiveContainer/issues/new/choose) about it.
@@ -15,12 +15,20 @@ make package
 ```
 
 ## Usage
-Requires SideStore; AltStore does not work because it expects the app opened before enabling JIT.
+Requires SideStore for both JIT and JIT-less mode.
 - Build from source or get prebuilt ipa in [the Actions tab](https://github.com/khanhduytran0/LiveContainer/actions)
 - Open LiveContainer, tap the plus icon in the upper right hand corner and select IPA files to install.
 - Choose the app you want to open in the next launch.
+
+### With JIT
 - Tap the play icon, it will jump to SideStore and exit.
 - In SideStore, hold down LiveContainer and tap `Enable JIT`. If you have SideStore build supporting JIT URL scheme, it jumps back to LiveContainer with JIT enabled and the guest app is ready to use.
+
+### Without JIT
+> [!NOTE]
+> You need to setup JIT-less mode once. This can be done by pressing "Setup JIT-less" and following instructions.
+
+- Close LiveContainer from app switcher and re-open
 
 ### Installing external tweaks
 This feature is currently incomplete so you'll have to do the following manually.
@@ -47,8 +55,8 @@ This feature is currently incomplete so you'll have to do the following manually
 - This property is overwritten with the guest app's bundle.
 
 ### Bypassing Library Validation
+- JIT is optional to bypass codesigning. In JIT-less mode, all executables are signed so this does not apply.
 - Derived from [Restoring Dyld Memory Loading](https://blog.xpnsec.com/restoring-dyld-memory-loading)
-- JIT is required to bypass codesigning.
 
 ### dlopening the executable
 - Call `dlopen` with the guest app's executable
