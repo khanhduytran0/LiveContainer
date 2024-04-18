@@ -141,9 +141,11 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped)]
     ];
 
-    if (!LCUtils.certPassword) {
+    if (!LCUtils.certificateData) {
         self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Setup JIT-less" style:UIBarButtonItemStylePlain target:self action:@selector(setupJITLessTapped)];
-    }
+    } /* else {
+        self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Test JIT-less" style:UIBarButtonItemStylePlain target:self action:@selector(testJITLessTapped)];
+    } */
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -357,7 +359,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
                     return;
                 }
                 [self.tableView reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
-                [self patchExecAtIndexPathIfNeed:indexPath];
+                [self patchExecAndSignIfNeed:indexPath];
             });
         }
 
@@ -482,10 +484,10 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     self.navigationItem.leftBarButtonItems[0].enabled = YES;
     //[tableView deselectRowAtIndexPath:indexPath animated:YES];
     [NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
-    [self patchExecAtIndexPathIfNeed:indexPath];
+    [self patchExecAndSignIfNeed:indexPath];
 }
 
-- (void)patchExecAtIndexPathIfNeed:(NSIndexPath *)indexPath {
+- (void)patchExecAndSignIfNeed:(NSIndexPath *)indexPath {
     NSString *appPath = [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]];
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
@@ -505,6 +507,54 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [self patchExecutable:execPath.UTF8String];
         info[@"LCPatchRevision"] = @(currentPatchRev);
         [info writeToFile:infoPath atomically:YES];
+    }
+
+    // Sign app if JIT-less is set up
+    if (LCUtils.certificateData) {
+        NSUInteger signID = LCUtils.certificateData.hash;
+        if ([info[@"LCJITLessSignID"] unsignedLongValue] != signID) {
+            // We need to temporarily change bundle ID to LiveContainer to sign properly
+            info[@"LCBundleIdentifier"] = info[@"CFBundleIdentifier"];
+            info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+            [info writeToFile:infoPath atomically:YES];
+            info[@"CFBundleIdentifier"] = info[@"LCBundleIdentifier"];
+            [info removeObjectForKey:@"LCBundleIdentifier"];
+
+            // Don't let main executable get entitlements
+            NSString *appExecPath = [appPath stringByAppendingPathComponent:info[@"CFBundleExecutable"]];
+            NSString *tmpExecPath = [appPath stringByAppendingPathComponent:@"LiveContainer.tmp"];
+            [NSFileManager.defaultManager copyItemAtPath:appExecPath toPath:tmpExecPath error:nil];
+
+            __block NSProgress *progress = [LCUtils signAppBundle:appPath
+
+            completionHandler:^(BOOL success, NSError *_Nullable error) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (error) {
+                        [self showDialogTitle:@"Error while signing app" message:error.localizedDescription];
+                    } else {
+                        info[@"LCJITLessSignID"] = @(signID);
+                    }
+
+                    // Restore main executable
+                    [NSFileManager.defaultManager removeItemAtPath:appExecPath error:nil];
+                    [NSFileManager.defaultManager moveItemAtPath:tmpExecPath toPath:appExecPath error:nil];
+
+                    // Save sign ID and restore bundle ID
+                    [info writeToFile:infoPath atomically:YES];
+
+                    [progress removeObserver:self forKeyPath:@"fractionCompleted"];
+                    [self.progressView removeFromSuperview];
+                    [self.tableView reloadData];
+                });
+            }];
+            if (progress) {
+                [progress addObserver:self forKeyPath:@"fractionCompleted" options:NSKeyValueObservingOptionNew context:nil];
+                UITableViewCell *cell = [self.tableView cellForRowAtIndexPath:indexPath];
+                cell.textLabel.text = @"Signing";
+                [cell.imageView addSubview:self.progressView];
+                cell.userInteractionEnabled = NO;
+            }
+        }
     }
 }
 

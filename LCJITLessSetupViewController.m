@@ -18,12 +18,12 @@
     self.view.backgroundColor = UIColor.systemBackgroundColor;
     self.title = @"LiveContainer JIT-less setup";
 
-    if (!LCUtils.storeCertPassword) {
+    if (![LCUtils sidestoreKeychainItem:@"signingCertificate"]) {
         [self showDialogTitle:@"Error" message:@"Failed to find certificate password" handler:nil];
         return;
     }
 
-    [LCUtils updateCertPassword];
+    [LCUtils updateCertificate];
     [LCUtils changeMainExecutableTo:@"LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou"];
 
     NSError *error;

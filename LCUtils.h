@@ -8,9 +8,11 @@
 
 @interface LCUtils : NSObject
 
-+ (NSString *)certPassword;
-+ (void)updateCertPassword;
-+ (NSData *)storeCertPassword;
++ (NSData *)certificateData;
++ (void)updateCertificate;
+
++ (NSData *)sidestoreKeychainItem:(NSString *)key;
++ (NSProgress *)signAppBundle:(NSString *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 
 + (BOOL)isAppGroupSideStore;
 + (NSError *)changeMainExecutableTo:(NSString *)exec;
