@@ -4,15 +4,15 @@
 <dict>
 	<key>application-identifier</key>
 	<string>com.kdt.livecontainer</string>
-	<key>com.apple.developer.kernel.extended-virtual-addressing</key>
-	<true/>
-	<key>com.apple.developer.kernel.increased-memory-limit</key>
-	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.SideStore.SideStore</string>
 	</array>
 	<key>get-task-allow</key>
 	<true/>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>group.*</string>
+	</array>
 </dict>
 </plist>

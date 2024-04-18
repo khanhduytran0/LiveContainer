@@ -167,14 +167,6 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
 
 static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *appError = nil;
-    // First of all, let's check if we have JIT
-    for (int i = 0; i < 10 && !checkJITEnabled(); i++) {
-        usleep(1000*100);
-    }
-    if (!checkJITEnabled()) {
-        appError = @"JIT was not enabled";
-        return appError;
-    }
 
     NSFileManager *fm = NSFileManager.defaultManager;
     NSString *docPath = [fm URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
@@ -197,8 +189,10 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         symlink(target.UTF8String, tweakLoaderPath.UTF8String);
     }
 
-    // Bypass library validation so we can load arbitrary binaries
-    init_bypassDyldLibValidation();
+    // If JIT is enabled, bypass library validation so we can load arbitrary binaries
+    if (checkJITEnabled()) {
+        init_bypassDyldLibValidation();
+    }
 
     // Bind _dyld_get_all_image_infos
     init_fixCydiaSubstrate();

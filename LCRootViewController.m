@@ -1,5 +1,6 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import "LCRootViewController.h"
+#import "LCUtils.h"
 #import "MBRoundProgressView.h"
 #import "UIKitPrivate.h"
 #import "unarchive.h"
@@ -139,7 +140,10 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemPlay target:self action:@selector(launchButtonTapped)],
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped)]
     ];
-    self.navigationItem.leftBarButtonItems[0].enabled = NO;
+
+    if (!LCUtils.certPassword) {
+        self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Setup JIT-less" style:UIBarButtonItemStylePlain target:self action:@selector(setupJITLessTapped)];
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -187,6 +191,26 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     [alert addAction:okAction];
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)setupJITLessTapped {
+    if (!LCUtils.isAppGroupSideStore) {
+        [self showDialogTitle:@"Error" message:@"Unsupported installation method. Please use SideStore to setup this feature."];
+        return;
+    }
+
+    [LCUtils changeMainExecutableTo:@"JITLessSetup"];
+    NSError *error;
+    NSURL *url = [LCUtils archiveIPAWithError:&error];
+    if (!url) {
+        [self showDialogTitle:@"Error" message:error.localizedDescription];
+        return;
+    }
+
+    [self showDialogTitle:@"Instruction" message:@"Setting up JIT-less allows you to use LiveContainer without having to enable JIT. LiveContainer needs to safely obtain the certificate password from SideStore. Press OK to continue."
+    handler:^(UIAlertAction * action) {
+        [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:@"sidestore://install?url=%@", url]] options:@{} completionHandler:nil];
+    }];
 }
 
 - (void)addButtonTapped {

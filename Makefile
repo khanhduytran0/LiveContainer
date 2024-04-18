@@ -9,7 +9,7 @@ CONFIG_BRANCH = $(shell git branch --show-current)
 CONFIG_COMMIT = $(shell git log --oneline | sed '2,10000000d' | cut -b 1-7)
 
 # Build the UI library
-LiveContainerUI_FILES = LCAppDelegate.m LCRootViewController.m MBRoundProgressView.m unarchive.m AppInfo.m
+LiveContainerUI_FILES = LCAppDelegate.m LCJITLessSetupViewController.m LCRootViewController.m LCUtils.m MBRoundProgressView.m unarchive.m AppInfo.m
 LiveContainerUI_CFLAGS = \
   -fobjc-arc \
   -DCONFIG_TYPE=\"$(CONFIG_TYPE)\" \
@@ -31,14 +31,17 @@ include $(THEOS_MAKE_PATH)/library.mk
 
 # Build the app
 APPLICATION_NAME = LiveContainer
+
 $(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m FixCydiaSubstrate.c fishhook/fishhook.c
 $(APPLICATION_NAME)_CODESIGN_FLAGS = -Sentitlements.xml
 $(APPLICATION_NAME)_CFLAGS = -fobjc-arc
 $(APPLICATION_NAME)_LDFLAGS = -e_LiveContainerMain -rpath @loader_path/Frameworks
 $(APPLICATION_NAME)_FRAMEWORKS = UIKit
-#$(APPLICATION_NAME)_INSTALL_PATH = /Applications/LiveContainer.app
+
 include $(THEOS_MAKE_PATH)/application.mk
 
 # Make the executable name longer so we have space to overwrite it with the guest app's name
 before-package::
+	@cp .theos/_/Applications/LiveContainer.app/LiveContainer .theos/_/Applications/LiveContainer.app/JITLessSetup
+	@ldid -Sentitlements_setup.xml .theos/_/Applications/LiveContainer.app/JITLessSetup
 	@mv .theos/_/Applications/LiveContainer.app/LiveContainer .theos/_/Applications/LiveContainer.app/LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou
