@@ -28,7 +28,7 @@ Requires SideStore for both JIT and JIT-less mode.
 > [!NOTE]
 > You need to setup JIT-less mode once. This can be done by pressing "Setup JIT-less" and following instructions.
 
-- Close LiveContainer from app switcher and re-open
+- Tap the play icon, it will attempt to restart LiveContainer with guest app loaded.
 
 ### Installing external tweaks
 This feature is currently incomplete so you'll have to do the following manually.
@@ -69,7 +69,6 @@ This feature is currently incomplete so you'll have to do the following manually
 - Entitlements from the guest app are not applied to the host app. This isn't a big deal since sideloaded apps requires only basic entitlements.
 - App Permissions are globally applied.
 - Guest app containers are not sandboxed. This means one guest app can access other guest apps' data.
-- arm64e executable is untested. It is recommended to use arm64 binary.
 - Only one guest app can run at a time. This is much more like 3 apps limit where you have to disable an app to run another (switching between app in LiveContainer is instant).
 - Remote push notification might not work. ~~If you have a paid developer account then you don't even have to use LiveContainer~~
 - Querying custom URL schemes might not work(?)
