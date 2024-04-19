@@ -207,7 +207,8 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     }
 
     // Overwrite @executable_path
-    *path = appBundle.executablePath.UTF8String;
+    const char *appExecPath =  appBundle.executablePath.UTF8String;
+    *path = appExecPath;
     overwriteExecPath(appBundle.bundlePath);
 
     // Overwrite NSUserDefaults
@@ -250,6 +251,14 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         return appError;
     }
 
+    if (![appBundle loadAndReturnError:&error]) {
+        appError = error.localizedDescription;
+        NSLog(@"[LCBootstrap] loading bundle failed: %@", error);
+        *path = oldPath;
+        return appError;
+    }
+    NSLog(@"[LCBootstrap] loaded bundle");
+
     // Find main()
     appMain = getAppEntryPoint(appHandle, appIndex);
     if (!appMain) {
@@ -259,17 +268,9 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         return appError;
     }
 
-    if (![appBundle loadAndReturnError:&error]) {
-        appError = error.localizedDescription;
-        NSLog(@"[LCBootstrap] loading bundle failed: %@", error);
-        *path = oldPath;
-        return appError;
-    }
-    NSLog(@"[LCBootstrap] loaded bundle");
-
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);
-    argv[0] = (char *)NSBundle.mainBundle.executablePath.UTF8String;
+    argv[0] = (char *)appExecPath;
     appMain(argc, argv);
 
     return nil;
