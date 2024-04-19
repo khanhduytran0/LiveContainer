@@ -15,6 +15,7 @@
 #include <stdlib.h>
 
 static int (*appMain)(int, char**);
+static const char *dyldImageName;
 
 static BOOL checkJITEnabled() {
     // check if jailbroken
@@ -55,12 +56,12 @@ static void overwriteMainCFBundle() {
 
 static void overwriteMainNSBundle(NSBundle *newBundle) {
     // Overwrite NSBundle.mainBundle
-    NSString *oldPath = NSBundle.mainBundle.executablePath;
+    //NSString *oldPath = NSBundle.mainBundle.executablePath;
     uint32_t *mainBundleImpl = (uint32_t *)method_getImplementation(class_getClassMethod(NSBundle.class, @selector(mainBundle)));
     for (int i = 0; i < 20; i++) {
         void **_MergedGlobals = (void **)aarch64_emulate_adrp_add(mainBundleImpl[i], mainBundleImpl[i+1], (uint64_t)&mainBundleImpl[i]);
         if (!_MergedGlobals) continue;
-        for (int mgIdx = 0; mgIdx < 4; mgIdx++) {
+        for (int mgIdx = 0; mgIdx < 20; mgIdx++) {
             if (_MergedGlobals[mgIdx] == (__bridge void *)NSBundle.mainBundle) {
                 _MergedGlobals[mgIdx] = (__bridge void *)newBundle;
                 break;
@@ -68,7 +69,7 @@ static void overwriteMainNSBundle(NSBundle *newBundle) {
         }
     }
 
-    assert(![NSBundle.mainBundle.executablePath isEqualToString:oldPath]);
+    //assert(![NSBundle.mainBundle.executablePath isEqualToString:oldPath]);
 }
 
 static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* context) {
@@ -84,52 +85,38 @@ static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* cont
     ucontext->uc_mcontext->__ss.__x[19] = (uint64_t)&fakeSize;
 
     char *path = (char *)ucontext->uc_mcontext->__ss.__x[21];
-    char *newPath = (char *)_dyld_get_image_name(0);
+    char *newPath = (char *)dyldImageName;
     size_t maxLen = rnd64(strlen(path), 8);
     size_t newLen = strlen(newPath);
     // Check if it's long enough...
     assert(maxLen >= newLen);
-    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, rnd64(maxLen, 8), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
-    if (ret != KERN_SUCCESS) {
-        NSLog(@"Failed to remap rw for executable_path, some apps will not work!");
-        return;
-    }
 
-#if 0
-    // FIXME: mass vm_protect to avoid failing at any chance
+    // Make it RW and overwrite now
+    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE);
     if (ret != KERN_SUCCESS) {
-        ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE);
-    }
-    if (ret != KERN_SUCCESS) {
-        ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
-    }
-    if (ret != KERN_SUCCESS) {
-        builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | VM_PROT_COPY);
         ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
     }
     assert(ret == KERN_SUCCESS);
-#endif
-
     bzero(path, maxLen);
     strncpy(path, newPath, newLen);
 }
 static void overwriteExecPath(NSString *bundlePath) {
     // Silly workaround: we have set our executable name 100 characters long, now just overwrite its path with our fake executable file
-    char *path = (char *)_dyld_get_image_name(0);
+    char *path = (char *)dyldImageName;
     const char *newPath = [bundlePath stringByAppendingPathComponent:@"LiveContainer"].UTF8String;
     size_t maxLen = rnd64(strlen(path), 8);
     size_t newLen = strlen(newPath);
+
     // Check if it's long enough...
     assert(maxLen >= newLen);
     // Create an empty file so dyld could resolve its path properly
     close(open(newPath, O_CREAT | S_IRUSR | S_IWUSR));
 
     // Make it RW and overwrite now
-    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE);
     assert(ret == KERN_SUCCESS);
     bzero(path, maxLen);
     strncpy(path, newPath, newLen);
-    // Don't change back to RO to avoid any issues related to memory access
 
     // dyld4 stores executable path in a different place
     // https://github.com/apple-oss-distributions/dyld/blob/ce1cc2088ef390df1c48a1648075bbd51c5bbc6a/dyld/DyldAPIs.cpp#L802
@@ -167,6 +154,16 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
 
 static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *appError = nil;
+    if (![NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"]) {
+        // First of all, let's check if we have JIT
+        for (int i = 0; i < 10 && !checkJITEnabled(); i++) {
+            usleep(1000*100);
+        }
+        if (!checkJITEnabled()) {
+            appError = @"JIT was not enabled";
+            return appError;
+        }
+    }
 
     NSFileManager *fm = NSFileManager.defaultManager;
     NSString *docPath = [fm URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
@@ -197,9 +194,18 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     // Bind _dyld_get_all_image_infos
     init_fixCydiaSubstrate();
 
-    // Overwrite @executable_path
+    // Locate dyld image name address
     const char **path = _CFGetProcessPath();
     const char *oldPath = *path;
+    for (uint32_t i = 0; i < _dyld_image_count(); i++) {
+        const char *name = _dyld_get_image_name(i);
+        if (!strcmp(name, oldPath)) {
+            dyldImageName = name;
+            break;
+        }
+    }
+
+    // Overwrite @executable_path
     *path = appBundle.executablePath.UTF8String;
     overwriteExecPath(appBundle.bundlePath);
 
@@ -238,10 +244,8 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     // Overwrite NSBundle
     overwriteMainNSBundle(appBundle);
 
-    // Overwrite CFBundle. This should only be done after run loop starts
-    dispatch_async(dispatch_get_main_queue(), ^{
-        overwriteMainCFBundle();
-    });
+    // Overwrite CFBundle
+    overwriteMainCFBundle();
 
     // Overwrite executable info
     NSMutableArray<NSString *> *objcArgv = NSProcessInfo.processInfo.arguments.mutableCopy;

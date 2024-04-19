@@ -19,7 +19,7 @@
     self.title = @"LiveContainer JIT-less setup";
 
     if (![LCUtils sidestoreKeychainItem:@"signingCertificate"]) {
-        [self showDialogTitle:@"Error" message:@"Failed to find certificate password" handler:nil];
+        [self showDialogTitle:@"Error" message:@"Failed to find certificate" handler:nil];
         return;
     }
 

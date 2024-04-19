@@ -231,12 +231,14 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
     if (!access(tsPath.UTF8String, F_OK)) {
         urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
+    } else if (LCUtils.certificateData) {
+        urlScheme = @"livecontainer://open?un_used=%@";
     } else {
         urlScheme = @"sidestore://sidejit-enable?bid=%@";
     }
     NSURL *sidejitURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
     if ([UIApplication.sharedApplication canOpenURL:sidejitURL]) {
-        [UIApplication.sharedApplication openURL:sidejitURL options:@{} completionHandler:^(BOOL b){
+        [UIApplication.sharedApplication openURL:sidejitURL options:@{} completionHandler:^(BOOL b) {
             exit(0);
         }];
         return;
