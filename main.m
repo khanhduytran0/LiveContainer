@@ -16,6 +16,7 @@
 
 static int (*appMain)(int, char**);
 static const char *dyldImageName;
+static NSUserDefaults *lcUserDefaults;
 
 static BOOL checkJITEnabled() {
     // check if jailbroken
@@ -154,7 +155,7 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
 
 static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *appError = nil;
-    if (![NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"]) {
+    if (![lcUserDefaults objectForKey:@"LCCertificateData"]) {
         // First of all, let's check if we have JIT
         for (int i = 0; i < 10 && !checkJITEnabled(); i++) {
             usleep(1000*100);
@@ -209,9 +210,34 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     *path = appBundle.executablePath.UTF8String;
     overwriteExecPath(appBundle.bundlePath);
 
+    // Overwrite NSUserDefaults
+    NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
+
+    // Overwrite NSBundle
+    overwriteMainNSBundle(appBundle);
+
+    // Overwrite CFBundle
+    overwriteMainCFBundle();
+
+    // Overwrite executable info
+    NSMutableArray<NSString *> *objcArgv = NSProcessInfo.processInfo.arguments.mutableCopy;
+    objcArgv[0] = appBundle.executablePath;
+    [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
+    NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
+    *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
+
+    // Overwrite home path
+    NSString *newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, appBundle.infoDictionary[@"LCDataUUID"]];
+    setenv("CFFIXED_USER_HOME", newHomePath.UTF8String, 1);
+    setenv("HOME", newHomePath.UTF8String, 1);
+    setenv("TMPDIR", [@(getenv("TMPDIR")) stringByAppendingFormat:@"/%@/tmp", appBundle.infoDictionary[@"LCDataUUID"]].UTF8String, 1);
+    // Setup directories
+    NSString *cachePath = [NSString stringWithFormat:@"%@/Library/Caches", newHomePath];
+    [fm createDirectoryAtPath:cachePath withIntermediateDirectories:YES attributes:nil error:nil];
+
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
-    void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_LOCAL|RTLD_FIRST);
+    void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
     const char *dlerr = dlerror();
     if (!appHandle || (uint64_t)appHandle > 0xf00000000000 || dlerr) {
         if (dlerr) {
@@ -241,31 +267,6 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     }
     NSLog(@"[LCBootstrap] loaded bundle");
 
-    // Overwrite NSBundle
-    overwriteMainNSBundle(appBundle);
-
-    // Overwrite CFBundle
-    overwriteMainCFBundle();
-
-    // Overwrite executable info
-    NSMutableArray<NSString *> *objcArgv = NSProcessInfo.processInfo.arguments.mutableCopy;
-    objcArgv[0] = appBundle.executablePath;
-    [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
-    NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
-    *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
-
-    // Overwrite home path
-    NSString *newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, appBundle.infoDictionary[@"LCDataUUID"]];
-    setenv("CFFIXED_USER_HOME", newHomePath.UTF8String, 1);
-    setenv("HOME", newHomePath.UTF8String, 1);
-    setenv("TMPDIR", [@(getenv("TMPDIR")) stringByAppendingFormat:@"/%@/tmp", appBundle.infoDictionary[@"LCDataUUID"]].UTF8String, 1);
-    // Setup directories
-    NSString *cachePath = [NSString stringWithFormat:@"%@/Library/Caches", newHomePath];
-    [fm createDirectoryAtPath:cachePath withIntermediateDirectories:YES attributes:nil error:nil];
-
-    // Overwrite NSUserDefaults
-    NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
-
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);
     argv[0] = (char *)NSBundle.mainBundle.executablePath.UTF8String;
@@ -276,18 +277,19 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
 
 static void exceptionHandler(NSException *exception) {
     NSString *error = [NSString stringWithFormat:@"%@\nCall stack: %@", exception.reason, exception.callStackSymbols];
-    [NSUserDefaults.standardUserDefaults setObject:error forKey:@"error"];
+    [lcUserDefaults setObject:error forKey:@"error"];
 }
 
 int LiveContainerMain(int argc, char *argv[]) {
-    NSString *selectedApp = [NSUserDefaults.standardUserDefaults stringForKey:@"selected"];
+    lcUserDefaults = NSUserDefaults.standardUserDefaults;
+    NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
-        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"selected"];
+        [lcUserDefaults removeObjectForKey:@"selected"];
         NSSetUncaughtExceptionHandler(&exceptionHandler);
         LCHomePath(); // init host home path
         NSString *appError = invokeAppMain(selectedApp, argc, argv);
         if (appError) {
-            [NSUserDefaults.standardUserDefaults setObject:appError forKey:@"error"];
+            [lcUserDefaults setObject:appError forKey:@"error"];
             // potentially unrecovable state, exit now
             return 1;
         }
