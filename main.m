@@ -207,7 +207,7 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     }
 
     // Overwrite @executable_path
-    const char *appExecPath =  appBundle.executablePath.UTF8String;
+    const char *appExecPath = appBundle.executablePath.UTF8String;
     *path = appExecPath;
     overwriteExecPath(appBundle.bundlePath);
 
@@ -250,6 +250,8 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         *path = oldPath;
         return appError;
     }
+    // Fix dynamic properties of some apps
+    [NSUserDefaults performSelector:@selector(initialize)];
 
     if (![appBundle loadAndReturnError:&error]) {
         appError = error.localizedDescription;
