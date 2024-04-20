@@ -57,11 +57,21 @@ static void overwriteMainCFBundle() {
 
 static void overwriteMainNSBundle(NSBundle *newBundle) {
     // Overwrite NSBundle.mainBundle
-    //NSString *oldPath = NSBundle.mainBundle.executablePath;
+    // iOS 16: x19 is _MergedGlobals
+    // iOS 17: x19 is _MergedGlobals+4
+
+    NSString *oldPath = NSBundle.mainBundle.executablePath;
     uint32_t *mainBundleImpl = (uint32_t *)method_getImplementation(class_getClassMethod(NSBundle.class, @selector(mainBundle)));
     for (int i = 0; i < 20; i++) {
         void **_MergedGlobals = (void **)aarch64_emulate_adrp_add(mainBundleImpl[i], mainBundleImpl[i+1], (uint64_t)&mainBundleImpl[i]);
         if (!_MergedGlobals) continue;
+
+        // In iOS 17, adrp+add gives _MergedGlobals+4, so it uses ldur instruction instead of ldr
+        if ((mainBundleImpl[i+4] & 0xFF000000) == 0xF8000000) {
+            uint64_t ptr = (uint64_t)_MergedGlobals - 4;
+            _MergedGlobals = (void **)ptr;
+        }
+
         for (int mgIdx = 0; mgIdx < 20; mgIdx++) {
             if (_MergedGlobals[mgIdx] == (__bridge void *)NSBundle.mainBundle) {
                 _MergedGlobals[mgIdx] = (__bridge void *)newBundle;
@@ -70,7 +80,7 @@ static void overwriteMainNSBundle(NSBundle *newBundle) {
         }
     }
 
-    //assert(![NSBundle.mainBundle.executablePath isEqualToString:oldPath]);
+    assert(![NSBundle.mainBundle.executablePath isEqualToString:oldPath]);
 }
 
 static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* context) {
