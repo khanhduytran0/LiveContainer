@@ -10,10 +10,10 @@
 
 #pragma mark Certificate password
 
-+ (NSData *)sidestoreKeychainItem:(NSString *)key {
++ (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store {
     NSDictionary *dict = @{
         (id)kSecClass: (id)kSecClassGenericPassword,
-        (id)kSecAttrService: @"com.SideStore.SideStore",
+        (id)kSecAttrService: store,
         (id)kSecAttrAccount: key,
         (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
         (id)kSecMatchLimit: (id)kSecMatchLimitOne,
@@ -28,8 +28,8 @@
     }
 }
 
-+ (void)updateCertificate {
-    [NSUserDefaults.standardUserDefaults setObject:[self sidestoreKeychainItem:@"signingCertificate"] forKey:@"LCCertificateData"];
++ (void)setCertificateData:(NSData *)certData {
+    [NSUserDefaults.standardUserDefaults setObject:certData forKey:@"LCCertificateData"];
 }
 
 + (NSData *)certificateData {

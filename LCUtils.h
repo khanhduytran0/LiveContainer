@@ -9,9 +9,9 @@
 @interface LCUtils : NSObject
 
 + (NSData *)certificateData;
-+ (void)updateCertificate;
++ (void)setCertificateData:(NSData *)certData;
 
-+ (NSData *)sidestoreKeychainItem:(NSString *)key;
++ (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store;
 + (NSProgress *)signAppBundle:(NSString *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 
 + (BOOL)isAppGroupSideStore;
