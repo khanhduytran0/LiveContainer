@@ -513,7 +513,8 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 
     // Sign app if JIT-less is set up
     if (LCUtils.certificateData) {
-        NSUInteger signID = LCUtils.certificateData.hash;
+        int signRevision = 1;
+        NSUInteger signID = LCUtils.certificateData.hash + signRevision;
         if ([info[@"LCJITLessSignID"] unsignedLongValue] != signID) {
             // We need to temporarily change bundle ID to LiveContainer to sign properly
             info[@"LCBundleIdentifier"] = info[@"CFBundleIdentifier"];
