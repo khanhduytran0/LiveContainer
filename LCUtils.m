@@ -117,6 +117,8 @@
 + (NSProgress *)signAppBundle:(NSString *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
     NSError *error;
 
+    // Remove faulty file
+    [NSFileManager.defaultManager removeItemAtPath:[path stringByAppendingPathComponent:@"LiveContainer"] error:nil];
     // Remove PlugIns folder
     [NSFileManager.defaultManager removeItemAtPath:[path stringByAppendingPathComponent:@"PlugIns"] error:nil];
 
