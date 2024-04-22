@@ -133,20 +133,13 @@
     NSURL *profilePath = [NSBundle.mainBundle URLForResource:@"embedded" withExtension:@"mobileprovision"];
 
     // Load libraries from Documents, yeah
-    [[NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:@"OpenSSL.framework"]] loadAndReturnError:&error];
-    if (error) {
-        completionHandler(NO, error);
-        return nil;
-    }
-    [[NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:@"Roxas.framework"]] loadAndReturnError:&error];
-    if (error) {
-        completionHandler(NO, error);
-        return nil;
-    }
-    [[NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:@"AltStoreCore.framework"]] loadAndReturnError:&error];
-    if (error) {
-        completionHandler(NO, error);
-        return nil;
+    NSArray *signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
+    for (NSString *framework in signerFrameworks) {
+        [[NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:framework]] loadAndReturnError:&error];
+        if (error) {
+            completionHandler(NO, error);
+            return nil;
+        }
     }
 
     ALTCertificate *cert = [[NSClassFromString(@"ALTCertificate") alloc] initWithP12Data:self.certificateData password:@""];

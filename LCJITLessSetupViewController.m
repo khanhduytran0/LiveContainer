@@ -19,9 +19,11 @@
     self.title = @"LiveContainer JIT-less setup";
 
     NSData *certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.SideStore.SideStore"];
+/* TODO: support AltStore
     if (!certData) {
         certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.rileytestut.AltStore"];
     }
+*/
     if (!certData) {
         [self showDialogTitle:@"Error" message:@"Failed to find certificate" handler:nil];
         return;
