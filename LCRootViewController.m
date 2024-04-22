@@ -489,6 +489,18 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     [self patchExecAndSignIfNeed:indexPath];
 }
 
+- (void)preprocessBundleBeforeSiging:(NSURL *)bundleURL completion:(dispatch_block_t)completion {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // Remove faulty file
+        [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"LiveContainer"] error:nil];
+        // Remove PlugIns folder
+        [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
+        // Remove code signature from all library files
+        [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
+        dispatch_async(dispatch_get_main_queue(), completion);
+    });
+}
+
 - (void)patchExecAndSignIfNeed:(NSIndexPath *)indexPath {
     NSString *appPath = [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]];
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
@@ -512,23 +524,29 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     }
 
     // Sign app if JIT-less is set up
-    if (LCUtils.certificateData) {
-        int signRevision = 1;
-        NSUInteger signID = LCUtils.certificateData.hash + signRevision;
-        if ([info[@"LCJITLessSignID"] unsignedLongValue] != signID) {
-            // We need to temporarily change bundle ID to LiveContainer to sign properly
-            info[@"LCBundleIdentifier"] = info[@"CFBundleIdentifier"];
-            info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
-            [info writeToFile:infoPath atomically:YES];
+    int signRevision = 1;
+    NSUInteger signID = LCUtils.certificateData.hash + signRevision;
+    if (LCUtils.certificateData && [info[@"LCJITLessSignID"] unsignedLongValue] != signID) {
+        NSURL *appPathURL = [NSURL fileURLWithPath:appPath];
+        [self preprocessBundleBeforeSiging:appPathURL completion:^{
+            // We need to temporarily fake bundle ID and main executable to sign properly
+            NSString *tmpExecPath = [appPath stringByAppendingPathComponent:@"LiveContainer.tmp"];
+            if (!info[@"LCBundleIdentifier"]) {
+                // Don't let main executable get entitlements
+                [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
+
+                info[@"LCBundleExecutable"] = info[@"CFBundleExecutable"];
+                info[@"LCBundleIdentifier"] = info[@"CFBundleIdentifier"];
+                info[@"CFBundleExecutable"] = tmpExecPath.lastPathComponent;
+                info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+                [info writeToFile:infoPath atomically:YES];
+            }
+            info[@"CFBundleExecutable"] = info[@"LCBundleExecutable"];
             info[@"CFBundleIdentifier"] = info[@"LCBundleIdentifier"];
+            [info removeObjectForKey:@"LCBundleExecutable"];
             [info removeObjectForKey:@"LCBundleIdentifier"];
 
-            // Don't let main executable get entitlements
-            NSString *appExecPath = [appPath stringByAppendingPathComponent:info[@"CFBundleExecutable"]];
-            NSString *tmpExecPath = [appPath stringByAppendingPathComponent:@"LiveContainer.tmp"];
-            [NSFileManager.defaultManager copyItemAtPath:appExecPath toPath:tmpExecPath error:nil];
-
-            __block NSProgress *progress = [LCUtils signAppBundle:appPath
+            __block NSProgress *progress = [LCUtils signAppBundle:appPathURL
 
             completionHandler:^(BOOL success, NSError *_Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
@@ -538,9 +556,8 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
                         info[@"LCJITLessSignID"] = @(signID);
                     }
 
-                    // Restore main executable
-                    [NSFileManager.defaultManager removeItemAtPath:appExecPath error:nil];
-                    [NSFileManager.defaultManager moveItemAtPath:tmpExecPath toPath:appExecPath error:nil];
+                    // Remove fake main executable
+                    [NSFileManager.defaultManager removeItemAtPath:tmpExecPath error:nil];
 
                     // Save sign ID and restore bundle ID
                     [info writeToFile:infoPath atomically:YES];
@@ -557,7 +574,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
                 [cell.imageView addSubview:self.progressView];
                 cell.userInteractionEnabled = NO;
             }
-        }
+        }];
     }
 }
 

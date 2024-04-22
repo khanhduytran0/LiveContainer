@@ -12,7 +12,8 @@
 + (void)setCertificateData:(NSData *)certData;
 
 + (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store;
-+ (NSProgress *)signAppBundle:(NSString *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
++ (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL;
++ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 
 + (BOOL)isAppGroupSideStore;
 + (NSError *)changeMainExecutableTo:(NSString *)exec;

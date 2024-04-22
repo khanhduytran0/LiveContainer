@@ -4,6 +4,7 @@
 #include <dlfcn.h>
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
 
 @implementation LCUtils
@@ -61,8 +62,12 @@
             continue;
         }
 
-        NSMutableData *data = [NSMutableData dataWithContentsOfURL:fileURL];
-        const char *map = data.mutableBytes;
+        // We cannot use NSMutableData as it copies the whole file data instead of directly mapping
+        int fd = open(fileURL.path.UTF8String, O_RDWR, (mode_t)0600);
+        struct stat s;
+        fstat(fd, &s);
+        void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
         uint32_t magic = *(uint32_t *)map;
         struct mach_header_64 *header = NULL;
         
@@ -83,17 +88,21 @@
             }
             if (header) {
                 // Extract slice
-                data = [data subdataWithRange:NSMakeRange(OSSwapInt32(chosenArch->offset), OSSwapInt32(chosenArch->size))].mutableCopy;
-                map = data.mutableBytes;
+                uint32_t offset = OSSwapInt32(chosenArch->offset);
+                uint32_t size = OSSwapInt32(chosenArch->size);
+                memmove(map, (void *)((uint64_t)map + offset), size);
+                msync(map, size, MS_SYNC);
+                ftruncate(fd, size);
+                fstat(fd, &s);
                 header = (struct mach_header_64 *)map;
-            } else {
-                continue;
             }
         } else if (magic == MH_MAGIC_64) {
             header = (struct mach_header_64 *)map;
         }
 
         if (!header || header->cputype != CPU_TYPE_ARM64 || header->filetype != MH_DYLIB) {
+            munmap(map, s.st_size);
+            close(fd);
             continue;
         }
 
@@ -106,7 +115,9 @@
                 // Nuke it.
                 NSLog(@"Removing code signature of %@", fileURL);
                 bzero(csData, csCommand->datasize);
-                [data writeToURL:fileURL atomically:YES];
+                msync(map, s.st_size, MS_SYNC);
+                munmap(map, s.st_size);
+                close(fd);
                 break;
             }
             command = (struct load_command *)((void *)command + command->cmdsize);
@@ -114,17 +125,8 @@
     }
 }
 
-+ (NSProgress *)signAppBundle:(NSString *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
++ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
     NSError *error;
-
-    // Remove faulty file
-    [NSFileManager.defaultManager removeItemAtPath:[path stringByAppendingPathComponent:@"LiveContainer"] error:nil];
-    // Remove PlugIns folder
-    [NSFileManager.defaultManager removeItemAtPath:[path stringByAppendingPathComponent:@"PlugIns"] error:nil];
-
-    // Remove code signature from all library files
-    NSURL *bundleURL = [NSURL fileURLWithPath:path];
-    [self removeCodeSignatureFromBundleURL:bundleURL];
 
     // I'm too lazy to reimplement signer, so let's borrow everything from SideStore
     // For sure this will break in the future as SideStore team planned to rewrite it
@@ -157,7 +159,7 @@
     ALTTeam *team = [[NSClassFromString(@"ALTTeam") alloc] initWithName:@"" identifier:@"" /*profile.teamIdentifier*/ type:ALTTeamTypeUnknown account:account];
     ALTSigner *signer = [[NSClassFromString(@"ALTSigner") alloc] initWithTeam:team certificate:cert];
 
-    return [signer signAppAtURL:[NSURL fileURLWithPath:path] provisioningProfiles:@[(id)profile] completionHandler:completionHandler];
+    return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:completionHandler];
 }
 
 #pragma mark Setup
