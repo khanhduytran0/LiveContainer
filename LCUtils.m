@@ -1,11 +1,8 @@
+@import Darwin;
+@import MachO;
+
 #import "AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
-
-#include <dlfcn.h>
-#include <mach-o/fat.h>
-#include <mach-o/loader.h>
-#include <sys/stat.h>
-#include <sys/sysctl.h>
 
 @implementation LCUtils
 
