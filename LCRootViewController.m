@@ -201,9 +201,8 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         return;
     }
 
-    [LCUtils changeMainExecutableTo:@"JITLessSetup"];
     NSError *error;
-    NSURL *url = [LCUtils archiveIPAWithError:&error];
+    NSURL *url = [LCUtils archiveIPAWithSetupMode:YES error:&error];
     if (!url) {
         [self showDialogTitle:@"Error" message:error.localizedDescription];
         return;

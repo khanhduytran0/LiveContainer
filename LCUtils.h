@@ -16,8 +16,7 @@
 + (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 
 + (BOOL)isAppGroupSideStore;
-+ (NSError *)changeMainExecutableTo:(NSString *)exec;
 
-+ (NSURL *)archiveIPAWithError:(NSError **)error;
++ (NSURL *)archiveIPAWithSetupMode:(BOOL)setup error:(NSError **)error;
 
 @end

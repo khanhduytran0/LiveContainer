@@ -160,6 +160,8 @@
 		<integer>1</integer>
 		<integer>2</integer>
 	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 	<key>UILaunchImageFile</key>
 	<string>LaunchImage</string>
 	<key>UILaunchImages</key>

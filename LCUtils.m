@@ -162,19 +162,43 @@
     return [self.appGroupID containsString:@"com.SideStore.SideStore"];
 }
 
-+ (NSError *)changeMainExecutableTo:(NSString *)exec {
-    NSError *error;
++ (void)changeMainExecutableTo:(NSString *)exec error:(NSError **)error {
     NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
     NSURL *infoPath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app/Info.plist"];
     NSMutableDictionary *infoDict = [NSMutableDictionary dictionaryWithContentsOfURL:infoPath];
-    if (!infoDict) return nil;
+    if (!infoDict) return;
 
     infoDict[@"CFBundleExecutable"] = exec;
-    [infoDict writeToURL:infoPath error:&error];
-    return error;
+    [infoDict writeToURL:infoPath error:error];
 }
 
-+ (NSURL *)archiveIPAWithError:(NSError **)error {
++ (void)writeStoreIDToSetupExecutableWithError:(NSError **)error {
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    NSURL *execPath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app/JITLessSetup"];
+    NSMutableData *data = [NSMutableData dataWithContentsOfURL:execPath options:0 error:error];
+    if (!data) return;
+
+    NSData *findPattern = [@"KeychainAccessGroupWillBeWrittenByLiveContainerAAAAAAAAAAAAAAAAAAAA</string>" dataUsingEncoding:NSUTF8StringEncoding];
+    NSRange range = [data rangeOfData:findPattern options:0 range:NSMakeRange(0, data.length)];
+    if (range.location == NSNotFound) return;
+
+    memset((char *)data.mutableBytes + range.location, ' ', range.length);
+    NSString *replacement = [NSString stringWithFormat:@"%@</string>", self.appGroupID];
+    assert(replacement.length < range.length);
+    memcpy((char *)data.mutableBytes + range.location, replacement.UTF8String, replacement.length);
+    [data writeToURL:execPath options:0 error:error];
+}
+
++ (NSURL *)archiveIPAWithSetupMode:(BOOL)setup error:(NSError **)error {
+    if (setup) {
+        [self writeStoreIDToSetupExecutableWithError:error];
+        if (*error) return nil;
+        [self changeMainExecutableTo:@"JITLessSetup" error:error];
+    } else {
+        [self changeMainExecutableTo:@"LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou" error:error];
+    }
+    if (*error) return nil;
+
     NSFileManager *manager = NSFileManager.defaultManager;
     NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
     NSURL *bundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];

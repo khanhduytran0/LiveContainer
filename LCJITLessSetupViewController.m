@@ -30,10 +30,9 @@
     }
 
     LCUtils.certificateData = certData;
-    [LCUtils changeMainExecutableTo:@"LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou"];
 
     NSError *error;
-    NSURL *url = [LCUtils archiveIPAWithError:&error];
+    NSURL *url = [LCUtils archiveIPAWithSetupMode:NO error:&error];
     if (!url) {
         [self showDialogTitle:@"Error" message:error.localizedDescription handler:nil];
         return;
