@@ -243,8 +243,11 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     setenv("HOME", newHomePath.UTF8String, 1);
     setenv("TMPDIR", [@(getenv("TMPDIR")) stringByAppendingFormat:@"/%@/tmp", appBundle.infoDictionary[@"LCDataUUID"]].UTF8String, 1);
     // Setup directories
-    NSString *cachePath = [NSString stringWithFormat:@"%@/Library/Caches", newHomePath];
-    [fm createDirectoryAtPath:cachePath withIntermediateDirectories:YES attributes:nil error:nil];
+    NSArray *dirList = @[@"Library/Caches", @"Documents", @"SystemData"];
+    for (NSString *dir in dirList) {
+        NSString *dirPath = [newHomePath stringByAppendingPathComponent:dir];
+        [fm createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:nil];
+    }
 
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
