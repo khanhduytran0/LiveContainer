@@ -135,7 +135,13 @@
     // Load libraries from Documents, yeah
     NSArray *signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
     for (NSString *framework in signerFrameworks) {
-        [[NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:framework]] loadAndReturnError:&error];
+        NSBundle *frameworkBundle = [NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:framework]];
+        if (!frameworkBundle) {
+            //completionHandler(NO, error);
+            abort();
+            return nil;
+        }
+        [frameworkBundle loadAndReturnError:&error];
         if (error) {
             completionHandler(NO, error);
             return nil;
@@ -159,7 +165,10 @@
 }
 
 + (BOOL)isAppGroupSideStore {
-    return [self.appGroupID containsString:@"com.SideStore.SideStore"];
+    if (![self.appGroupID containsString:@"com.SideStore.SideStore"]) return NO;
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    NSURL *storeBundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app"];
+    return [NSFileManager.defaultManager fileExistsAtPath:storeBundlePath.path];
 }
 
 + (void)changeMainExecutableTo:(NSString *)exec error:(NSError **)error {

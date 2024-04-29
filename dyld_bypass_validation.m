@@ -81,6 +81,27 @@ static bool searchAndPatch(char *name, char *base, char *signature, int length, 
     return redirectFunction(name, patchAddr, target);
 }
 
+static struct dyld_all_image_infos *_alt_dyld_get_all_image_infos() {
+    static struct dyld_all_image_infos *result;
+    if (result) {
+        return result;
+    }
+    struct task_dyld_info dyld_info;
+    mach_vm_address_t image_infos;
+    mach_msg_type_number_t count = TASK_DYLD_INFO_COUNT;
+    kern_return_t ret;
+    ret = task_info(mach_task_self_,
+                    TASK_DYLD_INFO,
+                    (task_info_t)&dyld_info,
+                    &count);
+    if (ret != KERN_SUCCESS) {
+        return NULL;
+    }
+    image_infos = dyld_info.all_image_info_addr;
+    result = (struct dyld_all_image_infos *)image_infos;
+    return result;
+}
+
 static void *getDyldBase(void) {
     return (void *)_alt_dyld_get_all_image_infos()->dyldImageLoadAddress;
 }
@@ -124,14 +145,6 @@ static int hooked___fcntl(int fildes, int cmd, void *param) {
     return __fcntl(fildes, cmd, param);
 }
 
-static int hooked_fcntl(int fildes, int cmd, ...) {
-    va_list ap;
-    va_start(ap, cmd);
-    void *param = va_arg(ap, void *);
-    va_end(ap);
-    return hooked___fcntl(fildes, cmd, param);
-}
-
 void init_bypassDyldLibValidation() {
     static BOOL bypassed;
     if (bypassed) return;
@@ -144,8 +157,8 @@ void init_bypassDyldLibValidation() {
     //signal(SIGBUS, SIG_IGN);
     
     char *dyldBase = getDyldBase();
-    redirectFunction("mmap", mmap, hooked_mmap);
-    redirectFunction("fcntl", fcntl, hooked_fcntl);
+    //redirectFunction("mmap", mmap, hooked_mmap);
+    //redirectFunction("fcntl", fcntl, hooked_fcntl);
     searchAndPatch("dyld_mmap", dyldBase, mmapSig, sizeof(mmapSig), hooked_mmap);
     searchAndPatch("dyld_fcntl", dyldBase, fcntlSig, sizeof(fcntlSig), hooked___fcntl);
 }

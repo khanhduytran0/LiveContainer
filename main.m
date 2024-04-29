@@ -202,9 +202,6 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         init_bypassDyldLibValidation();
     }
 
-    // Bind _dyld_get_all_image_infos
-    init_fixCydiaSubstrate();
-
     // Locate dyld image name address
     const char **path = _CFGetProcessPath();
     const char *oldPath = *path;

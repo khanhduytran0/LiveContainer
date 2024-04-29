@@ -1,5 +1,7 @@
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 #include <dlfcn.h>
+#include <objc/runtime.h>
 
  __attribute__((constructor))
 static void TweakLoaderConstructor() {

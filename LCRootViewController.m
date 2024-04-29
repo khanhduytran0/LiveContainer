@@ -3,6 +3,7 @@
 #import "LCUtils.h"
 #import "MBRoundProgressView.h"
 #import "UIKitPrivate.h"
+#import "UIViewController+LCAlert.h"
 #import "unarchive.h"
 #import "AppInfo.h"
 
@@ -135,83 +136,15 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     [NSFileManager.defaultManager createDirectoryAtPath:self.tweakPath withIntermediateDirectories:NO attributes:nil error:nil];
 
     // Setup action bar
-    self.title = @"LiveContainer";
     self.navigationItem.rightBarButtonItems = @[
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemPlay target:self action:@selector(launchButtonTapped)],
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped)]
     ];
-
-    if (!LCUtils.certificateData) {
-        self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Setup JIT-less" style:UIBarButtonItemStylePlain target:self action:@selector(setupJITLessTapped)];
-    } /* else {
-        self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Test JIT-less" style:UIBarButtonItemStylePlain target:self action:@selector(testJITLessTapped)];
-    } */
 }
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [self.tableView reloadData];
-}
-
-- (void)showDialogTitle:(NSString *)title message:(NSString *)message {
-    [self showDialogTitle:title message:message handler:nil];
-}
-- (void)showDialogTitle:(NSString *)title message:(NSString *)message handler:(void(^)(UIAlertAction *))handler {
-    UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
-        message:message
-        preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:handler];
-    [alert addAction:okAction];
-    UIAlertAction* copyAction = [UIAlertAction actionWithTitle:@"Copy" style:UIAlertActionStyleDefault
-        handler:^(UIAlertAction * action) {
-            UIPasteboard.generalPasteboard.string = message;
-            if (handler) handler(action);
-        }];
-    [alert addAction:copyAction];
-    [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)showInputDialogTitle:(NSString *)title message:(NSString *)message placeholder:(NSString *)placeholder callback:(NSString *(^)(NSString *inputText))callback {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-        textField.placeholder = placeholder;
-        textField.clearButtonMode = UITextFieldViewModeWhileEditing;
-        textField.borderStyle = UITextBorderStyleRoundedRect;
-    }];
-    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        UITextField *textField = alert.textFields[0];
-        NSString *error = callback(textField.text.length == 0 ? placeholder : textField.text);
-        if (error) {
-            alert.message = error;
-        } else {
-            [self dismissViewControllerAnimated:YES completion:nil];
-        }
-    }];
-    okAction.shouldDismissHandler = ^{
-        return NO;
-    };
-    [alert addAction:okAction];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
-    [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)setupJITLessTapped {
-    if (!LCUtils.isAppGroupSideStore) {
-        [self showDialogTitle:@"Error" message:@"Unsupported installation method. Please use SideStore to setup this feature."];
-        return;
-    }
-
-    NSError *error;
-    NSURL *url = [LCUtils archiveIPAWithSetupMode:YES error:&error];
-    if (!url) {
-        [self showDialogTitle:@"Error" message:error.localizedDescription];
-        return;
-    }
-
-    [self showDialogTitle:@"Instruction" message:@"Setting up JIT-less allows you to use LiveContainer without having to enable JIT. LiveContainer needs to safely obtain the certificate from SideStore. Press OK to continue."
-    handler:^(UIAlertAction * action) {
-        [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:@"sidestore://install?url=%@", url]] options:@{} completionHandler:nil];
-    }];
 }
 
 - (void)addButtonTapped {

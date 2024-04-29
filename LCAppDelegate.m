@@ -1,6 +1,6 @@
 #import "LCAppDelegate.h"
 #import "LCJITLessSetupViewController.h"
-#import "LCRootViewController.h"
+#import "LCTabBarController.h"
 
 @implementation LCAppDelegate
 
@@ -8,11 +8,11 @@
     UIViewController *viewController;
     if ([NSBundle.mainBundle.executablePath.lastPathComponent isEqualToString:@"JITLessSetup"]) {
         viewController = [[LCJITLessSetupViewController alloc] init];
+        _rootViewController = [[UINavigationController alloc] initWithRootViewController:viewController];
     } else {
-        viewController = [[LCRootViewController alloc] init];
+        _rootViewController = [[LCTabBarController alloc] init];
     }
     _window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-    _rootViewController = [[UINavigationController alloc] initWithRootViewController:viewController];
     _window.rootViewController = _rootViewController;
     [_window makeKeyAndVisible];
     return YES;
