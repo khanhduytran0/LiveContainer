@@ -13,14 +13,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup Theos
-        uses: Randomblock1/theos-action@v1.1
+      - name: Checkout theos/theos
+        uses: actions/checkout@main
+        with:
+          repository: theos/theos
+          ref: master
+          submodules: recursive
+          path: theos
 
+      - name: Checkout theos/sdks
+        uses: actions/checkout@main
+        with:
+          repository: theos/sdks
+          ref: master
+          sparse-checkout: iPhoneOS16.5.sdk
+          path: theos/sdks
+
+      - name: Ensure main utils are installed
+        uses: dhinakg/procursus-action@main
+        with:
+          packages: coreutils make xz ldid
+          
       - name: Build
         run: |
+          export THEOS=theos
+
           git submodule init
           git submodule update
-          make package FINALPACKAGE=1
+          gmake package FINALPACKAGE=1
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
