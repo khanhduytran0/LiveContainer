@@ -16,6 +16,7 @@ LiveContainerUI_CFLAGS = \
   -DCONFIG_BRANCH=\"$(CONFIG_BRANCH)\" \
   -DCONFIG_COMMIT=\"$(CONFIG_COMMIT)\"
 LiveContainerUI_FRAMEWORKS = CoreGraphics QuartzCore UIKit UniformTypeIdentifiers
+LiveContainerUI_PRIVATE_FRAMEWORKS = Preferences
 LiveContainerUI_LIBRARIES = archive
 LiveContainerUI_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 
