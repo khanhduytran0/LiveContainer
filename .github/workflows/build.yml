@@ -40,7 +40,7 @@ jobs:
 
           git submodule init
           git submodule update
-          gmake package FINALPACKAGE=1
+          gmake package FINALPACKAGE=1 STRIP=0
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
