@@ -1,3 +1,4 @@
+#import "UIKitPrivate.h"
 #import "UIViewController+LCAlert.h"
 
 @implementation UIViewController(LCAlert)
