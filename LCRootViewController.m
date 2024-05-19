@@ -624,6 +624,20 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
                 NSString *url = [NSString stringWithFormat:@"shareddocuments://%@/Data/Application/%@", self.docPath, appInfo.dataUUID];
                 [UIApplication.sharedApplication openURL:[NSURL URLWithString:url] options:@{} completionHandler:nil];
             }],
+        [UIAction
+            actionWithTitle:@"Add to Home Screen"
+            image:[UIImage systemImageNamed:@"square.and.arrow.down"]
+            identifier: nil
+            handler:^(UIAction *action) {
+            if ([[NSUserDefaults.standardUserDefaults stringForKey:@"shortcutAdded"] isEqualToString:@"true"]) {
+                NSData *imageData = UIImagePNGRepresentation([[appInfo icon] _imageWithSize:CGSizeMake(60, 60)]);
+                NSString *base64Image = [imageData base64EncodedStringWithOptions:0];
+                NSData *share = [[NSString stringWithFormat:@"{\"name\":\"%@\",\"image\":\"%@\"}", [appInfo displayName], base64Image] dataUsingEncoding:NSUTF8StringEncoding];
+                [UIApplication.sharedApplication openURL: [NSURL URLWithString:[NSString stringWithFormat:@"shortcuts://run-shortcut?name=LiveContainerHelper&input=%@", [share base64EncodedStringWithOptions:0]]] options:@{} completionHandler:nil];
+            } else {
+                [self showDialogTitle:@"Install Helper Shortcut" message:@"You need to install the helper shortcut in the Settings tab"];
+            }
+        }],
         [self
             destructiveActionWithTitle:@"Reset settings"
             image:[UIImage systemImageNamed:@"trash"]
@@ -651,6 +665,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
             }]
     ];
 
+    
     return [UIContextMenuConfiguration
         configurationWithIdentifier:nil
         previewProvider:nil

@@ -24,6 +24,18 @@
         [signTweaksButton setProperty:@(!!LCUtils.certificateData) forKey:@"enabled"];
         signTweaksButton.buttonAction = @selector(signTweaksPressed);
         [_specifiers addObject:signTweaksButton];
+        
+        PSSpecifier* addToHomeScreenGroup = [PSSpecifier emptyGroupSpecifier];
+        addToHomeScreenGroup.name = @"Helper Shortcut";
+        [addToHomeScreenGroup setProperty:@"The helper shortcut allows you to add apps from LiveContainer to your homescreen. Requires Apple Shortcuts." forKey:@"footerText"];
+        [_specifiers addObject:addToHomeScreenGroup];
+        
+        NSString *setupHelperShortcutButtonName = [[NSUserDefaults.standardUserDefaults stringForKey:@"shortcutAdded"] isEqualToString:@"true"] ? @"Shortcut added" : @"Add Helper Shortcut";
+        PSSpecifier* setupHelperShortcutButton = [PSSpecifier preferenceSpecifierNamed:setupHelperShortcutButtonName target:self set:nil get:nil detail:nil cell:PSButtonCell edit:nil];
+        setupHelperShortcutButton.identifier = @"setup-helper-shortcut";
+        [setupHelperShortcutButton setProperty:@(![[NSUserDefaults.standardUserDefaults stringForKey:@"shortcutAdded"] isEqualToString:@"true"]) forKey:@"enabled"];
+        setupHelperShortcutButton.buttonAction = @selector(setupHelperShortcutPressed);
+        [_specifiers addObject:setupHelperShortcutButton];
     }
     return _specifiers;
 }
@@ -42,6 +54,14 @@
     }
 
     [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:@"sidestore://install?url=%@", url]] options:@{} completionHandler:nil];
+}
+
+- (void)setupHelperShortcutPressed {
+    NSURL *url = [NSURL URLWithString:@"https://www.icloud.com/shortcuts/587beaf7856c4a3699ba479c14f9ada1"];
+    [UIApplication.sharedApplication openURL:url options:@{} completionHandler: ^(BOOL b) {
+        [NSUserDefaults.standardUserDefaults setObject:@"true" forKey:@"shortcutAdded"];
+        exit(0);
+    }];
 }
 
 - (void)signTweaksPressed {
