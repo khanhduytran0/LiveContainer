@@ -16,10 +16,7 @@
     _window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
     _window.rootViewController = _rootViewController;
     [_window makeKeyAndVisible];
-    
-    if ([launchOptions objectForKey:@"UIApplicationLaunchOptionsURLKey"]) {
-        _window.alpha = 0.0;
-    }
+
     return YES;
 }
 
