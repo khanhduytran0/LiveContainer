@@ -12,10 +12,9 @@
         [jitlessGroup setProperty:@"JIT-less allows you to use LiveContainer without having to enable JIT. Requires SideStore." forKey:@"footerText"];
         [_specifiers addObject:jitlessGroup];
 
-        NSString *setupJITLessButtonName = LCUtils.certificateData ? @"JIT-less is set up" : @"Setup JIT-less";
+        NSString *setupJITLessButtonName = LCUtils.certificateData ? @"Renew JIT-less certificate" : @"Setup JIT-less certificate";
         PSSpecifier* setupJITLessButton = [PSSpecifier preferenceSpecifierNamed:setupJITLessButtonName target:self set:nil get:nil detail:nil cell:PSButtonCell edit:nil];
         setupJITLessButton.identifier = @"setup-jitless";
-        [setupJITLessButton setProperty:@(!LCUtils.certificateData) forKey:@"enabled"];
         setupJITLessButton.buttonAction = @selector(setupJITLessPressed);
         [_specifiers addObject:setupJITLessButton];
 
