@@ -296,7 +296,7 @@ static void exceptionHandler(NSException *exception) {
 int LiveContainerMain(int argc, char *argv[]) {
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     NSString *filePath = [lcUserDefaults stringForKey:@"dataPath"];
-    NSString *appFromFile = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:nil]
+    NSString *appFromFile = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:nil];
     NSString *selectedApp = appFromFile && [appFromFile length] > 0 ? appFromFile : [lcUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
         [@"" writeToFile:filePath atomically:YES encoding:NSUTF8StringEncoding error:nil];
