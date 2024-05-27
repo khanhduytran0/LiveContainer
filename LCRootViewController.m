@@ -419,7 +419,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     //[tableView deselectRowAtIndexPath:indexPath animated:YES];
     //[NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
     NSString *dataPath = [NSString stringWithFormat:@"%@/Data/nextLaunch", self.docPath];
-    [NSUserDefaults.standardUserDefaults setOpbject:dataPath forKey:@"dataPath"];
+    [NSUserDefaults.standardUserDefaults setObject:dataPath forKey:@"dataPath"];
     [self.objects[indexPath.row] writeToFile:dataPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
     [self patchExecAndSignIfNeed:indexPath];
 }
