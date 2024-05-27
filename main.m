@@ -295,9 +295,10 @@ static void exceptionHandler(NSException *exception) {
 
 int LiveContainerMain(int argc, char *argv[]) {
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
-    NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
+    NSString *filePath = [lcUserDefaults stringForKey:@"dataPath"];
+    NSString *selectedApp = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:nil];
     if (selectedApp) {
-        [lcUserDefaults removeObjectForKey:@"selected"];
+        [@"" writeToFile:filePath atomically:YES encoding:NSUTF8StringEncoding error:nil]
         NSSetUncaughtExceptionHandler(&exceptionHandler);
         LCHomePath(); // init host home path
         NSString *appError = invokeAppMain(selectedApp, argc, argv);

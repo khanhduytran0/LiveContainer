@@ -12,10 +12,9 @@
         [jitlessGroup setProperty:@"JIT-less allows you to use LiveContainer without having to enable JIT. Requires SideStore." forKey:@"footerText"];
         [_specifiers addObject:jitlessGroup];
 
-        NSString *setupJITLessButtonName = LCUtils.certificateData ? @"JIT-less is set up" : @"Setup JIT-less";
+        NSString *setupJITLessButtonName = LCUtils.certificateData ? @"Renew JIT-less certificate" : @"Setup JIT-less certificate";
         PSSpecifier* setupJITLessButton = [PSSpecifier preferenceSpecifierNamed:setupJITLessButtonName target:self set:nil get:nil detail:nil cell:PSButtonCell edit:nil];
         setupJITLessButton.identifier = @"setup-jitless";
-        [setupJITLessButton setProperty:@(!LCUtils.certificateData) forKey:@"enabled"];
         setupJITLessButton.buttonAction = @selector(setupJITLessPressed);
         [_specifiers addObject:setupJITLessButton];
 
@@ -30,10 +29,9 @@
         [addToHomeScreenGroup setProperty:@"The helper shortcut allows you to add apps from LiveContainer to your homescreen. Requires Apple Shortcuts." forKey:@"footerText"];
         [_specifiers addObject:addToHomeScreenGroup];
         
-        NSString *setupHelperShortcutButtonName = [[NSUserDefaults.standardUserDefaults stringForKey:@"shortcutAdded"] isEqualToString:@"true"] ? @"Shortcut added" : @"Add Helper Shortcut";
+        NSString *setupHelperShortcutButtonName = [[NSUserDefaults.standardUserDefaults stringForKey:@"shortcutAdded"] isEqualToString:@"true"] ? @"Reinstall Helper Shortcut" : @"Install Helper Shortcut";
         PSSpecifier* setupHelperShortcutButton = [PSSpecifier preferenceSpecifierNamed:setupHelperShortcutButtonName target:self set:nil get:nil detail:nil cell:PSButtonCell edit:nil];
         setupHelperShortcutButton.identifier = @"setup-helper-shortcut";
-        [setupHelperShortcutButton setProperty:@(![[NSUserDefaults.standardUserDefaults stringForKey:@"shortcutAdded"] isEqualToString:@"true"]) forKey:@"enabled"];
         setupHelperShortcutButton.buttonAction = @selector(setupHelperShortcutPressed);
         [_specifiers addObject:setupHelperShortcutButton];
     }
@@ -57,7 +55,7 @@
 }
 
 - (void)setupHelperShortcutPressed {
-    NSURL *url = [NSURL URLWithString:@"https://www.icloud.com/shortcuts/587beaf7856c4a3699ba479c14f9ada1"];
+    NSURL *url = [NSURL URLWithString:@"https://www.icloud.com/shortcuts/df529a91277542e180dda2a00a2a9cab"];
     [UIApplication.sharedApplication openURL:url options:@{} completionHandler: ^(BOOL b) {
         [NSUserDefaults.standardUserDefaults setObject:@"true" forKey:@"shortcutAdded"];
         exit(0);

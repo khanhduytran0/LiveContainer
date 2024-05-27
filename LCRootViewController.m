@@ -417,7 +417,10 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     self.navigationItem.leftBarButtonItems[0].enabled = YES;
     //[tableView deselectRowAtIndexPath:indexPath animated:YES];
-    [NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
+    //[NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
+    NSString *dataPath = [NSString stringWithFormat:@"%@/Data/nextLaunch", self.docPath];
+    [NSUserDefaults.standardUserDefaults setOpbject:dataPath forKey:@"dataPath"];
+    [self.objects[indexPath.row] writeToFile:dataPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
     [self patchExecAndSignIfNeed:indexPath];
 }
 
