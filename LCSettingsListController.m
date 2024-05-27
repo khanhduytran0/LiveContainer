@@ -55,7 +55,7 @@
 }
 
 - (void)setupHelperShortcutPressed {
-    NSURL *url = [NSURL URLWithString:@"https://www.icloud.com/shortcuts/df529a91277542e180dda2a00a2a9cab"];
+    NSURL *url = [NSURL URLWithString:@"https://www.icloud.com/shortcuts/291fbac584d04f5e81038fc009c58b8c"];
     [UIApplication.sharedApplication openURL:url options:@{} completionHandler: ^(BOOL b) {
         [NSUserDefaults.standardUserDefaults setObject:@"true" forKey:@"shortcutAdded"];
         exit(0);
