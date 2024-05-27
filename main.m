@@ -297,7 +297,7 @@ int LiveContainerMain(int argc, char *argv[]) {
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     NSString *filePath = [lcUserDefaults stringForKey:@"dataPath"];
     NSString *selectedApp = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:nil];
-    if (selectedApp) {
+    if (selectedApp && [selectedApp length] > 0) {
         [@"" writeToFile:filePath atomically:YES encoding:NSUTF8StringEncoding error:nil];
         NSSetUncaughtExceptionHandler(&exceptionHandler);
         LCHomePath(); // init host home path
