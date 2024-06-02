@@ -155,7 +155,8 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 }
 
 - (void)launchButtonTapped {
-    if (!self.tableView.indexPathForSelectedRow) {
+    UITableViewCell *cell = [self.tableView cellForRowAtIndexPath:self.tableView.indexPathForSelectedRow];
+    if (!cell.userInteractionEnabled) {
         return;
     }
 
@@ -416,7 +417,6 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     self.navigationItem.leftBarButtonItems[0].enabled = YES;
-    //[tableView deselectRowAtIndexPath:indexPath animated:YES];
     [NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
     [self patchExecAndSignIfNeed:indexPath];
 }
