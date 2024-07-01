@@ -310,8 +310,8 @@ int LiveContainerMain(int argc, char *argv[]) {
         }
     } else if (pasteboardString) {
         if ([pasteboardString hasPrefix:@"LC:"] && [pasteboardString hasSuffix:@".app"]) {
-            [pasteboard setValue:@"" forPasteboardType:@"public.text"];
             selectedApp = [pasteboardString substringFromIndex:3];
+            [pasteboard setValue:@"" forPasteboardType:@"public.text"];
             NSSetUncaughtExceptionHandler(&exceptionHandler);
             LCHomePath(); // init host home path
             NSString *appError = invokeAppMain(selectedApp, argc, argv);
