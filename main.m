@@ -296,6 +296,8 @@ static void exceptionHandler(NSException *exception) {
 int LiveContainerMain(int argc, char *argv[]) {
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
+    UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+    NSString *pasteboardString = [pasteboard valueForPasteboardType:@"public.text"];
     if (selectedApp) {
         [lcUserDefaults removeObjectForKey:@"selected"];
         NSSetUncaughtExceptionHandler(&exceptionHandler);
@@ -305,6 +307,19 @@ int LiveContainerMain(int argc, char *argv[]) {
             [lcUserDefaults setObject:appError forKey:@"error"];
             // potentially unrecovable state, exit now
             return 1;
+        }
+    } else if (pasteboardString) {
+        if ([pasteboardString hasPrefix:@"LC:"] && [pasteboardString hasSuffix:@".app"]) {
+            [pasteboard setValue:@"" forPasteboardType:@"public.text"];
+            selectedApp = [pasteboardString substringFromIndex:3];
+            NSSetUncaughtExceptionHandler(&exceptionHandler);
+            LCHomePath(); // init host home path
+            NSString *appError = invokeAppMain(selectedApp, argc, argv);
+            if (appError) {
+                [lcUserDefaults setObject:appError forKey:@"error"];
+                // potentially unrecovable state, exit now
+                return 1;
+            }
         }
     }
 
