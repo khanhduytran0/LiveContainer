@@ -74,6 +74,10 @@ This feature is currently incomplete so you'll have to do the following manually
 - Querying custom URL schemes might not work(?)
 - File picker might be broken for unknown reasons.
 
+
+## What is the difference from the original?
+- You can select and launch the app by using this shortcut. (https://www.icloud.com/shortcuts/3be602746cb14a21820aa671858bff2a)
+
 ## TODO
 - Auto lock orientation
 - Simulate App Group(?)
