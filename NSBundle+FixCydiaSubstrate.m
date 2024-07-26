@@ -4,10 +4,10 @@
 
 - (NSString *)bundlePath {
     NSString *path = self.bundleURL.path;
-    if ([path hasPrefix:@"/private"]) {
-        return path;
+    if ([path hasPrefix:@"/var"]) {
+        return [@"/private" stringByAppendingPathComponent:path];
     }
-    return [@"/private" stringByAppendingPathComponent:path];
+    return path;
 }
 
 @end
