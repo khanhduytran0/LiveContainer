@@ -1,3 +1,4 @@
+#import <CommonCrypto/CommonDigest.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import "LCRootViewController.h"
 #import "LCUtils.h"
@@ -6,6 +7,7 @@
 #import "UIViewController+LCAlert.h"
 #import "unarchive.h"
 #import "AppInfo.h"
+
 
 #include <libgen.h>
 #include <mach-o/fat.h>
@@ -140,6 +142,8 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemPlay target:self action:@selector(launchButtonTapped)],
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped)]
     ];
+
+    self.progressView = [[MBRoundProgressView alloc] initWithFrame:CGRectMake(0, 0, 60, 60)];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -367,10 +371,6 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 
     cell.userInteractionEnabled = self.objects[indexPath.row].length > 0;
     if (!cell.userInteractionEnabled) {
-        if (!self.progressView) {
-            self.progressView = [[MBRoundProgressView alloc] initWithFrame:CGRectMake(0, 0, 60, 60)];
-        }
-
         cell.textLabel.text = @"Installing";
         cell.detailTextLabel.text = nil;
         cell.imageView.image = [[UIImage imageNamed:@"DefaultIcon"] _imageWithSize:CGSizeMake(60, 60)];
@@ -455,9 +455,13 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [info writeToFile:infoPath atomically:YES];
     }
 
-    // Sign app if JIT-less is set up
+    // We're only getting the first 8 bytes for comparison
     int signRevision = 1;
-    NSUInteger signID = LCUtils.certificateData.hash + signRevision;
+    uint8_t digest[CC_SHA1_DIGEST_LENGTH];
+    CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
+    NSUInteger signID = *(uint64_t *)digest + signRevision;
+
+    // Sign app if JIT-less is set up
     if (LCUtils.certificateData && [info[@"LCJITLessSignID"] unsignedLongValue] != signID) {
         NSURL *appPathURL = [NSURL fileURLWithPath:appPath];
         [self preprocessBundleBeforeSiging:appPathURL completion:^{
