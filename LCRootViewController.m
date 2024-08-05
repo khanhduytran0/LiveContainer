@@ -139,6 +139,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     self.objects = [[fm contentsOfDirectoryAtPath:self.bundlePath error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
         return [object hasSuffix:@".app"];
     }]].mutableCopy;
+    [self.objects sortUsingSelector:@selector(caseInsensitiveCompare:)];
 
     // Setup tweak directory
     self.tweakPath = [NSString stringWithFormat:@"%@/Tweaks", self.docPath];
@@ -290,7 +291,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
                     return;
                 }
                 [self.tableView reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
-                [self patchExecAndSignIfNeed:indexPath];
+                [self patchExecAndSignIfNeed:indexPath shouldSort:YES];
             });
         }
 
@@ -410,7 +411,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     self.navigationItem.leftBarButtonItems[0].enabled = YES;
     [NSUserDefaults.standardUserDefaults setObject:self.objects[indexPath.row] forKey:@"selected"];
-    [self patchExecAndSignIfNeed:indexPath];
+    [self patchExecAndSignIfNeed:indexPath shouldSort:NO];
 }
 
 - (void)preprocessBundleBeforeSiging:(NSURL *)bundleURL completion:(dispatch_block_t)completion {
@@ -425,7 +426,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     });
 }
 
-- (void)patchExecAndSignIfNeed:(NSIndexPath *)indexPath {
+- (void)patchExecAndSignIfNeed:(NSIndexPath *)indexPath shouldSort:(BOOL)sortNames {
     NSString *appPath = [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]];
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
@@ -448,6 +449,10 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     }
 
     if (!LCUtils.certificatePassword) {
+        if (sortNames) {
+            [self.objects sortUsingSelector:@selector(caseInsensitiveCompare:)];
+            [self.tableView reloadData];
+        }
         return;
     }
 
@@ -503,6 +508,9 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 
                     [progress removeObserver:self forKeyPath:@"fractionCompleted"];
                     [self.progressView removeFromSuperview];
+                    if (sortNames) {
+                        [self.objects sortUsingSelector:@selector(caseInsensitiveCompare:)];
+                    }
                     [self.tableView reloadData];
                 });
             }];
