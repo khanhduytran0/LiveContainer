@@ -10,6 +10,7 @@
 
 + (NSData *)certificateData;
 + (NSString *)certificatePassword;
++ (void)setCertificateData:(NSData *)data;
 + (void)setCertificatePassword:(NSString *)password;
 
 + (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store;

@@ -23,17 +23,23 @@
         return;
     }
 
-    NSData *certPassword = [LCUtils keychainItem:@"signingCertificatePassword" ofStore:@"com.SideStore.SideStore"];
 /* TODO: support AltStore
     if (!certData) {
         certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.rileytestut.AltStore"];
     }
 */
+    NSData *certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.SideStore.SideStore"];
+    if (!certData) {
+        [self showDialogTitle:@"Error" message:@"Failed to find certificate data" handler:nil];
+        return;
+    }
+    LCUtils.certificateData = certData;
+
+    NSData *certPassword = [LCUtils keychainItem:@"signingCertificatePassword" ofStore:@"com.SideStore.SideStore"];
     if (!certPassword) {
         [self showDialogTitle:@"Error" message:@"Failed to find certificate password" handler:nil];
         return;
     }
-
     LCUtils.certificatePassword = [NSString stringWithUTF8String:certPassword.bytes];
 
     NSError *error;

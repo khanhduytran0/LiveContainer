@@ -9,6 +9,10 @@
 
 #pragma mark Certificate password
 
++ (NSString *)appGroupPath {
+    return [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID].path;
+}
+
 + (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store {
     NSDictionary *dict = @{
         (id)kSecClass: (id)kSecClassGenericPassword,
@@ -27,22 +31,28 @@
     }
 }
 
++ (void)setCertificateData:(NSData *)certData {
+    [NSUserDefaults.standardUserDefaults setObject:certData forKey:@"LCCertificateData"];
+}
+
++ (NSData *)certificateDataFile {
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    NSURL *url = [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app/ALTCertificate.p12"];
+    return [NSData dataWithContentsOfURL:url];
+}
+
++ (NSData *)certificateData {
+    // Prefer certificate file over keychain data
+    return self.certificateDataFile ?: [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+}
+
 + (void)setCertificatePassword:(NSString *)certPassword {
     [NSUserDefaults.standardUserDefaults setObject:certPassword forKey:@"LCCertificatePassword"];
 }
 
 + (NSString *)certificatePassword {
-    return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
-}
-
-+ (NSData *)certificateData {
-    static NSData *result;
-    if (!result) {
-        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-        NSURL *url = [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app/ALTCertificate.p12"];
-        result = [NSData dataWithContentsOfURL:url];
-    }
-    return result;
+    // Certificate file requires password, whereas data doesn't
+    return self.certificateDataFile ? [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"] : @"";
 }
 
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL {
