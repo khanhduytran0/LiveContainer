@@ -17,7 +17,9 @@
 + (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 
 + (BOOL)isAppGroupSideStore;
++ (BOOL)launchToGuestApp;
 
 + (NSURL *)archiveIPAWithSetupMode:(BOOL)setup error:(NSError **)error;
+
 
 @end

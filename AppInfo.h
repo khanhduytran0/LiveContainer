@@ -17,5 +17,6 @@
 - (void)setDataUUID:(NSString *)uuid;
 - (void)setTweakFolder:(NSString *)tweakFolder;
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
+- (NSDictionary *)generateWebClipConfig;
 - (void)save;
 @end

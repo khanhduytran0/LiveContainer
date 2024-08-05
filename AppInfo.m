@@ -73,6 +73,53 @@
     return icon;
 }
 
+- (UIImage *)generateLiveContainerWrappedIcon {
+    UIImage *lcIcon = [UIImage imageNamed:@"AppIcon76x76"];
+    UIImage *icon = self.icon;
+    CGFloat iconXY = (lcIcon.size.width - 40) / 2;
+    UIGraphicsBeginImageContextWithOptions(lcIcon.size, NO, 0.0);
+    [lcIcon drawInRect:CGRectMake(0, 0, lcIcon.size.width, lcIcon.size.height)];
+    CGRect rect = CGRectMake(iconXY, iconXY, 40, 40);
+    [[UIBezierPath bezierPathWithRoundedRect:rect cornerRadius:7] addClip];
+    [icon drawInRect:rect];
+    UIImage *newIcon = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return newIcon;
+}
+
+- (NSDictionary *)generateWebClipConfig {
+    NSDictionary *payload = @{
+        @"FullScreen": @YES,
+        @"Icon": UIImagePNGRepresentation(self.generateLiveContainerWrappedIcon),
+        @"IgnoreManifestScope": @YES,
+        @"IsRemovable": @YES,
+        @"Label": self.displayName,
+        @"PayloadDescription": [NSString stringWithFormat:@"Web Clip for launching %@ (%@) in LiveContainer", self.displayName, self.bundlePath.lastPathComponent],
+        @"PayloadDisplayName": self.displayName,
+        @"PayloadIdentifier": self.bundleIdentifier,
+        @"PayloadType": @"com.apple.webClip.managed",
+        @"PayloadUUID": self.dataUUID,
+        @"PayloadVersion": @(1),
+        @"Precomposed": @NO,
+        @"toPayloadOrganization": @"LiveContainer",
+        @"URL": [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@", self.bundlePath.lastPathComponent]
+    };
+    return @{
+        @"ConsentText": @{
+            @"default": [NSString stringWithFormat:@"This profile installs a web clip which opens %@ (%@) in LiveContainer", self.displayName, self.bundlePath.lastPathComponent]
+        },
+        @"PayloadContent": @[payload],
+        @"PayloadDescription": payload[@"PayloadDescription"],
+        @"PayloadDisplayName": self.displayName,
+        @"PayloadIdentifier": self.bundleIdentifier,
+        @"PayloadOrganization": @"LiveContainer",
+        @"PayloadRemovalDisallowed": @(NO),
+        @"PayloadType": @"Configuration",
+        @"PayloadUUID": @"345097fb-d4f7-4a34-ab90-2e3f1ad62eed",
+        @"PayloadVersion": @(1),
+    };
+}
+
 - (void)save {
     [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
 }

@@ -1,4 +1,5 @@
 #import <CommonCrypto/CommonDigest.h>
+#import <SafariServices/SafariServices.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import "LCRootViewController.h"
 #import "LCUtils.h"
@@ -7,7 +8,6 @@
 #import "UIViewController+LCAlert.h"
 #import "unarchive.h"
 #import "AppInfo.h"
-
 
 #include <libgen.h>
 #include <mach-o/fat.h>
@@ -77,6 +77,13 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         seg->vmsize = 0x4000;
     }
 }
+
+@implementation NSURL(hack)
+- (BOOL)safari_isHTTPFamilyURL {
+    // Screw it, Apple
+    return YES;
+}
+@end
 
 @interface LCRootViewController ()
 @property(atomic) NSMutableArray<NSString *> *objects;
@@ -164,22 +171,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         return;
     }
 
-    NSString *urlScheme;
-    NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
-    if (!access(tsPath.UTF8String, F_OK)) {
-        urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
-    } else if (LCUtils.certificatePassword) {
-        urlScheme = @"livecontainer://open?un_used=%@";
-    } else {
-        urlScheme = @"sidestore://sidejit-enable?bid=%@";
-    }
-    NSURL *sidejitURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
-    if ([UIApplication.sharedApplication canOpenURL:sidejitURL]) {
-        [UIApplication.sharedApplication openURL:sidejitURL options:@{} completionHandler:^(BOOL b) {
-            exit(0);
-        }];
-        return;
-    }
+    if ([LCUtils launchToGuestApp]) return;
 
     [self showDialogTitle:@"Instruction" message:@"To use this button, you need a build of SideStore that supports enabling JIT through URL scheme. Otherwise, you need to manually enable it."
     handler:^(UIAlertAction * action) {
@@ -619,6 +611,16 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     }
 
     NSArray *menuItems = @[
+        [UIAction
+            actionWithTitle:@"Add to Home Screen"
+            image:[UIImage systemImageNamed:@"plus.app"]
+            identifier:nil
+            handler:^(UIAction *action) {
+                NSData *data = [NSPropertyListSerialization dataWithPropertyList:appInfo.generateWebClipConfig format:NSPropertyListXMLFormat_v1_0 options:0 error:0];
+                NSString *url = [NSString stringWithFormat:@"data:application/x-apple-aspen-config;base64,%@", [data base64EncodedStringWithOptions:0]];
+                SFSafariViewController *svc = [[SFSafariViewController alloc] initWithURL:[NSURL URLWithString:url]];
+                [self presentViewController:svc animated:YES completion:nil];
+            }],
         [UIMenu
             menuWithTitle:@"Change tweak folder"
             image:[UIImage systemImageNamed:@"gearshape.2"]

@@ -1,5 +1,6 @@
 @import Darwin;
 @import MachO;
+@import UIKit;
 
 #import "AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
@@ -245,6 +246,26 @@
     if (*error) return nil;
 
     return tmpIPAPath;
+}
+
++ (BOOL)launchToGuestApp {
+    NSString *urlScheme;
+    NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
+    if (!access(tsPath.UTF8String, F_OK)) {
+        urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
+    } else if (LCUtils.certificatePassword) {
+        urlScheme = @"livecontainer://livecontainer-launch?unused=%@";
+    } else {
+        urlScheme = @"sidestore://sidejit-enable?bid=%@";
+    }
+    NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
+    if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
+        [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:^(BOOL b) {
+            exit(0);
+        }];
+        return true;
+    }
+    return false;
 }
 
 @end
