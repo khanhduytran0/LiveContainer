@@ -9,7 +9,8 @@
 @interface LCUtils : NSObject
 
 + (NSData *)certificateData;
-+ (void)setCertificateData:(NSData *)certData;
++ (NSString *)certificatePassword;
++ (void)setCertificatePassword:(NSString *)password;
 
 + (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store;
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL;

@@ -18,18 +18,18 @@
     self.view.backgroundColor = UIColor.systemBackgroundColor;
     self.title = @"LiveContainer JIT-less setup";
 
-    NSData *certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.SideStore.SideStore"];
+    NSData *certPassword = [LCUtils keychainItem:@"signingCertificatePassword" ofStore:@"com.SideStore.SideStore"];
 /* TODO: support AltStore
     if (!certData) {
         certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.rileytestut.AltStore"];
     }
 */
-    if (!certData) {
-        [self showDialogTitle:@"Error" message:@"Failed to find certificate" handler:nil];
+    if (!certPassword) {
+        [self showDialogTitle:@"Error" message:@"Failed to find certificate password" handler:nil];
         return;
     }
 
-    LCUtils.certificateData = certData;
+    LCUtils.certificatePassword = [NSString stringWithUTF8String:certPassword.bytes];
 
     NSError *error;
     NSURL *url = [LCUtils archiveIPAWithSetupMode:NO error:&error];

@@ -168,7 +168,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
     if (!access(tsPath.UTF8String, F_OK)) {
         urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
-    } else if (LCUtils.certificateData) {
+    } else if (LCUtils.certificatePassword) {
         urlScheme = @"livecontainer://open?un_used=%@";
     } else {
         urlScheme = @"sidestore://sidejit-enable?bid=%@";
@@ -455,14 +455,25 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [info writeToFile:infoPath atomically:YES];
     }
 
-    // We're only getting the first 8 bytes for comparison
+    if (!LCUtils.certificatePassword) {
+        return;
+    }
+
     int signRevision = 1;
-    uint8_t digest[CC_SHA1_DIGEST_LENGTH];
-    CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
-    NSUInteger signID = *(uint64_t *)digest + signRevision;
+
+    // We're only getting the first 8 bytes for comparison
+    NSUInteger signID;
+    if (LCUtils.certificateData) {
+        uint8_t digest[CC_SHA1_DIGEST_LENGTH];
+        CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
+        signID = *(uint64_t *)digest + signRevision;
+    } else {
+        [self showDialogTitle:@"Error" message:@"Could not open ALTCertificate.p12"];
+        return;
+    }
 
     // Sign app if JIT-less is set up
-    if (LCUtils.certificateData && [info[@"LCJITLessSignID"] unsignedLongValue] != signID) {
+    if ([info[@"LCJITLessSignID"] unsignedLongValue] != signID) {
         NSURL *appPathURL = [NSURL fileURLWithPath:appPath];
         [self preprocessBundleBeforeSiging:appPathURL completion:^{
             // We need to temporarily fake bundle ID and main executable to sign properly

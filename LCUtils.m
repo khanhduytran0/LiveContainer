@@ -26,12 +26,22 @@
     }
 }
 
-+ (void)setCertificateData:(NSData *)certData {
-    [NSUserDefaults.standardUserDefaults setObject:certData forKey:@"LCCertificateData"];
++ (void)setCertificatePassword:(NSString *)certPassword {
+    [NSUserDefaults.standardUserDefaults setObject:certPassword forKey:@"LCCertificatePassword"];
+}
+
++ (NSString *)certificatePassword {
+    return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
 }
 
 + (NSData *)certificateData {
-    return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+    static NSData *result;
+    if (!result) {
+        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+        NSURL *url = [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app/ALTCertificate.p12"];
+        result = [NSData dataWithContentsOfURL:url];
+    }
+    return result;
 }
 
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL {
@@ -148,7 +158,7 @@
         }
     }
 
-    ALTCertificate *cert = [[NSClassFromString(@"ALTCertificate") alloc] initWithP12Data:self.certificateData password:@""];
+    ALTCertificate *cert = [[NSClassFromString(@"ALTCertificate") alloc] initWithP12Data:self.certificateData password:self.certificatePassword];
     ALTProvisioningProfile *profile = [[NSClassFromString(@"ALTProvisioningProfile") alloc] initWithURL:profilePath];
 
     ALTAccount *account = [NSClassFromString(@"ALTAccount") new];
