@@ -1,82 +1,24 @@
-#import <CommonCrypto/CommonDigest.h>
-#import <SafariServices/SafariServices.h>
-#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
-#import "LCRootViewController.h"
+@import CommonCrypto;
+@import Darwin;
+@import MachO;
+@import SafariServices;
+@import UniformTypeIdentifiers;
+
+#import "LCAppInfo.h"
+#import "LCAppListViewController.h"
 #import "LCUtils.h"
 #import "MBRoundProgressView.h"
 #import "UIKitPrivate.h"
 #import "UIViewController+LCAlert.h"
 #import "unarchive.h"
-#import "AppInfo.h"
 
+/*
 #include <libgen.h>
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-
-static uint32_t rnd32(uint32_t v, uint32_t r) {
-    r--;
-    return (v + r) & ~r;
-}
-
-static void insertDylibCommand(uint32_t cmd, const char *path, struct mach_header_64 *header) {
-    const char *name = cmd==LC_ID_DYLIB ? basename((char *)path) : path;
-    struct dylib_command *dylib = (struct dylib_command *)(sizeof(struct mach_header_64) + (void *)header+header->sizeofcmds);
-    dylib->cmd = cmd;
-    dylib->cmdsize = sizeof(struct dylib_command) + rnd32((uint32_t)strlen(name) + 1, 8);
-    dylib->dylib.name.offset = sizeof(struct dylib_command);
-    dylib->dylib.compatibility_version = 0x10000;
-    dylib->dylib.current_version = 0x10000;
-    dylib->dylib.timestamp = 2;
-    strncpy((void *)dylib + dylib->dylib.name.offset, name, strlen(name));
-    header->ncmds++;
-    header->sizeofcmds += dylib->cmdsize;
-}
-
-static void patchExecSlice(const char *path, struct mach_header_64 *header) {
-    uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
-
-    // Literally convert an executable to a dylib
-    if (header->magic == MH_MAGIC_64) {
-        //assert(header->flags & MH_PIE);
-        header->filetype = MH_DYLIB;
-        header->flags |= MH_NO_REEXPORTED_DYLIBS;
-        header->flags &= ~MH_PIE;
-    }
-
-    BOOL hasDylibCommand = NO,
-         hasLoaderCommand = NO;
-    const char *tweakLoaderPath = "@loader_path/../../Tweaks/TweakLoader.dylib";
-    struct load_command *command = (struct load_command *)imageHeaderPtr;
-    for(int i = 0; i < header->ncmds > 0; i++) {
-        if(command->cmd == LC_ID_DYLIB) {
-            hasDylibCommand = YES;
-        } else if(command->cmd == LC_LOAD_DYLIB) {
-            struct dylib_command *dylib = (struct dylib_command *)command;
-            char *dylibName = (void *)dylib + dylib->dylib.name.offset;
-            if (!strncmp(dylibName, tweakLoaderPath, strlen(tweakLoaderPath))) {
-                hasLoaderCommand = YES;
-            }
-        }
-        command = (struct load_command *)((void *)command + command->cmdsize);
-    }
-    if (!hasDylibCommand) {
-        insertDylibCommand(LC_ID_DYLIB, path, header);
-    }
-    if (!hasLoaderCommand) {
-        insertDylibCommand(LC_LOAD_DYLIB, tweakLoaderPath, header);
-    }
-
-    // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
-    struct segment_command_64 *seg = (struct segment_command_64 *)imageHeaderPtr;
-    assert(seg->cmd == LC_SEGMENT_64);
-    if (seg->vmaddr == 0) {
-        assert(seg->vmsize == 0x100000000);
-        seg->vmaddr = 0x100000000 - 0x4000;
-        seg->vmsize = 0x4000;
-    }
-}
+*/
 
 @implementation NSURL(hack)
 - (BOOL)safari_isHTTPFamilyURL {
@@ -85,42 +27,14 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 }
 @end
 
-@interface LCRootViewController ()
+@interface LCAppListViewController ()
 @property(atomic) NSMutableArray<NSString *> *objects;
 @property(nonatomic) NSString *bundlePath, *docPath, *tweakPath;
 
 @property(nonatomic) MBRoundProgressView *progressView;
 @end
 
-@implementation LCRootViewController
-
-- (void)patchExecutable:(const char *)path {
-    int fd = open(path, O_RDWR, (mode_t)0600);
-    struct stat s;
-    fstat(fd, &s);
-    void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
-    uint32_t magic = *(uint32_t *)map;
-    if (magic == FAT_CIGAM) {
-        // Find compatible slice
-        struct fat_header *header = (struct fat_header *)map;
-        struct fat_arch *arch = (struct fat_arch *)(map + sizeof(struct fat_header));
-        for (int i = 0; i < OSSwapInt32(header->nfat_arch); i++) {
-            if (OSSwapInt32(arch->cputype) == CPU_TYPE_ARM64) {
-                patchExecSlice(path, (struct mach_header_64 *)(map + OSSwapInt32(arch->offset)));
-            }
-            arch = (struct fat_arch *)((void *)arch + sizeof(struct fat_arch));
-        }
-    } else if (magic == MH_MAGIC_64) {
-        patchExecSlice(path, (struct mach_header_64 *)map);
-    } else {
-        [self showDialogTitle:@"Error" message:@"32-bit app is not supported"];
-    }
-
-    msync(map, s.st_size, MS_SYNC);
-    munmap(map, s.st_size);
-    close(fd);
-}
+@implementation LCAppListViewController
 
 - (void)loadView {
     [super loadView];
@@ -191,16 +105,16 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     extract(url.path, temp, progress);
     [url stopAccessingSecurityScopedResource];
 
-    NSArray* PayloadContents = [[fm contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
+    NSArray* payloadContents = [[fm contentsOfDirectoryAtPath:[temp stringByAppendingPathComponent: @"Payload"] error:nil] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id object, NSDictionary *bindings) {
         return [object hasSuffix:@".app"];
     }]];
-    if (!PayloadContents.firstObject) {
+    if (!payloadContents.firstObject) {
         return @"App bundle not found";
     }
 
-    NSString *AppName = PayloadContents[0];
-    NSString *oldAppName = AppName;
-    NSString *outPath = [self.bundlePath stringByAppendingPathComponent: AppName];
+    NSString *appName = payloadContents[0];
+    NSString *oldAppName = appName;
+    NSString *outPath = [self.bundlePath stringByAppendingPathComponent: appName];
 
     __block int selectedAction = -1;
     if ([fm fileExistsAtPath:outPath isDirectory:nil]) {
@@ -213,7 +127,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
             id handler = ^(UIAlertAction *action) {
                 selectedAction = [alert.actions indexOfObject:action];
                 if (selectedAction == 0) { // Replace
-                    NSIndexPath *indexPath = [NSIndexPath indexPathForRow:[self.objects indexOfObject:AppName] inSection:0];
+                    NSIndexPath *indexPath = [NSIndexPath indexPathForRow:[self.objects indexOfObject:appName] inSection:0];
                     [self.objects removeObjectAtIndex:indexPath.row];
                     [self.tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
                 }
@@ -228,7 +142,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
     }
 
-    AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath:outPath];
+    LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath:outPath];
     NSString *dataUUID = appInfo.dataUUID;
     NSString *tweakFolder = appInfo.tweakFolder ?: @"";
     switch (selectedAction) {
@@ -238,16 +152,16 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         case 2: // Keep both, don't share data
             dataUUID = NSUUID.UUID.UUIDString;
         case 1: // Keep both, share data
-            AppName = [NSString stringWithFormat:@"%@%ld.app", [AppName substringToIndex:AppName.length-4], (long)CFAbsoluteTimeGetCurrent()];
-            outPath = [self.bundlePath stringByAppendingPathComponent:AppName];
+            appName = [NSString stringWithFormat:@"%@%ld.app", [appName substringToIndex:appName.length-4], (long)CFAbsoluteTimeGetCurrent()];
+            outPath = [self.bundlePath stringByAppendingPathComponent:appName];
             break;
     }
     NSString *payloadPath = [temp stringByAppendingPathComponent:@"Payload"];
     if (selectedAction != 3) { // Did not cancel
-        self.objects[0] = AppName;
+        self.objects[0] = appName;
         [fm moveItemAtPath:[payloadPath stringByAppendingPathComponent:oldAppName] toPath:outPath error:&error];
         // Reconstruct AppInfo with the new Info.plist
-        appInfo = [[AppInfo alloc] initWithBundlePath:outPath];
+        appInfo = [[LCAppInfo alloc] initWithBundlePath:outPath];
         // Write data UUID
         appInfo.dataUUID = dataUUID;
         appInfo.tweakFolder = tweakFolder;
@@ -346,10 +260,9 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    static NSString *CellIdentifier = @"Cell";
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell"];
     if (!cell) {
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier];
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"Cell"];
         cell.preservesSuperviewLayoutMargins = NO;
         cell.separatorInset = UIEdgeInsetsZero;
         cell.layoutMargins = UIEdgeInsetsZero;
@@ -370,7 +283,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
         [cell.imageView addSubview:self.progressView];
         return cell;
     }
-    AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
+    LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
     cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ - %@\n%@", [appInfo version], [appInfo bundleIdentifier], [appInfo dataUUID]];
     cell.textLabel.text = [appInfo displayName];
     cell.imageView.image = [[appInfo icon] _imageWithSize:CGSizeMake(60, 60)];
@@ -382,10 +295,10 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
 }
 
 - (void)deleteAppAtIndexPath:(NSIndexPath *)indexPath {
-    AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
+    LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
     UIAlertController* uninstallAlert = [UIAlertController alertControllerWithTitle:@"Confirm Uninstallation" message:[NSString stringWithFormat:@"Are you sure you want to uninstall %@?", [appInfo displayName]] preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* uninstallApp = [UIAlertAction actionWithTitle:@"Uninstall" style:UIAlertActionStyleDestructive handler:^(UIAlertAction* action) {
-	NSError *error = nil;
+        NSError *error = nil;
         [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
         if (error) {
             [self showDialogTitle:@"Error" message:error.localizedDescription];
@@ -443,7 +356,12 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     int currentPatchRev = 5;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
-        [self patchExecutable:execPath.UTF8String];
+        NSString *error;
+        LCPatchExecutable(execPath.UTF8String, &error);
+        if (error) {
+            [self showDialogTitle:@"Error" message:error];
+            return;
+        }
         info[@"LCPatchRevision"] = @(currentPatchRev);
         [info writeToFile:infoPath atomically:YES];
     }
@@ -529,7 +447,7 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     if (self.objects[indexPath.row].length == 0) return nil;
 
     NSFileManager *fm = NSFileManager.defaultManager;
-    AppInfo* appInfo = [[AppInfo alloc] initWithBundlePath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
+    LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
 
     NSString *dataPath = [NSString stringWithFormat:@"%@/Data/Application", self.docPath];
     NSArray *dataFolderNames = [fm contentsOfDirectoryAtPath:dataPath error:nil];

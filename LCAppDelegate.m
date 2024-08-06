@@ -8,10 +8,10 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     UIViewController *viewController;
     if ([NSBundle.mainBundle.executablePath.lastPathComponent isEqualToString:@"JITLessSetup"]) {
-        viewController = [[LCJITLessSetupViewController alloc] init];
+        viewController = [LCJITLessSetupViewController new];
         _rootViewController = [[UINavigationController alloc] initWithRootViewController:viewController];
     } else {
-        _rootViewController = [[LCTabBarController alloc] init];
+        _rootViewController = [LCTabBarController new];
     }
     _window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
     _window.rootViewController = _rootViewController;

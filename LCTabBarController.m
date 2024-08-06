@@ -1,4 +1,4 @@
-#import "LCRootViewController.h"
+#import "LCAppListViewController.h"
 #import "LCSettingsListController.h"
 #import "LCTabBarController.h"
 
@@ -7,7 +7,7 @@
 - (void)loadView {
     [super loadView];
 
-    LCRootViewController* appTableVC = [LCRootViewController new];
+    LCAppListViewController* appTableVC = [LCAppListViewController new];
     appTableVC.title = @"Apps";
 
     LCSettingsListController* settingsListVC = [LCSettingsListController new];

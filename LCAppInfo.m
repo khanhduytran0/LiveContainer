@@ -1,8 +1,8 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
-#import "AppInfo.h"
+#import "LCAppInfo.h"
 
-@implementation AppInfo
+@implementation LCAppInfo
 - (instancetype)initWithBundlePath:(NSString*)bundlePath {
 	 self = [super init];
 	 if(self) {

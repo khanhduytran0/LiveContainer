@@ -1,7 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-@interface AppInfo : NSObject {
+@interface LCAppInfo : NSObject {
    NSMutableDictionary* _info;
    NSString* _bundlePath;
 }
