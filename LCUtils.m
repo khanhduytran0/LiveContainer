@@ -73,7 +73,7 @@
     return [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
 }
 
-#pragma mark Code sunning
+#pragma mark Code signing
 
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL {
     int32_t cpusubtype;

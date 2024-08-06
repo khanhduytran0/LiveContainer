@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>JIT-less allows you to use LiveContainer without having to enable JIT. Requires SideStore.</string>
+			<key>label</key>
+			<string>JIT-less</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>setupJITLessPressed</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>id</key>
+			<string>setup-jitless</string>
+			<key>label</key>
+			<string>Setup JIT-less</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Miscellaneous</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kdt.livecontainer</string>
+			<key>key</key>
+			<string>LCFrameShortcutIcons</string>
+			<key>label</key>
+			<string>Frame shortcut icon</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>About me</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>openSourceCode</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>GitHub.png</string>
+			<key>label</key>
+			<string>khanhduytran0/LiveContainer</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>openTwitter</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>Twitter.png</string>
+			<key>label</key>
+			<string>@TranKha50277352</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Settings</string>
+</dict>
+</plist>

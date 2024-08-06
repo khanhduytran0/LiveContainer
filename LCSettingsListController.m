@@ -4,27 +4,19 @@
 
 @implementation LCSettingsListController
 
-- (NSMutableArray*)specifiers {
-    if(!_specifiers) {
-        _specifiers = [NSMutableArray new];
-        PSSpecifier* jitlessGroup = [PSSpecifier emptyGroupSpecifier];
-        jitlessGroup.name = @"JIT-less";
-        [jitlessGroup setProperty:@"JIT-less allows you to use LiveContainer without having to enable JIT. Requires SideStore." forKey:@"footerText"];
-        [_specifiers addObject:jitlessGroup];
-
-        NSString *setupJITLessButtonName = LCUtils.certificatePassword ? @"Renew JIT-less certificate" : @"Setup JIT-less certificate";
-        PSSpecifier* setupJITLessButton = [PSSpecifier preferenceSpecifierNamed:setupJITLessButtonName target:self set:nil get:nil detail:nil cell:PSButtonCell edit:nil];
-        setupJITLessButton.identifier = @"setup-jitless";
-        setupJITLessButton.buttonAction = @selector(setupJITLessPressed);
-        [_specifiers addObject:setupJITLessButton];
-
-        PSSpecifier* signTweaksButton = [PSSpecifier preferenceSpecifierNamed:@"Sign tweaks" target:self set:nil get:nil detail:nil cell:PSButtonCell edit:nil];
-        signTweaksButton.identifier = @"sign-tweaks";
-        [signTweaksButton setProperty:@(!!LCUtils.certificatePassword) forKey:@"enabled"];
-        signTweaksButton.buttonAction = @selector(signTweaksPressed);
-        [_specifiers addObject:signTweaksButton];
+- (NSMutableArray *)specifiers {
+    if (!_specifiers) {
+        _specifiers = [self loadSpecifiersFromPlistName:@"Root" target:self bundle:NSBundle.mainBundle];
     }
+
     return _specifiers;
+}
+
+- (void)loadView {
+    [super loadView];
+    NSString *setupJITLessButtonName = LCUtils.certificatePassword ? @"Renew JIT-less certificate" : @"Setup JIT-less certificate";
+    PSSpecifier *setupJITLessButton = [self specifierForID:@"setup-jitless"];
+    setupJITLessButton.name = setupJITLessButtonName;
 }
 
 - (void)setupJITLessPressed {
@@ -43,8 +35,12 @@
     [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:@"sidestore://install?url=%@", url]] options:@{} completionHandler:nil];
 }
 
-- (void)signTweaksPressed {
-    
+- (void)openSourceCode {
+    [UIApplication.sharedApplication openURL:[NSURL URLWithString:@"https://github.com/khanhduytran0/LiveContainer"] options:@{} completionHandler:nil];
+}
+
+- (void)openTwitter {
+    [UIApplication.sharedApplication openURL:[NSURL URLWithString:@"https://twitter.com/TranKha50277352"] options:@{} completionHandler:nil];
 }
 
 @end

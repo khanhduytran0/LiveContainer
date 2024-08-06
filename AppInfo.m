@@ -75,7 +75,7 @@
 
 - (UIImage *)generateLiveContainerWrappedIcon {
     UIImage *icon = self.icon;
-    if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCDontFrameShortcutIcons"]) {
+    if (![NSUserDefaults.standardUserDefaults boolForKey:@"LCFrameShortcutIcons"]) {
         return icon;
     }
 
