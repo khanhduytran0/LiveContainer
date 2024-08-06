@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import "LCAppDelegate.h"
+#import "LCUtils.h"
 #import "UIKitPrivate.h"
 #import "utils.h"
 
@@ -16,7 +17,7 @@
 
 static int (*appMain)(int, char**);
 static const char *dyldImageName;
-static NSUserDefaults *lcUserDefaults;
+NSUserDefaults *lcUserDefaults;
 
 static BOOL checkJITEnabled() {
     // check if jailbroken
@@ -165,7 +166,7 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
 
 static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *appError = nil;
-    if (![lcUserDefaults objectForKey:@"LCCertificatePassword"]) {
+    if (!LCSharedUtils.certificatePassword) {
         // First of all, let's check if we have JIT
         for (int i = 0; i < 10 && !checkJITEnabled(); i++) {
             usleep(1000*100);
@@ -279,6 +280,9 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         *path = oldPath;
         return appError;
     }
+
+    // Init hooks for guest app
+    UIKitGuestHooksInit();
 
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);

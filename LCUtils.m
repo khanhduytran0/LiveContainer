@@ -7,7 +7,7 @@
 
 @implementation LCUtils
 
-#pragma mark Certificate password
+#pragma mark Certificate & password
 
 + (NSString *)appGroupPath {
     return [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID].path;
@@ -41,19 +41,39 @@
     return [NSData dataWithContentsOfURL:url];
 }
 
++ (NSData *)certificateDataProperty {
+    return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+}
+
 + (NSData *)certificateData {
     // Prefer certificate file over keychain data
-    return self.certificateDataFile ?: [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+    return self.certificateDataFile ?: self.certificateDataProperty;
+}
+
++ (NSString *)certificatePassword {
+    if (self.certificateDataFile) {
+        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];;
+    } else if (self.certificateDataProperty) {
+        return @"";
+    } else {
+        return nil;
+    }
 }
 
 + (void)setCertificatePassword:(NSString *)certPassword {
     [NSUserDefaults.standardUserDefaults setObject:certPassword forKey:@"LCCertificatePassword"];
 }
 
-+ (NSString *)certificatePassword {
-    // Certificate file requires password, whereas data doesn't
-    return self.certificateDataFile ? [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"] : @"";
+#pragma mark LCSharedUtils wrappers
++ (BOOL)launchToGuestApp {
+    return [NSClassFromString(@"LCSharedUtils") launchToGuestApp];
 }
+
++ (BOOL)launchToGuestAppWithURL:(NSURL *)url {
+    return [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
+}
+
+#pragma mark Code sunning
 
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL {
     int32_t cpusubtype;
@@ -257,25 +277,4 @@
 
     return tmpIPAPath;
 }
-
-+ (BOOL)launchToGuestApp {
-    NSString *urlScheme;
-    NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
-    if (!access(tsPath.UTF8String, F_OK)) {
-        urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
-    } else if (LCUtils.certificatePassword) {
-        urlScheme = @"livecontainer://livecontainer-launch?unused=%@";
-    } else {
-        urlScheme = @"sidestore://sidejit-enable?bid=%@";
-    }
-    NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
-    if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
-        [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:^(BOOL b) {
-            exit(0);
-        }];
-        return true;
-    }
-    return false;
-}
-
 @end

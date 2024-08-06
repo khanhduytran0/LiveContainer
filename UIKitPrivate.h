@@ -1,5 +1,7 @@
 #import <UIKit/UIKit.h>
 
+void UIKitGuestHooksInit();
+
 @interface NSBundle(private)
 - (id)_cfBundle;
 @end
@@ -27,6 +29,10 @@
 @interface _UIContextMenuStyle : NSObject <NSCopying>
 @property(nonatomic) NSInteger preferredLayout;
 + (instancetype)defaultStyle;
+@end
+
+@interface UIOpenURLAction : NSObject
+- (NSURL *)url;
 @end
 
 @interface UITableViewHeaderFooterView(private)

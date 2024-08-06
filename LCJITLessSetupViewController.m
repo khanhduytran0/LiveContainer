@@ -18,11 +18,6 @@
     self.view.backgroundColor = UIColor.systemBackgroundColor;
     self.title = @"LiveContainer JIT-less setup";
 
-    if (!LCUtils.certificateData) {
-        [self showDialogTitle:@"Error" message:@"Failed to find ALTCertificate.p12. Please refresh SideStore and try again." handler:nil];
-        return;
-    }
-
 /* TODO: support AltStore
     if (!certData) {
         certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.rileytestut.AltStore"];

@@ -74,8 +74,12 @@
 }
 
 - (UIImage *)generateLiveContainerWrappedIcon {
-    UIImage *lcIcon = [UIImage imageNamed:@"AppIcon76x76"];
     UIImage *icon = self.icon;
+    if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCDontFrameShortcutIcons"]) {
+        return icon;
+    }
+
+    UIImage *lcIcon = [UIImage imageNamed:@"AppIcon76x76"];
     CGFloat iconXY = (lcIcon.size.width - 40) / 2;
     UIGraphicsBeginImageContextWithOptions(lcIcon.size, NO, 0.0);
     [lcIcon drawInRect:CGRectMake(0, 0, lcIcon.size.width, lcIcon.size.height)];
