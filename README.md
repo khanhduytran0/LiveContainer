@@ -31,12 +31,11 @@ Requires SideStore for both JIT and JIT-less mode.
 - Tap the play icon, it will attempt to restart LiveContainer with guest app loaded.
 
 ### Installing external tweaks
-This feature is currently incomplete so you'll have to do the following manually.
-- Create your tweak folder at `LiveContainer/Tweaks/<YourTweakBundleName>`.
-- Download `CydiaSubstrate.framework` (you can get it from tweaked apps, this will be bundled into LiveContainer later) and place it into the tweak folder.
-- For each tweak, you need to fix the CydiaSubstrate rpath to point to `@loader_path/CydiaSubstrate.framework/CydiaSubstrate` using `install_name_tool`.
-- Put your patched tweaks into the tweak folder.
-- In the app picker screen, hold the app entry to change the tweak folder.
+LiveContainer comes with its own TweakLoader, which automatically load CydiaSubstrate and tweaks. TweakLoader is injected to every app you install. You can override `TweakLoader.dylib` symlink with your own implementation if you wish.
+
+.dylib files in `Tweaks` folder are global, they are loaded to all apps. You can create app-specific tweaks folder and switch between them instantly.
+
+To install tweaks, you can use the built-in tweak manager in LiveContainer, which will automatically sign tweaks as you import. Otherwise, you can manually add them and then use the tweak manager to sign them.
 
 ## How does it work?
 
