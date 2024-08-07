@@ -1,6 +1,7 @@
 @import Darwin;
 @import Foundation;
 @import MachO;
+#import "LCUtils.h"
 
 static uint32_t rnd32(uint32_t v, uint32_t r) {
     r--;
@@ -21,7 +22,22 @@ static void insertDylibCommand(uint32_t cmd, const char *path, struct mach_heade
     header->sizeofcmds += dylib->cmdsize;
 }
 
-static void patchExecSlice(const char *path, struct mach_header_64 *header) {
+static void insertRPathCommand(const char *path, struct mach_header_64 *header) {
+    struct rpath_command *rpath = (struct rpath_command *)(sizeof(struct mach_header_64) + (void *)header+header->sizeofcmds);
+    rpath->cmd = LC_RPATH;
+    rpath->cmdsize = sizeof(struct rpath_command) + rnd32((uint32_t)strlen(path) + 1, 8);
+    rpath->path.offset = sizeof(struct rpath_command);
+    strncpy((void *)rpath + rpath->path.offset, path, strlen(path));
+    header->ncmds++;
+    header->sizeofcmds += rpath->cmdsize;
+}
+
+void LCPatchAddRPath(const char *path, struct mach_header_64 *header) {
+    insertRPathCommand("@executable_path/../../Tweaks", header);
+    insertRPathCommand("@loader_path", header);
+}
+
+void LCPatchExecSlice(const char *path, struct mach_header_64 *header) {
     uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
 
     // Literally convert an executable to a dylib
@@ -65,11 +81,14 @@ static void patchExecSlice(const char *path, struct mach_header_64 *header) {
     }
 }
 
-void LCPatchExecutable(const char *path, NSString **error) {
+NSString *LCParseMachO(const char *path, LCParseMachOCallback callback) {
     int fd = open(path, O_RDWR, (mode_t)0600);
     struct stat s;
     fstat(fd, &s);
     void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (map == MAP_FAILED) {
+        return [NSString stringWithFormat:@"Failed to map %s: %s", path, strerror(errno)];
+    }
 
     uint32_t magic = *(uint32_t *)map;
     if (magic == FAT_CIGAM) {
@@ -78,17 +97,18 @@ void LCPatchExecutable(const char *path, NSString **error) {
         struct fat_arch *arch = (struct fat_arch *)(map + sizeof(struct fat_header));
         for (int i = 0; i < OSSwapInt32(header->nfat_arch); i++) {
             if (OSSwapInt32(arch->cputype) == CPU_TYPE_ARM64) {
-                patchExecSlice(path, (struct mach_header_64 *)(map + OSSwapInt32(arch->offset)));
+                callback(path, (struct mach_header_64 *)(map + OSSwapInt32(arch->offset)));
             }
             arch = (struct fat_arch *)((void *)arch + sizeof(struct fat_arch));
         }
     } else if (magic == MH_MAGIC_64) {
-        patchExecSlice(path, (struct mach_header_64 *)map);
+        callback(path, (struct mach_header_64 *)map);
     } else {
-        *error = @"32-bit app is not supported";
+        return @"32-bit app is not supported";
     }
 
     msync(map, s.st_size, MS_SYNC);
     munmap(map, s.st_size);
     close(fd);
+    return nil;
 }

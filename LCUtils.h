@@ -1,6 +1,10 @@
 #import <Foundation/Foundation.h>
 
-void LCPatchExecutable(const char *path, NSString **error);
+typedef void (^LCParseMachOCallback)(const char *path, struct mach_header_64 *header);
+
+NSString *LCParseMachO(const char *path, LCParseMachOCallback callback);
+void LCPatchAddRPath(const char *path, struct mach_header_64 *header);
+void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
 
 @interface PKZipArchiver : NSObject
 

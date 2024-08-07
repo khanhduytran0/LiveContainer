@@ -12,14 +12,6 @@
 #import "UIViewController+LCAlert.h"
 #import "unarchive.h"
 
-/*
-#include <libgen.h>
-#include <mach-o/fat.h>
-#include <mach-o/loader.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-*/
-
 @implementation NSURL(hack)
 - (BOOL)safari_isHTTPFamilyURL {
     // Screw it, Apple
@@ -294,31 +286,36 @@
     return 80.0f;
 }
 
-- (void)deleteAppAtIndexPath:(NSIndexPath *)indexPath {
-    LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]]];
-    UIAlertController* uninstallAlert = [UIAlertController alertControllerWithTitle:@"Confirm Uninstallation" message:[NSString stringWithFormat:@"Are you sure you want to uninstall %@?", [appInfo displayName]] preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* uninstallApp = [UIAlertAction actionWithTitle:@"Uninstall" style:UIAlertActionStyleDestructive handler:^(UIAlertAction* action) {
-        NSError *error = nil;
-        [[NSFileManager defaultManager] removeItemAtPath:[NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[indexPath.row]] error:&error];
-        if (error) {
-            [self showDialogTitle:@"Error" message:error.localizedDescription];
-            return;
+- (void)deleteItemAtIndexPath:(NSIndexPath *)indexPath completionHandler:(void(^)(BOOL actionPerformed))handler {
+    NSString *path = [self.bundlePath stringByAppendingPathComponent:self.objects[indexPath.row]];
+    LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath:path];
+    [self showConfirmationDialogTitle:@"Confirm Uninstallation"
+    message:[NSString stringWithFormat:@"Are you sure you want to uninstall %@?", appInfo.displayName]
+    destructive:YES
+    confirmButtonTitle:@"Uninstall"
+    handler:^(UIAlertAction * action) {
+        if (action.style != UIAlertActionStyleCancel) {
+            NSError *error = nil;
+            [NSFileManager.defaultManager removeItemAtPath:path error:&error];
+            if (error) {
+                [self showDialogTitle:@"Error" message:error.localizedDescription];
+            } else {
+                [self.objects removeObjectAtIndex:indexPath.row];
+                [self.tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+            }
         }
-        [self.objects removeObjectAtIndex:indexPath.row];
-        [self.tableView deleteRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationAutomatic];
+        handler(YES);
     }];
-    [uninstallAlert addAction:uninstallApp];
-    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
-    [uninstallAlert addAction:cancelAction];
-    [self presentViewController:uninstallAlert animated:YES completion:nil];
-}
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
-    [self deleteAppAtIndexPath:indexPath];
 }
 
-- (UITableViewCellEditingStyle)tableView:(UITableView *)tableView editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    return self.objects[indexPath.row].length==0 ? UITableViewCellEditingStyleNone : UITableViewCellEditingStyleDelete;
+- (UISwipeActionsConfiguration *) tableView:(UITableView *)tableView
+trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return [UISwipeActionsConfiguration configurationWithActions:@[
+        [UIContextualAction contextualActionWithStyle:UIContextualActionStyleDestructive
+        title:@"Delete" handler:^(UIContextualAction *action, __kindof UIView *sourceView, void (^completionHandler)(BOOL actionPerformed)) {
+            [self deleteItemAtIndexPath:indexPath completionHandler:completionHandler];
+        }]
+    ]];
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -356,8 +353,9 @@
     int currentPatchRev = 5;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
-        NSString *error;
-        LCPatchExecutable(execPath.UTF8String, &error);
+        NSString *error = LCParseMachO(execPath.UTF8String, ^(const char *path, struct mach_header_64 *header) {
+            LCPatchExecSlice(path, header);
+        });
         if (error) {
             [self showDialogTitle:@"Error" message:error];
             return;
@@ -409,7 +407,6 @@
             [info removeObjectForKey:@"LCBundleIdentifier"];
 
             __block NSProgress *progress = [LCUtils signAppBundle:appPathURL
-
             completionHandler:^(BOOL success, NSError *_Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (error) {

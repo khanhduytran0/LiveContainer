@@ -22,6 +22,15 @@
     [self presentViewController:alert animated:YES completion:nil];
 }
 
+- (void)showConfirmationDialogTitle:(NSString *)title message:(NSString *)message destructive:(BOOL)destructive confirmButtonTitle:(NSString *)confirmBtnTitle handler:(void(^)(UIAlertAction *))handler {
+    UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
+        message:message
+        preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:confirmBtnTitle style:(destructive ? UIAlertActionStyleDestructive : UIAlertActionStyleDefault) handler:handler]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:handler]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
 - (void)showInputDialogTitle:(NSString *)title message:(NSString *)message placeholder:(NSString *)placeholder callback:(NSString *(^)(NSString *inputText))callback {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
     [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {

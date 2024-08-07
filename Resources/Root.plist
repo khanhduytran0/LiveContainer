@@ -25,6 +25,24 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>If you see frequent re-sign, enable this option.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kdt.livecontainer</string>
+			<key>key</key>
+			<string>LCIgnoreALTCertificate</string>
+			<key>label</key>
+			<string>Ignore ALTCertificate.p12</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>Miscellaneous</string>
 		</dict>
@@ -39,6 +57,24 @@
 			<string>LCFrameShortcutIcons</string>
 			<key>label</key>
 			<string>Frame shortcut icon</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Place your tweaks into the global “Tweaks” folder and LiveContainer will pick them up.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kdt.livecontainer</string>
+			<key>key</key>
+			<string>LCLoadTweaksToSelf</string>
+			<key>label</key>
+			<string>Load tweaks to LiveContainer itself</string>
 		</dict>
 		<dict>
 			<key>cell</key>

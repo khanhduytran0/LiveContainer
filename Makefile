@@ -9,7 +9,7 @@ CONFIG_BRANCH = $(shell git branch --show-current)
 CONFIG_COMMIT = $(shell git log --oneline | sed '2,10000000d' | cut -b 1-7)
 
 # Build the UI library
-LiveContainerUI_FILES = LCAppDelegate.m LCJITLessSetupViewController.m LCMachOUtils.m LCAppListViewController.m LCSettingsListController.m LCTabBarController.m LCUtils.m MBRoundProgressView.m UIViewController+LCAlert.m unarchive.m LCAppInfo.m
+LiveContainerUI_FILES = LCAppDelegate.m LCJITLessSetupViewController.m LCMachOUtils.m LCAppListViewController.m LCSettingsListController.m LCTabBarController.m LCTweakListViewController.m LCUtils.m MBRoundProgressView.m UIViewController+LCAlert.m unarchive.m LCAppInfo.m
 LiveContainerUI_CFLAGS = \
   -fobjc-arc \
   -DCONFIG_TYPE=\"$(CONFIG_TYPE)\" \

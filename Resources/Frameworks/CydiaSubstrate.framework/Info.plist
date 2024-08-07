@@ -1,0 +1,9 @@
+CFBundlePackageType = "FMWK";
+CFBundleSignature = "????";
+CFBundleExecutable = "CydiaSubstrate";
+CFBundleIdentifier = "com.saurik.CydiaSubstate";
+CFBundleGetInfoString = "Cydia Substrate, SaurikIT LLC";
+CFBundleShortVersionString = "0.9";
+CFBundleInfoDictionaryVersion = "6.0";
+CFBundleName = "Cydia Substrate";
+CFBundleDevelopmentRegion = "English";

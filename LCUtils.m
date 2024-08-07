@@ -36,6 +36,9 @@
 }
 
 + (NSData *)certificateDataFile {
+    if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCIgnoreALTCertificate"]) {
+        return nil;
+    }
     NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
     NSURL *url = [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app/ALTCertificate.p12"];
     return [NSData dataWithContentsOfURL:url];

@@ -185,13 +185,11 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSError *error;
 
     // Setup tweak loader
-    NSString *tweakFolder = appBundle.infoDictionary[@"LCTweakFolder"];
-    if (tweakFolder) {
-        tweakFolder = [NSString stringWithFormat:@"%@/Tweaks/%@", docPath, tweakFolder];
-        setenv("LC_TWEAK_FOLDER", tweakFolder.UTF8String, 1);
-    }
+    NSString *tweakFolder = [docPath stringByAppendingPathComponent:@"Tweaks"];
+    setenv("LC_GLOBAL_TWEAKS_FOLDER", tweakFolder.UTF8String, 1);
+
     // Update TweakLoader symlink
-    NSString *tweakLoaderPath = [docPath stringByAppendingPathComponent:@"Tweaks/TweakLoader.dylib"];
+    NSString *tweakLoaderPath = [tweakFolder stringByAppendingPathComponent:@"TweakLoader.dylib"];
     if (![fm fileExistsAtPath:tweakLoaderPath]) {
         remove(tweakLoaderPath.UTF8String);
         NSString *target = [NSBundle.mainBundle.privateFrameworksPath stringByAppendingPathComponent:@"TweakLoader.dylib"];
@@ -315,6 +313,9 @@ int LiveContainerMain(int argc, char *argv[]) {
     void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerUI.dylib", RTLD_LAZY);
     assert(LiveContainerUIHandle);
     @autoreleasepool {
+        if ([lcUserDefaults boolForKey:@"LCLoadTweaksToSelf"]) {
+            dlopen("@executable_path/Frameworks/TweakLoader.dylib", RTLD_LAZY);
+        }
         return UIApplicationMain(argc, argv, nil, @"LCAppDelegate");
     }
 }
