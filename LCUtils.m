@@ -90,6 +90,11 @@
 #pragma mark Code signing
 
 + (void)loadStoreFrameworksWithError:(NSError **)error {
+    // too lazy to use dispatch_once
+    static BOOL loaded = NO;
+    if (loaded) return;
+    loaded = YES;
+
     NSArray *signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
     NSURL *storeFrameworksPath = [self.storeBundlePath URLByAppendingPathComponent:@"Frameworks"];
     for (NSString *framework in signerFrameworks) {

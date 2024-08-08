@@ -75,7 +75,7 @@ To install tweaks, you can use the built-in tweak manager in LiveContainer, whic
 
 ## TODO
 - Isolate Keychain per app
-- Use Ch0ma instead of custom MachO parser
+- Use ChOma instead of custom MachO parser
 
 ## License
 [Apache License 2.0](https://github.com/khanhduytran0/LiveContainer/blob/main/LICENSE)
