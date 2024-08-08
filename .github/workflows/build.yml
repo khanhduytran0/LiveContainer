@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@main
 
       - name: Checkout theos/theos
         uses: actions/checkout@main
@@ -43,7 +43,7 @@ jobs:
           gmake package FINALPACKAGE=1 STRIP=0
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@main
         with:
           name: com.kdt.livecontainer.ipa
           path: packages/*.ipa
