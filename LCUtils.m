@@ -13,6 +13,17 @@
     return [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID].path;
 }
 
++ (BOOL)deleteKeychainItem:(NSString *)key ofStore:(NSString *)store {
+    NSDictionary *dict = @{
+        (id)kSecClass: (id)kSecClassGenericPassword,
+        (id)kSecAttrService: store,
+        (id)kSecAttrAccount: key,
+        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny
+    };
+    OSStatus status = SecItemDelete((__bridge CFDictionaryRef)dict);
+    return status == errSecSuccess;
+}
+
 + (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store {
     NSDictionary *dict = @{
         (id)kSecClass: (id)kSecClassGenericPassword,
@@ -78,6 +89,24 @@
 
 #pragma mark Code signing
 
++ (void)loadStoreFrameworksWithError:(NSError **)error {
+    NSArray *signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
+    NSURL *storeFrameworksPath = [self.storeBundlePath URLByAppendingPathComponent:@"Frameworks"];
+    for (NSString *framework in signerFrameworks) {
+        NSBundle *frameworkBundle = [NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:framework]];
+        if (!frameworkBundle) {
+            //completionHandler(NO, error);
+            abort();
+        }
+        [frameworkBundle loadAndReturnError:error];
+    }
+}
+
++ (NSURL *)storeBundlePath {
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    return [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app"];
+}
+
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL {
     int32_t cpusubtype;
     sysctlbyname("hw.cpusubtype", &cpusubtype, NULL, NULL, 0);
@@ -103,65 +132,24 @@
             continue;
         }
 
-        // We cannot use NSMutableData as it copies the whole file data instead of directly mapping
-        int fd = open(fileURL.path.UTF8String, O_RDWR, (mode_t)0600);
-        struct stat s;
-        fstat(fd, &s);
-        void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
-        uint32_t magic = *(uint32_t *)map;
-        struct mach_header_64 *header = NULL;
-        
-        if (magic == FAT_CIGAM) {
-            // Find compatible slice
-            struct fat_header *fatHeader = (struct fat_header *)map;
-            struct fat_arch *arch = (struct fat_arch *)(map + sizeof(struct fat_header));
-            struct fat_arch *chosenArch = NULL;
-            for (int i = 0; i < OSSwapInt32(fatHeader->nfat_arch); i++) {
-                if (OSSwapInt32(arch->cputype) == CPU_TYPE_ARM64) {
-                    header = (struct mach_header_64 *)(map + OSSwapInt32(arch->offset));
-                    chosenArch = arch;
-                    if (OSSwapInt32(arch->cpusubtype) == cpusubtype) {
-                        break;
-                    }
+        // Remove LC_CODE_SIGNATURE
+        NSString *error = LCParseMachO(fileURL.path.UTF8String, ^(const char *path, struct mach_header_64 *header) {
+            uint8_t *imageHeaderPtr = (uint8_t *)header + sizeof(struct mach_header_64);
+            struct load_command *command = (struct load_command *)imageHeaderPtr;
+            for(int i = 0; i < header->ncmds > 0; i++) {
+                if (command->cmd == LC_CODE_SIGNATURE) {
+                    struct linkedit_data_command *csCommand = (struct linkedit_data_command *)command;
+                    void *csData = (void *)((uint8_t *)header + csCommand->dataoff);
+                    // Nuke it.
+                    NSLog(@"Removing code signature of %@", fileURL);
+                    bzero(csData, csCommand->datasize);
+                    break;
                 }
-                arch = (struct fat_arch *)((void *)arch + sizeof(struct fat_arch));
+                command = (struct load_command *)((void *)command + command->cmdsize);
             }
-            if (header) {
-                // Extract slice
-                uint32_t offset = OSSwapInt32(chosenArch->offset);
-                uint32_t size = OSSwapInt32(chosenArch->size);
-                memmove(map, (void *)((uint64_t)map + offset), size);
-                msync(map, size, MS_SYNC);
-                ftruncate(fd, size);
-                fstat(fd, &s);
-                header = (struct mach_header_64 *)map;
-            }
-        } else if (magic == MH_MAGIC_64) {
-            header = (struct mach_header_64 *)map;
-        }
-
-        if (!header || header->cputype != CPU_TYPE_ARM64 || header->filetype != MH_DYLIB) {
-            munmap(map, s.st_size);
-            close(fd);
-            continue;
-        }
-
-        uint8_t *imageHeaderPtr = (uint8_t *)header + sizeof(struct mach_header_64);
-        struct load_command *command = (struct load_command *)imageHeaderPtr;
-        for(int i = 0; i < header->ncmds > 0; i++) {
-            if (command->cmd == LC_CODE_SIGNATURE) {
-                struct linkedit_data_command *csCommand = (struct linkedit_data_command *)command;
-                void *csData = (void *)((uint8_t *)header + csCommand->dataoff);
-                // Nuke it.
-                NSLog(@"Removing code signature of %@", fileURL);
-                bzero(csData, csCommand->datasize);
-                msync(map, s.st_size, MS_SYNC);
-                munmap(map, s.st_size);
-                close(fd);
-                break;
-            }
-            command = (struct load_command *)((void *)command + command->cmdsize);
+        });
+        if (error) {
+            NSLog(@"[Error] %@ (%@)", error, fileURL);
         }
     }
 }
@@ -171,26 +159,10 @@
 
     // I'm too lazy to reimplement signer, so let's borrow everything from SideStore
     // For sure this will break in the future as SideStore team planned to rewrite it
-    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-    NSURL *storeBundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app"];
-    NSURL *storeFrameworksPath = [storeBundlePath URLByAppendingPathComponent:@"Frameworks"];
     NSURL *profilePath = [NSBundle.mainBundle URLForResource:@"embedded" withExtension:@"mobileprovision"];
 
     // Load libraries from Documents, yeah
-    NSArray *signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
-    for (NSString *framework in signerFrameworks) {
-        NSBundle *frameworkBundle = [NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:framework]];
-        if (!frameworkBundle) {
-            //completionHandler(NO, error);
-            abort();
-            return nil;
-        }
-        [frameworkBundle loadAndReturnError:&error];
-        if (error) {
-            completionHandler(NO, error);
-            return nil;
-        }
-    }
+    [self loadStoreFrameworksWithError:&error];
 
     ALTCertificate *cert = [[NSClassFromString(@"ALTCertificate") alloc] initWithP12Data:self.certificateData password:self.certificatePassword];
     ALTProvisioningProfile *profile = [[NSClassFromString(@"ALTProvisioningProfile") alloc] initWithURL:profilePath];
@@ -210,9 +182,7 @@
 
 + (BOOL)isAppGroupSideStore {
     if (![self.appGroupID containsString:@"com.SideStore.SideStore"]) return NO;
-    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-    NSURL *storeBundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app"];
-    return [NSFileManager.defaultManager fileExistsAtPath:storeBundlePath.path];
+    return [NSFileManager.defaultManager fileExistsAtPath:self.storeBundlePath.path];
 }
 
 + (void)changeMainExecutableTo:(NSString *)exec error:(NSError **)error {
@@ -231,12 +201,19 @@
     NSMutableData *data = [NSMutableData dataWithContentsOfURL:execPath options:0 error:error];
     if (!data) return;
 
+    // We must get SideStore's exact application-identifier, otherwise JIT-less setup will bug out to hell for using the wrong, expired certificate
+    [self loadStoreFrameworksWithError:nil];
+    NSURL *profilePath = [self.storeBundlePath URLByAppendingPathComponent:@"embedded.mobileprovision"];
+    ALTProvisioningProfile *profile = [[NSClassFromString(@"ALTProvisioningProfile") alloc] initWithURL:profilePath];
+    NSString *storeKeychainID = profile.entitlements[@"application-identifier"];
+    assert(storeKeychainID);
+
     NSData *findPattern = [@"KeychainAccessGroupWillBeWrittenByLiveContainerAAAAAAAAAAAAAAAAAAAA</string>" dataUsingEncoding:NSUTF8StringEncoding];
     NSRange range = [data rangeOfData:findPattern options:0 range:NSMakeRange(0, data.length)];
     if (range.location == NSNotFound) return;
 
     memset((char *)data.mutableBytes + range.location, ' ', range.length);
-    NSString *replacement = [NSString stringWithFormat:@"%@</string>", self.appGroupID];
+    NSString *replacement = [NSString stringWithFormat:@"%@</string>", storeKeychainID];
     assert(replacement.length < range.length);
     memcpy((char *)data.mutableBytes + range.location, replacement.UTF8String, replacement.length);
     [data writeToURL:execPath options:0 error:error];

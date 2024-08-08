@@ -16,6 +16,10 @@
 
 @implementation LCTweakListViewController
 
+- (instancetype)init {
+     return self = [super initWithStyle:UITableViewStyleGrouped];
+}
+
 - (void)loadView {
     [super loadView];
 
@@ -171,11 +175,13 @@
     return 1;
 }
 
-/*
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
-    return @"N items";
+    if (self.navigationController.viewControllers.firstObject == self) {
+        return @"This is the global folder. All tweaks put here will be injected to all guest apps. Create a new folder if you use app-specific tweaks.";
+    } else {
+        return @"This is the app-specific folder. Set the tweak folder and the guest app will pick them up recursively.";
+    }
 }
-*/
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     return self.objects.count;

@@ -45,6 +45,8 @@
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>Miscellaneous</string>
+			<key>footerText</key>
+			<string>Frame shortcut icons with LiveContainer icon.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -81,6 +83,8 @@
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>About me</string>
+			<key>footerText</key>
+			<string>Don't use LiveContainer for piracy.</string>
 		</dict>
 		<dict>
 			<key>action</key>

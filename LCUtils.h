@@ -27,6 +27,7 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
 + (NSString *)certificatePassword;
 + (void)setCertificateData:(NSData *)data;
 + (void)setCertificatePassword:(NSString *)password;
++ (BOOL)deleteKeychainItem:(NSString *)key ofStore:(NSString *)store;
 + (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store;
 
 + (BOOL)launchToGuestApp;

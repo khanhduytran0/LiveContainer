@@ -22,12 +22,15 @@ LiveContainerUI_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 
 # Build the tweak loader
 TweakLoader_FILES = TweakLoader.m
-TweakLoader_CFLAGS = \
-  -fobjc-arc
-TweakLoader_FRAMEWORKS = Foundation
+TweakLoader_CFLAGS = -fobjc-arc
 TweakLoader_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 
-LIBRARY_NAME = LiveContainerUI TweakLoader
+# Build the test library
+TestJITLess_FILES = TestJITLess.m
+TestJITLess_CFLAGS = -fobjc-arc
+TestJITLess_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
+
+LIBRARY_NAME = LiveContainerUI TweakLoader TestJITLess
 include $(THEOS_MAKE_PATH)/library.mk
 
 # Build the app

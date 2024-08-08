@@ -74,9 +74,8 @@ To install tweaks, you can use the built-in tweak manager in LiveContainer, whic
 - File picker might be broken for unknown reasons.
 
 ## TODO
-- Auto lock orientation
-- Simulate App Group(?)
-- More(?)
+- Isolate Keychain per app
+- Use Ch0ma instead of custom MachO parser
 
 ## License
 [Apache License 2.0](https://github.com/khanhduytran0/LiveContainer/blob/main/LICENSE)
