@@ -8,7 +8,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>JIT-less allows you to use LiveContainer without having to enable JIT. Requires SideStore.</string>
+			<string>JIT-less allows you to use LiveContainer without having to enable JIT. Requires AltStore or SideStore.</string>
 			<key>label</key>
 			<string>JIT-less</string>
 		</dict>
