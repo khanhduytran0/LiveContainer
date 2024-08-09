@@ -35,6 +35,14 @@
     [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:LCUtils.storeInstallURLScheme, url]] options:@{} completionHandler:nil];
 }
 
+- (void)copyAppGroupPathPressed {
+    UIPasteboard.generalPasteboard.string = LCUtils.appGroupPath;
+}
+
+- (void)copyDocumentsPathPressed {
+    UIPasteboard.generalPasteboard.string = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject.path;
+}
+
 - (void)openSourceCode {
     [UIApplication.sharedApplication openURL:[NSURL URLWithString:@"https://github.com/khanhduytran0/LiveContainer"] options:@{} completionHandler:nil];
 }

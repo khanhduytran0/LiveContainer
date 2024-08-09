@@ -64,6 +64,24 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
+			<string>By default, LiveContainer asks you before switching app. Enable this to switch app immediately. Any unsaved data will be lost.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kdt.livecontainer</string>
+			<key>key</key>
+			<string>LCSwitchAppWithoutAsking</string>
+			<key>label</key>
+			<string>Switch app without asking</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
 			<string>Place your tweaks into the global “Tweaks” folder and LiveContainer will pick them up.</string>
 		</dict>
 		<dict>
@@ -77,6 +95,10 @@
 			<string>LCLoadTweaksToSelf</string>
 			<key>label</key>
 			<string>Load tweaks to LiveContainer itself</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
 		</dict>
 		<dict>
 			<key>action</key>

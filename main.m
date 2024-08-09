@@ -19,6 +19,12 @@ static int (*appMain)(int, char**);
 static const char *dyldImageName;
 NSUserDefaults *lcUserDefaults;
 
+@implementation NSUserDefaults(LiveContainer)
++ (instancetype)lcUserDefaults {
+    return lcUserDefaults;
+}
+@end
+
 static BOOL checkJITEnabled() {
     // check if jailbroken
     if (access("/var/mobile", R_OK) == 0) {

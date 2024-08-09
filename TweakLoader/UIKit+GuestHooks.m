@@ -10,6 +10,10 @@ static void UIKitGuestHooksInit() {
 }
 
 void LCShowSwitchAppConfirmation(NSURL *url) {
+    if ([NSUserDefaults.lcUserDefaults boolForKey:@"LCSwitchAppWithoutAsking"]) {
+        [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
+    }
+
     NSString *message = [NSString stringWithFormat:@"%@\nAre you sure you want to switch app? Doing so will terminate this app.", url];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
