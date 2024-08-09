@@ -1,13 +1,10 @@
-@import ObjectiveC;
 @import UIKit;
-#import "LCUtils.h"
+#import "LCSharedUtils.h"
 #import "UIKitPrivate.h"
+#import "utils.h"
 
-static void swizzle(Class class, SEL originalAction, SEL swizzledAction) {
-    method_exchangeImplementations(class_getInstanceMethod(class, originalAction), class_getInstanceMethod(class, swizzledAction));
-}
-
-void UIKitGuestHooksInit() {
+__attribute__((constructor))
+static void UIKitGuestHooksInit() {
     swizzle(UIApplication.class, @selector(_applicationOpenURLAction:payload:origin:), @selector(hook__applicationOpenURLAction:payload:origin:));
     swizzle(UIScene.class, @selector(scene:didReceiveActions:fromTransitionContext:), @selector(hook_scene:didReceiveActions:fromTransitionContext:));
 }
@@ -16,7 +13,7 @@ void LCShowSwitchAppConfirmation(NSURL *url) {
     NSString *message = [NSString stringWithFormat:@"%@\nAre you sure you want to switch app? Doing so will terminate this app.", url];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-        [LCSharedUtils launchToGuestAppWithURL:url];
+        [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
     }];
     [alert addAction:okAction];
     UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
@@ -50,15 +47,21 @@ void LCShowSwitchAppConfirmation(NSURL *url) {
 // Handler for SceneDelegate
 @implementation UIScene(LiveContainerHook)
 - (void)hook_scene:(id)scene didReceiveActions:(NSSet *)actions fromTransitionContext:(id)context {
-    UIOpenURLAction *urlAction;
+    UIOpenURLAction *urlAction = nil;
     for (id obj in actions.allObjects) {
         if ([obj isKindOfClass:UIOpenURLAction.class]) {
             urlAction = obj;
             break;
         }
     }
+
+    // Don't have UIOpenURLAction? pass it
+    if (!urlAction) {
+        [self hook_scene:scene didReceiveActions:actions fromTransitionContext:context];
+        return;
+    }
+
     NSString *url = urlAction.url.absoluteString;
-    // !urlAction ||
     if ([url hasPrefix:@"livecontainer://livecontainer-relaunch"]) {
         // Ignore
     } else if (![url hasPrefix:@"livecontainer://livecontainer-launch?"]) {

@@ -5,7 +5,6 @@
 const char **_CFGetProgname(void);
 const char **_CFGetProcessPath(void);
 int _NSGetExecutablePath(char* buf, uint32_t* bufsize);
-const char *LCHomePath();
 
 #define CS_DEBUGGED 0x10000000
 int csops(pid_t pid, unsigned int ops, void *useraddr, size_t usersize);

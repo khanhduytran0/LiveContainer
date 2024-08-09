@@ -9,10 +9,18 @@ Unfortunately, not all apps work in LiveContainer, so we have a [compatibility l
 ## Building
 ```
 export THEOS=/path/to/theos
-git submodule init
-git submodule update
+git submodule update --init --recursive
 make package
 ```
+
+## Project structure
+### Main executable
+- Core of LiveContainer
+- Contains the logic of setting up guest environment and loading guest app.
+
+### LiveContainerUI
+- LiveContainer's default implementation of app manager, tweak manager and settings. 
+- If you're making a mod loader 
 
 ## Usage
 Requires SideStore for both JIT and JIT-less mode.

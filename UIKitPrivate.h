@@ -1,7 +1,5 @@
 #import <UIKit/UIKit.h>
 
-void UIKitGuestHooksInit();
-
 @interface NSBundle(private)
 - (id)_cfBundle;
 @end

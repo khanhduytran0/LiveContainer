@@ -1,5 +1,4 @@
-@import UIKit;
-#import "LCUtils.h"
+#import "LCSharedUtils.h"
 #import "UIKitPrivate.h"
 
 extern NSUserDefaults *lcUserDefaults;

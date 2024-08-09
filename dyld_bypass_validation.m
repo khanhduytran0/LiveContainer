@@ -125,7 +125,7 @@ static int hooked___fcntl(int fildes, int cmd, void *param) {
         
         // Check if the file is our "in-memory" file
         if (__fcntl(fildes, F_GETPATH, filePath) != -1) {
-            const char *homeDir = LCHomePath();
+            const char *homeDir = getenv("LC_HOME_PATH");
             if (!strncmp(filePath, homeDir, strlen(homeDir))) {
                 fsignatures_t *fsig = (fsignatures_t*)param;
                 // called to check that cert covers file.. so we'll make it cover everything ;)

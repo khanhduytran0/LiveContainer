@@ -12,14 +12,6 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
 
 @end
 
-@interface LCSharedUtils : NSObject
-
-+ (NSString *)certificatePassword;
-+ (BOOL)launchToGuestApp;
-+ (BOOL)launchToGuestAppWithURL:(NSURL *)url;
-
-@end
-
 @interface LCUtils : NSObject
 
 + (NSURL *)archiveIPAWithSetupMode:(BOOL)setup error:(NSError **)error;

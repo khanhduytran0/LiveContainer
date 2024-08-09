@@ -1,6 +1,6 @@
 #import <Foundation/Foundation.h>
-#import "LCAppDelegate.h"
-#import "LCUtils.h"
+#import "LiveContainerUI/LCAppDelegate.h"
+#import "LCSharedUtils.h"
 #import "UIKitPrivate.h"
 #import "utils.h"
 
@@ -279,9 +279,6 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         return appError;
     }
 
-    // Init hooks for guest app
-    UIKitGuestHooksInit();
-
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);
     argv[0] = (char *)appExecPath;
@@ -301,7 +298,7 @@ int LiveContainerMain(int argc, char *argv[]) {
     if (selectedApp) {
         [lcUserDefaults removeObjectForKey:@"selected"];
         NSSetUncaughtExceptionHandler(&exceptionHandler);
-        LCHomePath(); // init host home path
+        setenv("LC_HOME_PATH", getenv("HOME"), 1);
         NSString *appError = invokeAppMain(selectedApp, argc, argv);
         if (appError) {
             [lcUserDefaults setObject:appError forKey:@"error"];
@@ -310,7 +307,7 @@ int LiveContainerMain(int argc, char *argv[]) {
         }
     }
 
-    void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerUI.dylib", RTLD_LAZY);
+    void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerUI.framework/LiveContainerUI", RTLD_LAZY);
     assert(LiveContainerUIHandle);
     @autoreleasepool {
         if ([lcUserDefaults boolForKey:@"LCLoadTweaksToSelf"]) {

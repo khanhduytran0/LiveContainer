@@ -79,6 +79,26 @@
 			<string>Load tweaks to LiveContainer itself</string>
 		</dict>
 		<dict>
+			<key>action</key>
+			<string>copyAppGroupPathPressed</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>id</key>
+			<string>setup-jitless</string>
+			<key>label</key>
+			<string>Copy AppGroup path</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>copyDocumentsPathPressed</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>id</key>
+			<string>setup-jitless</string>
+			<key>label</key>
+			<string>Copy Documents path</string>
+		</dict>
+		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
