@@ -20,8 +20,8 @@
 }
 
 - (void)setupJITLessPressed {
-    if (!LCUtils.isAppGroupSideStore) {
-        [self showDialogTitle:@"Error" message:@"Unsupported installation method. Please use SideStore to setup this feature."];
+    if (!LCUtils.isAppGroupAltStoreLike) {
+        [self showDialogTitle:@"Error" message:@"Unsupported installation method. Please use AltStore or SideStore to setup this feature."];
         return;
     }
 
@@ -32,7 +32,7 @@
         return;
     }
 
-    [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:@"sidestore://install?url=%@", url]] options:@{} completionHandler:nil];
+    [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:LCUtils.storeInstallURLScheme, url]] options:@{} completionHandler:nil];
 }
 
 - (void)openSourceCode {

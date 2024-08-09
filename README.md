@@ -17,18 +17,23 @@ make package
 ### Main executable
 - Core of LiveContainer
 - Contains the logic of setting up guest environment and loading guest app.
+- If no app is selected, it loads LiveContainerUI.
 
 ### LiveContainerUI
-- LiveContainer's default implementation of app manager, tweak manager and settings. 
-- If you're making a mod loader 
+- LiveContainer's default implementation of app manager, tweak manager and settings UI. 
+- If you're making a mod loader, you can provide your own.
+
+### TweakLoader
+- A simple tweak injector, which loads CydiaSubstrate and load tweaks.
+- Injected to every app you install in LiveContainer.
 
 ## Usage
-Requires SideStore for both JIT and JIT-less mode.
+Requires AltStore or SideStore
 - Build from source or get prebuilt ipa in [the Actions tab](https://github.com/khanhduytran0/LiveContainer/actions)
 - Open LiveContainer, tap the plus icon in the upper right hand corner and select IPA files to install.
 - Choose the app you want to open in the next launch.
 
-### With JIT
+### With JIT (requires SideStore)
 - Tap the play icon, it will jump to SideStore and exit.
 - In SideStore, hold down LiveContainer and tap `Enable JIT`. If you have SideStore build supporting JIT URL scheme, it jumps back to LiveContainer with JIT enabled and the guest app is ready to use.
 
@@ -94,3 +99,4 @@ To install tweaks, you can use the built-in tweak manager in LiveContainer, whic
 - [fishhook](https://github.com/facebook/fishhook): [BSD 3-Clause license](https://github.com/facebook/fishhook/blob/main/LICENSE)
 - [MBRoundProgressView](https://gist.github.com/saturngod/1224648)
 - @haxi0 for icon
+- @Vishram1123 for the initial shortcut implementation.

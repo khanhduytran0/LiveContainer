@@ -83,14 +83,14 @@
             // Erase signingCertificate
             [LCUtils deleteKeychainItem:@"signingCertificate" ofStore:@"com.rileytestut.AltStore"];
             [LCUtils deleteKeychainItem:@"signingCertificate" ofStore:@"com.SideStore.SideStore"];
-            [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:@"sidestore://install?url=%@", url]] options:@{} completionHandler:nil];
+            [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:LCUtils.storeInstallURLScheme, url]] options:@{} completionHandler:nil];
         }];
         return;
     }
 
     [self showDialogTitle:@"Instruction" message:@"Done. Press OK to finish setting up."
     handler:^(UIAlertAction * action) {
-        [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:@"sidestore://install?url=%@", url]] options:@{} completionHandler:nil];
+        [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:LCUtils.storeInstallURLScheme, url]] options:@{} completionHandler:nil];
     }];
 }
 

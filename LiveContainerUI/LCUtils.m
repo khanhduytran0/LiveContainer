@@ -51,7 +51,7 @@
         return nil;
     }
     NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-    NSURL *url = [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app/ALTCertificate.p12"];
+    NSURL *url = [appGroupPath URLByAppendingPathComponent:[NSString stringWithFormat:@"Apps/%@/App.app/ALTCertificate.p12", self.storeBundleID]];
     return [NSData dataWithContentsOfURL:url];
 }
 
@@ -107,9 +107,24 @@
     }
 }
 
++ (NSString *)storeBundleID {
+    // Assuming this format never changes...
+    // group.BUNDLEID.YOURTEAMID
+    return [self.appGroupID substringWithRange:NSMakeRange(6, self.appGroupID.length - 17)];
+}
+
 + (NSURL *)storeBundlePath {
     NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-    return [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app"];
+    appGroupPath = [appGroupPath URLByAppendingPathComponent:[NSString stringWithFormat:@"Apps/%@/App.app", self.storeBundleID]];
+    return appGroupPath;
+}
+
++ (NSString *)storeInstallURLScheme {
+    if ([self.storeBundleID containsString:@"SideStore"]) {
+        return @"sidestore://install?url=%@";
+    } else {
+        return @"altstore://install?url=%@";
+    }
 }
 
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL {
@@ -185,8 +200,8 @@
     return [NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"] firstObject];
 }
 
-+ (BOOL)isAppGroupSideStore {
-    if (![self.appGroupID containsString:@"com.SideStore.SideStore"]) return NO;
++ (BOOL)isAppGroupAltStoreLike {
+    if (self.appGroupID.length == 0) return NO;
     return [NSFileManager.defaultManager fileExistsAtPath:self.storeBundlePath.path];
 }
 

@@ -28,6 +28,7 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL;
 + (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 
-+ (BOOL)isAppGroupSideStore;
++ (BOOL)isAppGroupAltStoreLike;
++ (NSString *)storeInstallURLScheme;
 
 @end

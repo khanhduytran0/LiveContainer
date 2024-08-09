@@ -381,7 +381,7 @@ trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
         CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
         signID = *(uint64_t *)digest + signRevision;
     } else {
-        [self showDialogTitle:@"Error" message:@"Failed to find ALTCertificate.p12. Please refresh SideStore and try again." handler:nil];
+        [self showDialogTitle:@"Error" message:@"Failed to find ALTCertificate.p12. Please refresh your store and try again." handler:nil];
         return;
     }
 
