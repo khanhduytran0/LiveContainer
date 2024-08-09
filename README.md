@@ -86,6 +86,10 @@ To install tweaks, you can use the built-in tweak manager in LiveContainer, whic
 - Querying custom URL schemes might not work(?)
 - File picker might be broken for unknown reasons.
 
+
+## What is the difference from the original?
+- You can select and launch the app by using this shortcut. (https://www.icloud.com/shortcuts/3be602746cb14a21820aa671858bff2a)
+
 ## TODO
 - Isolate Keychain per app
 - Use ChOma instead of custom MachO parser
