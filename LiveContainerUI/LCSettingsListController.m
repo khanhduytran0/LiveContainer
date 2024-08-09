@@ -19,6 +19,14 @@
     setupJITLessButton.name = setupJITLessButtonName;
 }
 
+- (id)readPreferenceValue:(PSSpecifier *)specifier {
+    return [NSUserDefaults.standardUserDefaults valueForKey:specifier.properties[@"key"]];
+}
+
+- (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
+    [NSUserDefaults.standardUserDefaults setValue:value forKey:specifier.properties[@"key"]];
+}
+
 - (void)setupJITLessPressed {
     if (!LCUtils.isAppGroupAltStoreLike) {
         [self showDialogTitle:@"Error" message:@"Unsupported installation method. Please use AltStore or SideStore to setup this feature."];

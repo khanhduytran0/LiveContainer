@@ -12,6 +12,7 @@ static void UIKitGuestHooksInit() {
 void LCShowSwitchAppConfirmation(NSURL *url) {
     if ([NSUserDefaults.lcUserDefaults boolForKey:@"LCSwitchAppWithoutAsking"]) {
         [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
+        return;
     }
 
     NSString *message = [NSString stringWithFormat:@"%@\nAre you sure you want to switch app? Doing so will terminate this app.", url];
