@@ -16,14 +16,17 @@ void LCShowSwitchAppConfirmation(NSURL *url) {
     }
 
     NSString *message = [NSString stringWithFormat:@"%@\nAre you sure you want to switch app? Doing so will terminate this app.", url];
+    UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
         [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
+        window.windowScene = nil;
     }];
     [alert addAction:okAction];
-    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
+    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * action) {
+        window.windowScene = nil;
+    }];
     [alert addAction:cancelAction];
-    UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     window.rootViewController = [UIViewController new];
     window.windowLevel = UIApplication.sharedApplication.windows.lastObject.windowLevel + 1;
     window.windowScene = (id)UIApplication.sharedApplication.connectedScenes.anyObject;
