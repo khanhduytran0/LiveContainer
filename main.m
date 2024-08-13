@@ -239,11 +239,16 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
     *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
 
-    // Overwrite home path
+    // Overwrite home and tmp path
     NSString *newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, appBundle.infoDictionary[@"LCDataUUID"]];
+    NSString *newTmpPath = [newHomePath stringByAppendingPathComponent:@"tmp"];
+    remove(newTmpPath.UTF8String);
+    symlink(getenv("TMPDIR"), newTmpPath.UTF8String);
+
     setenv("CFFIXED_USER_HOME", newHomePath.UTF8String, 1);
     setenv("HOME", newHomePath.UTF8String, 1);
-    setenv("TMPDIR", [@(getenv("TMPDIR")) stringByAppendingFormat:@"%@/tmp/", appBundle.infoDictionary[@"LCDataUUID"]].UTF8String, 1);
+    setenv("TMPDIR", newTmpPath.UTF8String, 1);
+
     // Setup directories
     NSArray *dirList = @[@"Library/Caches", @"Documents", @"SystemData"];
     for (NSString *dir in dirList) {
