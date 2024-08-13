@@ -93,7 +93,6 @@
     // too lazy to use dispatch_once
     static BOOL loaded = NO;
     if (loaded) return;
-    loaded = YES;
 
     NSArray *signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
     NSURL *storeFrameworksPath = [self.storeBundlePath URLByAppendingPathComponent:@"Frameworks"];
@@ -104,7 +103,9 @@
             abort();
         }
         [frameworkBundle loadAndReturnError:error];
+        if (error && *error) return;
     }
+    loaded = YES;
 }
 
 + (NSString *)storeBundleID {
@@ -183,6 +184,10 @@
 
     // Load libraries from Documents, yeah
     [self loadStoreFrameworksWithError:&error];
+    if (error) {
+        completionHandler(NO, error);
+        return nil;
+    }
 
     ALTCertificate *cert = [[NSClassFromString(@"ALTCertificate") alloc] initWithP12Data:self.certificateData password:self.certificatePassword];
     ALTProvisioningProfile *profile = [[NSClassFromString(@"ALTProvisioningProfile") alloc] initWithURL:profilePath];
