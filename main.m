@@ -243,7 +243,7 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, appBundle.infoDictionary[@"LCDataUUID"]];
     setenv("CFFIXED_USER_HOME", newHomePath.UTF8String, 1);
     setenv("HOME", newHomePath.UTF8String, 1);
-    setenv("TMPDIR", [@(getenv("TMPDIR")) stringByAppendingFormat:@"%@/tmp", appBundle.infoDictionary[@"LCDataUUID"]].UTF8String, 1);
+    setenv("TMPDIR", [@(getenv("TMPDIR")) stringByAppendingFormat:@"%@/tmp/", appBundle.infoDictionary[@"LCDataUUID"]].UTF8String, 1);
     // Setup directories
     NSArray *dirList = @[@"Library/Caches", @"Documents", @"SystemData"];
     for (NSString *dir in dirList) {
