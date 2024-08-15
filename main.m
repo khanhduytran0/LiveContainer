@@ -304,6 +304,9 @@ static void exceptionHandler(NSException *exception) {
 }
 
 int LiveContainerMain(int argc, char *argv[]) {
+    // This strangely fixes some apps getting stuck on black screen
+    NSLog(@"Ignore this: %@", UIScreen.mainScreen);
+
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
