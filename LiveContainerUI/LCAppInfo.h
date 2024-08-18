@@ -5,7 +5,7 @@
    NSMutableDictionary* _info;
    NSString* _bundlePath;
 }
-
+@property NSString* relativeBundlePath;
 - (NSMutableDictionary*)info;
 - (UIImage*)icon;
 - (NSString*)displayName;
@@ -14,7 +14,7 @@
 - (NSString*)version;
 - (NSString*)dataUUID;
 - (NSString*)tweakFolder;
-@property NSMutableArray* urlSchemes;
+- (NSMutableArray*) urlSchemes;
 - (void)setDataUUID:(NSString *)uuid;
 - (void)setTweakFolder:(NSString *)tweakFolder;
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;

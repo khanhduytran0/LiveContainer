@@ -42,6 +42,18 @@ void LCShowSwitchAppConfirmation(NSURL *url) {
     if ([url hasPrefix:@"livecontainer://livecontainer-relaunch"]) {
         // Ignore
         return;
+    } else if ([url hasPrefix:@"livecontainer://open-url"]) {
+        // pass url to guest app
+        NSURLComponents* lcUrl = [NSURLComponents componentsWithString:url];
+        NSString* realUrlEncoded = lcUrl.queryItems[0].value;
+        if(!realUrlEncoded) return;
+        // Convert the base64 encoded url into String
+        NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:realUrlEncoded options:0];
+        NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
+        NSMutableDictionary* newPayload = [payload mutableCopy];
+        newPayload[UIApplicationLaunchOptionsURLKey] = decodedUrl;
+        [self hook__applicationOpenURLAction:action payload:newPayload origin:origin];
+        return;
     } else if (![url hasPrefix:@"livecontainer://livecontainer-launch?"]) {
         // Not what we're looking for, pass it
         [self hook__applicationOpenURLAction:action payload:payload origin:origin];
@@ -74,7 +86,18 @@ void LCShowSwitchAppConfirmation(NSURL *url) {
         // Ignore
     } else if (![url hasPrefix:@"livecontainer://livecontainer-launch?"]) {
         // Not what we're looking for, pass it
-        [self hook_scene:scene didReceiveActions:actions fromTransitionContext:context];
+        NSURLComponents* lcUrl = [NSURLComponents componentsWithString:url];
+        NSString* realUrlEncoded = lcUrl.queryItems[0].value;
+        if(!realUrlEncoded) return;
+        // Convert the base64 encoded url into String
+        NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:realUrlEncoded options:0];
+        NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
+        
+        NSMutableSet *newActions = actions.mutableCopy;
+        [newActions removeObject:urlAction];
+        UIOpenURLAction *newUrlAction = [[UIOpenURLAction alloc] initWithURL:[NSURL URLWithString:decodedUrl]];
+        [newActions addObject:newUrlAction];
+        [self hook_scene:scene didReceiveActions:newActions fromTransitionContext:context];
         return;
     } else if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
         LCShowSwitchAppConfirmation(urlAction.url);

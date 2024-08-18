@@ -11,6 +11,7 @@
 #import "UIKitPrivate.h"
 #import "UIViewController+LCAlert.h"
 #import "unarchive.h"
+#import "LCWebView.h"
 
 @implementation NSURL(hack)
 - (BOOL)safari_isHTTPFamilyURL {
@@ -25,7 +26,6 @@
 
 @property(nonatomic) MBRoundProgressView *progressView;
 
-@property(nonatomic) UIButton *openLinkButton;
 @end
 
 @implementation LCAppListViewController
@@ -629,14 +629,33 @@ trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
 
 
 - (void) openUrlButtonTapped {
+    NSMutableArray<LCAppInfo*>* apps = [[NSMutableArray alloc] init];
+    for(int i = 0; i < [self.objects count]; ++i) {
+        LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[i]]];
+        appInfo.relativeBundlePath = self.objects[i];
+        [apps insertObject:appInfo atIndex:i];
+    }
+    
     [self showInputDialogTitle:@"Input URL" message:@"Input URL scheme or URL to a web page" placeholder:@"scheme://" callback:^(NSString *ans) {
         NSLog(@"[LiveContainer] got url: %@", ans);
-        NSURL* url = [NSURL URLWithString: ans];
+        NSURLComponents* url = [[NSURLComponents alloc] initWithString:ans];
+        
         dispatch_async(dispatch_get_main_queue(), ^(void){
             if(!url) {
                 [self showDialogTitle:@"Invalid URL" message:@"The given URL is invalid. Check it and try again."];
             } else {
-                [self showDialogTitle:@"Valid URL" message: @"Good."];
+                // use https for http and empty scheme
+                if([url.scheme length ] == 0 || [url.scheme isEqualToString:@"http"]) {
+                    url.scheme = @"https";
+                } else if (![url.scheme isEqualToString: @"https"]){
+                    [self launchAppByScheme:url apps:apps];
+                }
+                LCWebView *webViewController = [[LCWebView alloc] initWithURL:url.URL apps:apps];
+                UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:webViewController];
+                navController.navigationBar.translucent = NO;
+
+                navController.modalPresentationStyle = UIModalPresentationFullScreen;
+                [self presentViewController:navController animated:YES completion:nil];
             }
         });
         return (NSString*)nil;
@@ -644,6 +663,42 @@ trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
 
 
     
+}
+
+- (void) launchAppByScheme:(NSURLComponents*)schemeURL apps:(NSMutableArray<LCAppInfo*>*)apps {
+    // find app
+    NSString* appId = nil;
+    for(int i = 0; i < [apps count] && !appId; ++i) {
+        LCAppInfo* nowApp = apps[i];
+        NSMutableArray* schemes = [nowApp urlSchemes];
+        if(!schemes) continue;
+        for(int j = 0; j < [schemes count]; ++j) {
+            NSString* nowScheme = schemes[j];
+            if([nowScheme isEqualToString:schemeURL.scheme]) {
+                appId = [nowApp relativeBundlePath];
+                break;
+            }
+        }
+    }
+    if (!appId) {
+        [self showDialogTitle:@"Invalid Scheme" message:@"LiveContainer cannot find an app that supports this scheme."];
+        return;
+    }
+    
+    
+    NSString* message = [NSString stringWithFormat:@"You are about to launch %@, continue?", appId];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+        [NSUserDefaults.standardUserDefaults setObject:appId forKey:@"selected"];
+        [NSUserDefaults.standardUserDefaults setObject:schemeURL.string forKey:@"launchAppUrlScheme"];
+        if ([LCUtils launchToGuestApp]) return;
+    }];
+    [alert addAction:okAction];
+    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * action) {
+        
+    }];
+    [alert addAction:cancelAction];
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 @end
