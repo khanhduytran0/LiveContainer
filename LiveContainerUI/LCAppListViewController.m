@@ -23,7 +23,7 @@
 @interface LCAppListViewController ()
 @property(atomic) NSMutableArray<NSString *> *objects;
 @property(nonatomic) NSString *bundlePath, *docPath, *tweakPath;
-
+@property(atomic) NSString* pageUrlToOpen;
 @property(nonatomic) MBRoundProgressView *progressView;
 
 @end
@@ -70,6 +70,10 @@
     ];
 
     self.progressView = [[MBRoundProgressView alloc] initWithFrame:CGRectMake(0, 0, 60, 60)];
+    if(self.pageUrlToOpen) {
+        [self openWebViewByURLString:self.pageUrlToOpen];
+        self.pageUrlToOpen = nil;
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -645,6 +649,12 @@ trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
 }
 
 - (void) openWebViewByURLString:(NSString*) urlString {
+    // wait for the loadView to call again.
+    if(!self.isViewLoaded) {
+        self.pageUrlToOpen = urlString;
+        return;
+    }
+    
     NSURLComponents* url = [[NSURLComponents alloc] initWithString:urlString];
     if(!url) {
         [self showDialogTitle:@"Invalid URL" message:@"The given URL is invalid. Check it and try again."];
