@@ -24,6 +24,8 @@
 @property(nonatomic) NSString *bundlePath, *docPath, *tweakPath;
 
 @property(nonatomic) MBRoundProgressView *progressView;
+
+@property(nonatomic) UIButton *openLinkButton;
 @end
 
 @implementation LCAppListViewController
@@ -55,6 +57,16 @@
     self.navigationItem.rightBarButtonItems = @[
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemPlay target:self action:@selector(launchButtonTapped)],
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped)]
+    ];
+    
+    UIButton* openLinkButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    openLinkButton.enabled = !!LCUtils.certificatePassword;
+    openLinkButton.frame = CGRectMake(0, 0, 40, 40);
+    [openLinkButton setImage:[UIImage systemImageNamed:@"link"] forState:UIControlStateNormal];
+    [openLinkButton addTarget:self action:@selector(openUrlButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+
+    self.navigationItem.leftBarButtonItems = @[
+        [[UIBarButtonItem alloc] initWithCustomView:openLinkButton]
     ];
 
     self.progressView = [[MBRoundProgressView alloc] initWithFrame:CGRectMake(0, 0, 60, 60)];
@@ -613,6 +625,25 @@ trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
         options:UIMenuOptionsDestructive
         children:@[confirmAction]];
     return menu;
+}
+
+
+- (void) openUrlButtonTapped {
+    [self showInputDialogTitle:@"Input URL" message:@"Input URL scheme or URL to a web page" placeholder:@"scheme://" callback:^(NSString *ans) {
+        NSLog(@"[LiveContainer] got url: %@", ans);
+        NSURL* url = [NSURL URLWithString: ans];
+        dispatch_async(dispatch_get_main_queue(), ^(void){
+            if(!url) {
+                [self showDialogTitle:@"Invalid URL" message:@"The given URL is invalid. Check it and try again."];
+            } else {
+                [self showDialogTitle:@"Valid URL" message: @"Good."];
+            }
+        });
+        return (NSString*)nil;
+    }];
+
+
+    
 }
 
 @end

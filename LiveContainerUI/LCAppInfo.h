@@ -14,6 +14,7 @@
 - (NSString*)version;
 - (NSString*)dataUUID;
 - (NSString*)tweakFolder;
+@property NSMutableArray* urlSchemes;
 - (void)setDataUUID:(NSString *)uuid;
 - (void)setTweakFolder:(NSString *)tweakFolder;
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
