@@ -75,6 +75,12 @@
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [self.tableView reloadData];
+    
+    NSString* webpageToOpen = [NSUserDefaults.standardUserDefaults objectForKey:@"webPageToOpen"];
+    if(webpageToOpen) {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"webPageToOpen"];
+        [self openWebViewByURLString:webpageToOpen];
+    }
 }
 
 - (void)addButtonTapped {
@@ -629,40 +635,40 @@ trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
 
 
 - (void) openUrlButtonTapped {
-    NSMutableArray<LCAppInfo*>* apps = [[NSMutableArray alloc] init];
-    for(int i = 0; i < [self.objects count]; ++i) {
-        LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[i]]];
-        appInfo.relativeBundlePath = self.objects[i];
-        [apps insertObject:appInfo atIndex:i];
-    }
-    
     [self showInputDialogTitle:@"Input URL" message:@"Input URL scheme or URL to a web page" placeholder:@"scheme://" callback:^(NSString *ans) {
-        NSLog(@"[LiveContainer] got url: %@", ans);
-        NSURLComponents* url = [[NSURLComponents alloc] initWithString:ans];
-        
         dispatch_async(dispatch_get_main_queue(), ^(void){
-            if(!url) {
-                [self showDialogTitle:@"Invalid URL" message:@"The given URL is invalid. Check it and try again."];
-            } else {
-                // use https for http and empty scheme
-                if([url.scheme length ] == 0 || [url.scheme isEqualToString:@"http"]) {
-                    url.scheme = @"https";
-                } else if (![url.scheme isEqualToString: @"https"]){
-                    [self launchAppByScheme:url apps:apps];
-                }
-                LCWebView *webViewController = [[LCWebView alloc] initWithURL:url.URL apps:apps];
-                UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:webViewController];
-                navController.navigationBar.translucent = NO;
-
-                navController.modalPresentationStyle = UIModalPresentationFullScreen;
-                [self presentViewController:navController animated:YES completion:nil];
-            }
+            [self openWebViewByURLString:ans];
         });
         return (NSString*)nil;
     }];
 
+}
 
-    
+- (void) openWebViewByURLString:(NSString*) urlString {
+    NSURLComponents* url = [[NSURLComponents alloc] initWithString:urlString];
+    if(!url) {
+        [self showDialogTitle:@"Invalid URL" message:@"The given URL is invalid. Check it and try again."];
+    } else {
+        NSMutableArray<LCAppInfo*>* apps = [[NSMutableArray alloc] init];
+        for(int i = 0; i < [self.objects count]; ++i) {
+            LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[i]]];
+            appInfo.relativeBundlePath = self.objects[i];
+            [apps insertObject:appInfo atIndex:i];
+        }
+        
+        // use https for http and empty scheme
+        if([url.scheme length ] == 0 || [url.scheme isEqualToString:@"http"]) {
+            url.scheme = @"https";
+        } else if (![url.scheme isEqualToString: @"https"]){
+            [self launchAppByScheme:url apps:apps];
+        }
+        LCWebView *webViewController = [[LCWebView alloc] initWithURL:url.URL apps:apps];
+        UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:webViewController];
+        navController.navigationBar.translucent = NO;
+
+        navController.modalPresentationStyle = UIModalPresentationFullScreen;
+        [self presentViewController:navController animated:YES completion:nil];
+    }
 }
 
 - (void) launchAppByScheme:(NSURLComponents*)schemeURL apps:(NSMutableArray<LCAppInfo*>*)apps {

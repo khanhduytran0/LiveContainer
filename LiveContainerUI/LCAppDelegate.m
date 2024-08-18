@@ -2,6 +2,7 @@
 #import "LCJITLessSetupViewController.h"
 #import "LCTabBarController.h"
 #import "LCUtils.h"
+#import <UIKit/UIKit.h>
 
 @implementation LCAppDelegate
 
@@ -20,6 +21,19 @@
 }
 
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options {
+    NSLog(@"[LiveContainer]got url to open: %@", url);
+    NSLog(@"[LiveContainer]host: %@", url.host);
+    if([url.host isEqualToString:@"open-web-page"]) {
+        NSURLComponents* urlComponent = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
+        if(urlComponent.queryItems.count == 0){
+            return YES;
+        }
+        
+        NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:urlComponent.queryItems[0].value options:0];
+        NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
+        NSLog(@"[LiveContainer]Webpage to open: %@", decodedUrl);
+        [((LCTabBarController*)_rootViewController) openWebPage:decodedUrl];
+    }
     return [LCUtils launchToGuestAppWithURL:url];
 }
 

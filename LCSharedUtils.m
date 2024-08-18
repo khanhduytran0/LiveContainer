@@ -49,4 +49,8 @@ extern NSUserDefaults *lcUserDefaults;
     return NO;
 }
 
++ (void)setWebPageUrlForNextLaunch:(NSString*) urlString {
+    [lcUserDefaults setObject:urlString forKey:@"webPageToOpen"];
+}
+
 @end

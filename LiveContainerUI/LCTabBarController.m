@@ -1,4 +1,3 @@
-#import "LCAppListViewController.h"
 #import "LCSettingsListController.h"
 #import "LCTweakListViewController.h"
 #import "LCTabBarController.h"
@@ -10,6 +9,7 @@
 
     LCAppListViewController* appTableVC = [LCAppListViewController new];
     appTableVC.title = @"Apps";
+    self.appTableVC = appTableVC;
 
     LCTweakListViewController* tweakTableVC = [LCTweakListViewController new];
     tweakTableVC.title = @"Tweaks";
@@ -26,6 +26,10 @@
     settingsNavigationController.tabBarItem.image = [UIImage systemImageNamed:@"gear"];
 
     self.viewControllers = @[appNavigationController, tweakNavigationController, settingsNavigationController];
+}
+
+- (void) openWebPage:(NSString*) urlString {
+    [self.appTableVC openWebViewByURLString:urlString];
 }
 
 @end
