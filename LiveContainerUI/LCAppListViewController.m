@@ -324,6 +324,20 @@
             } else {
                 [self.objects removeObjectAtIndex:indexPath.row];
                 [self.tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+                [self showConfirmationDialogTitle:@"Delete Data Folder"
+                message:[NSString stringWithFormat:@"Do you also want to delete data folder of %@? You can keep it for future use.", appInfo.displayName]
+                destructive:YES
+                confirmButtonTitle:@"Delete"
+                handler:^(UIAlertAction * action) {
+                    if (action.style != UIAlertActionStyleCancel) {
+                        NSError *error = nil;
+                        NSString* dataFolderPath = [NSString stringWithFormat:@"%@/Data/Application/%@", self.docPath, [appInfo dataUUID]];
+                        [NSFileManager.defaultManager removeItemAtPath:dataFolderPath error:&error];
+                        if (error) {
+                            [self showDialogTitle:@"Error" message:error.localizedDescription];
+                        }
+                    }
+                }];
             }
         }
         handler(YES);
