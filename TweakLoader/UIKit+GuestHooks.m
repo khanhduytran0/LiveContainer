@@ -66,7 +66,15 @@ void LCOpenWebPage(NSString* webPageUrlString) {
         // Ignore
         return;
     } else if ([url hasPrefix:@"livecontainer://open-web-page?"]) {
-        LCOpenWebPage(url);
+        // launch to UI and open web page
+        NSURLComponents* lcUrl = [NSURLComponents componentsWithString:url];
+        NSString* realUrlEncoded = lcUrl.queryItems[0].value;
+        if(!realUrlEncoded) return;
+        // Convert the base64 encoded url into String
+        NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:realUrlEncoded options:0];
+        NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
+        LCOpenWebPage(decodedUrl);
+        return;
     } else if ([url hasPrefix:@"livecontainer://open-url"]) {
         // pass url to guest app
         NSURLComponents* lcUrl = [NSURLComponents componentsWithString:url];
@@ -79,13 +87,16 @@ void LCOpenWebPage(NSString* webPageUrlString) {
         newPayload[UIApplicationLaunchOptionsURLKey] = decodedUrl;
         [self hook__applicationOpenURLAction:action payload:newPayload origin:origin];
         return;
-    } else if (![url hasPrefix:@"livecontainer://livecontainer-launch?"]) {
-        // Not what we're looking for, pass it
-        [self hook__applicationOpenURLAction:action payload:payload origin:origin];
+    } else if ([url hasPrefix:@"livecontainer://livecontainer-launch?"]) {
+        if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
+            LCShowSwitchAppConfirmation([NSURL URLWithString:url]);
+        }
         return;
-    } else if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
-        LCShowSwitchAppConfirmation([NSURL URLWithString:url]);
+        // Not what we're looking for, pass it
+        
     }
+    [self hook__applicationOpenURLAction:action payload:payload origin:origin];
+    return;
 }
 @end
 
@@ -109,16 +120,18 @@ void LCOpenWebPage(NSString* webPageUrlString) {
     NSString *url = urlAction.url.absoluteString;
     if ([url hasPrefix:@"livecontainer://livecontainer-relaunch"]) {
         // Ignore
+        return;
     } else if ([url hasPrefix:@"livecontainer://open-web-page?"]) {
         NSURLComponents* lcUrl = [NSURLComponents componentsWithString:url];
         NSString* realUrlEncoded = lcUrl.queryItems[0].value;
         if(!realUrlEncoded) return;
-        // Convert the base64 encoded url into String
+        // launch to UI and open web page
         NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:realUrlEncoded options:0];
         NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
         LCOpenWebPage(decodedUrl);
-    } else if (![url hasPrefix:@"livecontainer://livecontainer-launch?"]) {
-        // Not what we're looking for, pass it
+        return;
+    } else if ([url hasPrefix:@"livecontainer://open-url?"]) {
+        // Open guest app's URL scheme
         NSURLComponents* lcUrl = [NSURLComponents componentsWithString:url];
         NSString* realUrlEncoded = lcUrl.queryItems[0].value;
         if(!realUrlEncoded) return;
@@ -132,8 +145,13 @@ void LCOpenWebPage(NSString* webPageUrlString) {
         [newActions addObject:newUrlAction];
         [self hook_scene:scene didReceiveActions:newActions fromTransitionContext:context];
         return;
-    } else if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
-        LCShowSwitchAppConfirmation(urlAction.url);
+    } else if ([url hasPrefix:@"livecontainer://livecontainer-launch?"]){
+        // If it's not current app, then switch
+        if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
+            LCShowSwitchAppConfirmation(urlAction.url);
+        }
+        return;
+        
     }
 
     NSMutableSet *newActions = actions.mutableCopy;

@@ -681,9 +681,9 @@ trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
         }
         
         // use https for http and empty scheme
-        if([url.scheme length ] == 0 || [url.scheme isEqualToString:@"http"]) {
+        if([url.scheme length ] == 0) {
             url.scheme = @"https";
-        } else if (![url.scheme isEqualToString: @"https"]){
+        } else if (![url.scheme isEqualToString: @"https"] && ![url.scheme isEqualToString: @"http"]){
             [self launchAppByScheme:url apps:apps];
         }
         LCWebView *webViewController = [[LCWebView alloc] initWithURL:url.URL apps:apps];
