@@ -11,7 +11,7 @@ export CONFIG_COMMIT = $(shell git log --oneline | sed '2,10000000d' | cut -b 1-
 # Build the app
 APPLICATION_NAME = LiveContainer
 
-$(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m fishhook/fishhook.c LCSharedUtils.m
+$(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m fishhook/fishhook.c LCSharedUtils.m LCAppDelegateSwiftUI.m
 $(APPLICATION_NAME)_CODESIGN_FLAGS = -Sentitlements.xml
 $(APPLICATION_NAME)_CFLAGS = -fobjc-arc
 $(APPLICATION_NAME)_LDFLAGS = -e_LiveContainerMain -rpath @loader_path/Frameworks
@@ -19,7 +19,7 @@ $(APPLICATION_NAME)_FRAMEWORKS = UIKit
 
 include $(THEOS_MAKE_PATH)/application.mk
 
-SUBPROJECTS += LiveContainerUI TweakLoader TestJITLess
+SUBPROJECTS += TweakLoader TestJITLess LiveContainerSwiftUI
 include $(THEOS_MAKE_PATH)/aggregate.mk
 
 # Make the executable name longer so we have space to overwrite it with the guest app's name

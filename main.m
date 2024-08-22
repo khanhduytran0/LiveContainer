@@ -309,6 +309,7 @@ int LiveContainerMain(int argc, char *argv[]) {
 
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
+    NSLog(@"[NMSL]: selectedApp = %@", selectedApp);
     if (selectedApp) {
         NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
         [lcUserDefaults removeObjectForKey:@"selected"];
@@ -337,13 +338,13 @@ int LiveContainerMain(int argc, char *argv[]) {
         }
     }
 
-    void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerUI.framework/LiveContainerUI", RTLD_LAZY);
+    void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerSwiftUI.framework/LiveContainerSwiftUI", RTLD_LAZY);
     assert(LiveContainerUIHandle);
     @autoreleasepool {
         if ([lcUserDefaults boolForKey:@"LCLoadTweaksToSelf"]) {
             dlopen("@executable_path/Frameworks/TweakLoader.dylib", RTLD_LAZY);
         }
-        return UIApplicationMain(argc, argv, nil, @"LCAppDelegate");
+        return UIApplicationMain(argc, argv, nil, @"LCAppDelegateSwiftUI");
     }
 }
 
