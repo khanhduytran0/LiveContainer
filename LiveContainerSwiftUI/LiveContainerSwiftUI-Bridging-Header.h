@@ -8,6 +8,6 @@
 #define LiveContainerSwiftUI_Bridging_Header_h_h
 #include "LCAppInfo.h"
 #include "LCUtils.h"
-
+#include "unarchive.h"
 
 #endif /* LiveContainerSwiftUI_Bridging_Header_h_h */
