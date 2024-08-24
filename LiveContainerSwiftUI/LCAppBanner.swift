@@ -16,16 +16,41 @@ protocol LCAppBannerDelegate {
 
 struct LCAppBanner : View {
     @State var appInfo: LCAppInfo
+    var delegate: LCAppBannerDelegate
+    @State var appDataFolders: [String]
+    @State var tweakFolders: [String]
+    
+    @State private var uiDataFolder : String?
+    @State private var uiTweakFolder : String?
+    @State private var uiPickerDataFolder : String?
+    @State private var uiPickerTweakFolder : String?
+    
     @State private var confirmAppRemovalShow = false
     @State private var confirmAppFolderRemovalShow = false
     
-    var delegate: LCAppBannerDelegate
-    @State var confirmAppRemoval = false
-    @State var confirmAppFolderRemoval = false
-    @State var appRemovalSemaphore = DispatchSemaphore(value: 0)
-    @State var appFolderRemovalSemaphore = DispatchSemaphore(value: 0)
-    @State var errorShow = false
-    @State var errorInfo = ""
+    @State private var confirmAppRemoval = false
+    @State private var confirmAppFolderRemoval = false
+    @State private var appRemovalSemaphore = DispatchSemaphore(value: 0)
+    @State private var appFolderRemovalSemaphore = DispatchSemaphore(value: 0)
+    
+    @State private var renameFolderShow = false
+    @State private var renameFolderContent = ""
+    @State private var renameFolerSemaphore = DispatchSemaphore(value: 0)
+    
+    @State private var errorShow = false
+    @State private var errorInfo = ""
+    
+    init(appInfo: LCAppInfo, delegate: LCAppBannerDelegate, appDataFolders: [String], tweakFolders: [String]) {
+        _appInfo = State(initialValue: appInfo)
+        _appDataFolders = State(initialValue: appDataFolders)
+        _tweakFolders = State(initialValue: tweakFolders)
+        self.delegate = delegate
+        _uiDataFolder = State(initialValue: appInfo.getDataUUIDNoAssign())
+        _uiTweakFolder = State(initialValue: appInfo.tweakFolder())
+        _uiPickerDataFolder = _uiDataFolder
+        _uiPickerTweakFolder = _uiTweakFolder
+        
+    }
     
     var body: some View {
 
@@ -39,7 +64,7 @@ struct LCAppBanner : View {
                 VStack (alignment: .leading, content: {
                     Text(appInfo.displayName()).font(.system(size: 16)).bold()
                     Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(Color("FontColor"))
-                    Text(appInfo.getDataUUIDNoAssign() == nil ? "Data folder not created yet" : appInfo.getDataUUIDNoAssign()).font(.system(size: 8)).foregroundColor(Color("FontColor"))
+                    Text(uiDataFolder == nil ? "Data folder not created yet" : uiDataFolder!).font(.system(size: 8)).foregroundColor(Color("FontColor"))
                 })
             }
             Spacer()
@@ -66,11 +91,56 @@ struct LCAppBanner : View {
                 Label("Uninstall", systemImage: "trash")
             }
             Button {
-                // Open Maps and center it on this item.
+                // Add to home screen
             } label: {
-                Label("Show in Maps", systemImage: "mappin")
+                Label("Add to home screen", systemImage: "plus.app")
             }
+            Menu(content: {
+                Button {
+                    createFolder()
+                } label: {
+                    Label("New data folder", systemImage: "plus")
+                }
+                if uiDataFolder != nil {
+                    Button {
+                        renameDataFolder()
+                    } label: {
+                        Label("Rename data folder", systemImage: "pencel")
+                    }
+                }
+
+                Picker(selection: $uiPickerDataFolder , label: Text("")) {
+                    ForEach(appDataFolders, id:\.self) { folderName in
+                        Button(folderName) {
+                            setDataFolder(folderName: folderName)
+                        }.tag(Optional(folderName))
+                    }
+                }
+            }, label: {
+                Label("Change Data Folder", systemImage: "folder.badge.questionmark")
+            })
+            
+            Menu(content: {
+                Picker(selection: $uiPickerTweakFolder , label: Text("")) {
+                    Label("None", systemImage: "nosign").tag(Optional<String>(nil))
+                    ForEach(tweakFolders, id:\.self) { folderName in
+                        Text(folderName).tag(Optional(folderName))
+                    }
+                }
+            }, label: {
+                Label("Change Tweak Folder", systemImage: "gear")
+            })
         }
+        .onChange(of: uiPickerDataFolder, perform: { newValue in
+            if newValue != uiDataFolder {
+                setDataFolder(folderName: newValue)
+            }
+        })
+        .onChange(of: uiPickerTweakFolder, perform: { newValue in
+            if newValue != uiTweakFolder {
+                setTweakFolder(folderName: newValue)
+            }
+        })
         
         .alert("Confirm Uninstallation", isPresented: $confirmAppRemovalShow) {
             Button(role: .destructive) {
@@ -80,7 +150,7 @@ struct LCAppBanner : View {
                 Text("Uninstall")
             }
             Button("Cancel", role: .cancel) {
-                self.confirmAppRemoval = true
+                self.confirmAppRemoval = false
                 self.appRemovalSemaphore.signal()
             }
         } message: {
@@ -94,11 +164,31 @@ struct LCAppBanner : View {
                 Text("Delete")
             }
             Button("Cancel", role: .cancel) {
-                self.confirmAppFolderRemoval = true
+                self.confirmAppFolderRemoval = false
                 self.appFolderRemovalSemaphore.signal()
             }
         } message: {
             Text("Do you also want to delete data folder of \(appInfo.displayName()!)? You can keep it for future use.")
+        }
+        .textFieldAlert(
+            isPresented: $renameFolderShow,
+            title: "Enter the name of new folder",
+            text: $renameFolderContent,
+            placeholder: "",
+            action: { newText in
+                self.renameFolderContent = newText!
+                renameFolerSemaphore.signal()
+            },
+            actionCancel: {_ in 
+                self.renameFolderContent = ""
+                renameFolerSemaphore.signal()
+            }
+        )
+        .alert("Error", isPresented: $errorShow) {
+            Button("OK", action: {
+            })
+        } message: {
+            Text(errorInfo)
         }
 
         
@@ -107,6 +197,74 @@ struct LCAppBanner : View {
     func runApp() {
         UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
         LCUtils.launchToGuestApp()
+    }
+    
+    func setDataFolder(folderName: String?) {
+        self.appInfo.setDataUUID(folderName!)
+        self.uiDataFolder = folderName
+        self.uiPickerDataFolder = folderName
+    }
+    
+    func createFolder() {
+        DispatchQueue.global().async {
+            self.renameFolderContent = NSUUID().uuidString
+            self.renameFolderShow = true
+            self.renameFolerSemaphore.wait()
+            if self.renameFolderContent == "" {
+                return
+            }
+            let fm = FileManager()
+            let dest = self.delegate.getDocPath().appendingPathComponent("Data/Application").appendingPathComponent(self.renameFolderContent)
+            do {
+                try fm.createDirectory(at: dest, withIntermediateDirectories: false)
+            } catch {
+                errorShow = true
+                errorInfo = error.localizedDescription
+                return
+            }
+            
+            self.appDataFolders.append(self.renameFolderContent)
+            self.setDataFolder(folderName: self.renameFolderContent)
+        }
+    }
+    
+    func renameDataFolder() {
+        if self.appInfo.getDataUUIDNoAssign() == nil {
+            return
+        }
+        
+        DispatchQueue.global().async {
+            self.renameFolderContent = self.uiDataFolder == nil ? "" : self.uiDataFolder!
+            self.renameFolderShow = true
+            self.renameFolerSemaphore.wait()
+            if self.renameFolderContent == "" {
+                return
+            }
+            let fm = FileManager()
+            let orig = self.delegate.getDocPath().appendingPathComponent("Data/Application").appendingPathComponent(appInfo.getDataUUIDNoAssign())
+            let dest = self.delegate.getDocPath().appendingPathComponent("Data/Application").appendingPathComponent(self.renameFolderContent)
+            do {
+                try fm.moveItem(at: orig, to: dest)
+            } catch {
+                errorShow = true
+                errorInfo = error.localizedDescription
+                return
+            }
+
+            let i = self.appDataFolders.firstIndex(of: self.appInfo.getDataUUIDNoAssign())
+            guard let i = i else {
+                return
+            }
+            
+            self.appDataFolders[i] = self.renameFolderContent
+            self.setDataFolder(folderName: self.renameFolderContent)
+        }
+    }
+    
+    func setTweakFolder(folderName: String?) {
+        self.appInfo.setTweakFolder(folderName)
+        self.uiTweakFolder = folderName
+        self.uiPickerTweakFolder = folderName
     }
     
     func uninstall() {

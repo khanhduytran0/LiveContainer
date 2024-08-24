@@ -1,5 +1,6 @@
 #import "LCAppDelegateSwiftUI.h"
 #import <UIKit/UIKit.h>
+#import "LCUtils.h"
 
 @implementation LCAppDelegateSwiftUI
 
@@ -23,8 +24,7 @@
 //        NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
 //        [((LCTabBarController*)_rootViewController) openWebPage:decodedUrl];
 //    }
-//    return [LCUtils launchToGuestAppWithURL:url];
-    return true;
+    return [LCUtils launchToGuestAppWithURL:url];
 }
 
 @end

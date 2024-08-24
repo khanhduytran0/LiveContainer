@@ -318,7 +318,6 @@ int LiveContainerMain(int argc, char *argv[]) {
 
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
-    NSLog(@"[NMSL]: selectedApp = %@", selectedApp);
     if (selectedApp) {
         NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
         [lcUserDefaults removeObjectForKey:@"selected"];

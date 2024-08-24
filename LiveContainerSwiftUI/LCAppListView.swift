@@ -40,8 +40,11 @@ class ProgressObserver : NSObject {
 struct LCAppListView : View, LCAppBannerDelegate {
     private var docPath: URL
     var bundlePath: URL
+    var dataPath: URL
+    var tweakPath: URL
     @State var apps: [LCAppInfo]
-//    @State var aaa: [String]
+    @State var appDataFolderNames: [String]
+    @State var tweakFolderNames: [String]
     
     // ipa choosing stuff
     @State var choosingIPA = false
@@ -50,26 +53,30 @@ struct LCAppListView : View, LCAppBannerDelegate {
     
     // ipa installing stuff
     @State var installprogressVisible = false
-    @State var installProgress: Progress
     @State var installProgressPercentage = 0.0
     
     @State var installReplaceComfirmVisible = false
     @State var installOptions: [AppReplaceOption]
     @State var installOptionChosen: AppReplaceOption?
     @State var installOptionSemaphore = DispatchSemaphore(value: 0)
+    
 
  
     init() {
         let fm = FileManager()
         self.docPath = fm.urls(for: .documentDirectory, in: .userDomainMask).last!
         self.bundlePath = self.docPath.appendingPathComponent("Applications")
-        _installProgress = State(initialValue:  Progress.discreteProgress(totalUnitCount: 100))
+        self.dataPath = self.docPath.appendingPathComponent("Data/Application")
+        self.tweakPath = self.docPath.appendingPathComponent("Tweaks")
         _installOptions = State(initialValue: [])
         _installOptionChosen = State(initialValue: nil)
+        var tempAppDataFolderNames : [String] = []
+        var tempTweakFolderNames : [String] = []
         
         var tempApps: [LCAppInfo] = []
 
         do {
+            // load apps
             try fm.createDirectory(at: self.bundlePath, withIntermediateDirectories: true)
             let appDirs = try fm.contentsOfDirectory(atPath: self.bundlePath.path)
             for appDir in appDirs {
@@ -80,10 +87,33 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 newApp.relativeBundlePath = appDir
                 tempApps.append(newApp)
             }
+            // load document folders
+            try fm.createDirectory(at: self.dataPath, withIntermediateDirectories: true)
+            let dataDirs = try fm.contentsOfDirectory(atPath: self.dataPath.path)
+            for dataDir in dataDirs {
+                let dataDirUrl = self.dataPath.appendingPathComponent(dataDir)
+                if !dataDirUrl.hasDirectoryPath {
+                    continue
+                }
+                tempAppDataFolderNames.append(dataDir)
+            }
+            
+            // load tweak folders
+            try fm.createDirectory(at: self.tweakPath, withIntermediateDirectories: true)
+            let tweakDirs = try fm.contentsOfDirectory(atPath: self.tweakPath.path)
+            for tweakDir in tweakDirs {
+                let tweakDirUrl = self.tweakPath.appendingPathComponent(tweakDir)
+                if !tweakDirUrl.hasDirectoryPath {
+                    continue
+                }
+                tempTweakFolderNames.append(tweakDir)
+            }
         } catch {
-            NSLog("[NMSL] error:\(error)")
+            NSLog("[LC] error:\(error)")
         }
         _apps = State(initialValue: tempApps)
+        _appDataFolderNames = State(initialValue: tempAppDataFolderNames)
+        _tweakFolderNames = State(initialValue: tempTweakFolderNames)
     }
     
     var body: some View {
@@ -94,7 +124,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                     Section {
                         LazyVStack {
                             ForEach(apps, id: \.self) { app in
-                                LCAppBanner(appInfo: app, delegate: self)
+                                LCAppBanner(appInfo: app, delegate: self, appDataFolders: appDataFolderNames, tweakFolders: tweakFolderNames)
                             }
                             .transition(.scale)
                         }
@@ -191,12 +221,12 @@ struct LCAppListView : View, LCAppBannerDelegate {
         }
         let fm = FileManager()
         
-        self.installProgress = Progress.discreteProgress(totalUnitCount: 100)
+        let installProgress = Progress.discreteProgress(totalUnitCount: 100)
         self.installProgressPercentage = 0.0
         let progressObserver = ProgressObserver(delegate: onInstallProgress)
-        self.installProgress.addObserver(progressObserver, forKeyPath: "fractionCompleted", context: nil)
+        installProgress.addObserver(progressObserver, forKeyPath: "fractionCompleted", context: nil)
         let decompressProgress = Progress.discreteProgress(totalUnitCount: 100)
-        self.installProgress.addChild(decompressProgress, withPendingUnitCount: 80)
+        installProgress.addChild(decompressProgress, withPendingUnitCount: 80)
         
         // decompress
         extract(url.path, fm.temporaryDirectory.path, decompressProgress)
@@ -268,7 +298,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 success = success1
                 signSemaphore.signal()
             }
-            self.installProgress.addChild(signProgress!, withPendingUnitCount: 20)
+            installProgress.addChild(signProgress!, withPendingUnitCount: 20)
             signSemaphore.wait()
             
             if let error = error {
