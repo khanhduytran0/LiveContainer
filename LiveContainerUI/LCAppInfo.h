@@ -20,6 +20,7 @@
 - (NSString*)bundleIdentifier;
 - (NSString*)version;
 - (NSString*)dataUUID;
+- (NSString*)getDataUUIDNoAssign;
 - (NSString*)tweakFolder;
 - (NSMutableArray*) urlSchemes;
 - (void)setDataUUID:(NSString *)uuid;

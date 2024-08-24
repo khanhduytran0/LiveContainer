@@ -238,9 +238,18 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
     NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
     *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
+    
+    // Set & save the folder it it does not exist in Info.plist
+    NSString* dataUUID = appBundle.infoDictionary[@"LCDataUUID"];
+    if(dataUUID == nil) {
+        NSMutableDictionary* infoDict = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
+        dataUUID = NSUUID.UUID.UUIDString;
+        infoDict[@"LCDataUUID"] = dataUUID;
+        [infoDict writeToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
+    }
 
     // Overwrite home and tmp path
-    NSString *newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, appBundle.infoDictionary[@"LCDataUUID"]];
+    NSString *newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, dataUUID];
     NSString *newTmpPath = [newHomePath stringByAppendingPathComponent:@"tmp"];
     remove(newTmpPath.UTF8String);
     symlink(getenv("TMPDIR"), newTmpPath.UTF8String);

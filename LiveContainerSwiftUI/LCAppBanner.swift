@@ -39,7 +39,7 @@ struct LCAppBanner : View {
                 VStack (alignment: .leading, content: {
                     Text(appInfo.displayName()).font(.system(size: 16)).bold()
                     Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(Color("FontColor"))
-                    Text(appInfo.dataUUID()).font(.system(size: 8)).foregroundColor(Color("FontColor"))
+                    Text(appInfo.getDataUUIDNoAssign() == nil ? "Data folder not created yet" : appInfo.getDataUUIDNoAssign()).font(.system(size: 8)).foregroundColor(Color("FontColor"))
                 })
             }
             Spacer()
@@ -58,7 +58,8 @@ struct LCAppBanner : View {
         .background(RoundedRectangle(cornerSize: CGSize(width:22, height: 22)).fill(Color("AppBannerBG")))
         
         
-        .contextMenu {
+        .contextMenu{
+            Text(appInfo.relativeBundlePath)
             Button(role: .destructive) {
                 uninstall()
             } label: {
@@ -70,7 +71,6 @@ struct LCAppBanner : View {
                 Label("Show in Maps", systemImage: "mappin")
             }
         }
-        
         
         .alert("Confirm Uninstallation", isPresented: $confirmAppRemovalShow) {
             Button(role: .destructive) {
@@ -117,9 +117,13 @@ struct LCAppBanner : View {
                 if !self.confirmAppRemoval {
                     return
                 }
-                
-                self.confirmAppFolderRemovalShow = true;
-                self.appFolderRemovalSemaphore.wait()
+                if self.appInfo.getDataUUIDNoAssign() != nil {
+                    self.confirmAppFolderRemovalShow = true;
+                    self.appFolderRemovalSemaphore.wait()
+                } else {
+                    self.confirmAppFolderRemoval = false;
+                }
+
                 
                 let fm = FileManager()
                 try fm.removeItem(atPath: self.appInfo.bundlePath()!)

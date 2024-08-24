@@ -8,9 +8,10 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct AppReplaceOption : Hashable,  Codable {
+struct AppReplaceOption : Hashable {
     var isReplace: Bool
     var nameOfFolderToInstall: String
+    var appToReplace: LCAppInfo?
 }
 
 class ProgressObserver : NSObject {
@@ -157,7 +158,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 Text("Abort Installation")
             })
         } message: {
-            Text("There is an existing application with the same bundle folder name. Replace one or install as new.")
+            Text("There is an existing application with the same bundle identifier. Replace one or install as new.")
         }
 
     }
@@ -215,17 +216,18 @@ struct LCAppListView : View, LCAppBannerDelegate {
 
         var appRelativePath = "\(newAppInfo.bundleIdentifier()!).app"
         var outputFolder = self.bundlePath.appendingPathComponent(appRelativePath)
+        var appToReplace : LCAppInfo? = nil
         // Folder exist! show alert for user to choose which bundle to replace
-        if fm.fileExists(atPath: outputFolder.path) {
-            let appFolders = try fm.contentsOfDirectory(atPath: self.bundlePath.path).filter {folderName in
-                return folderName.hasPrefix(newAppInfo.bundleIdentifier()) && folderName.hasSuffix(".app")
-            }
+        let sameBundleIdApp = self.apps.filter { app in
+            return app.bundleIdentifier()! == newAppInfo.bundleIdentifier()
+        }
+        if fm.fileExists(atPath: outputFolder.path) || sameBundleIdApp.count > 0 {
             appRelativePath = "\(newAppInfo.bundleIdentifier()!)_\(CFAbsoluteTimeGetCurrent()).app"
             
             self.installOptions = [AppReplaceOption(isReplace: false, nameOfFolderToInstall: appRelativePath)]
             
-            for appFolder in appFolders {
-                self.installOptions.append(AppReplaceOption(isReplace: true, nameOfFolderToInstall: appFolder))
+            for app in sameBundleIdApp {
+                self.installOptions.append(AppReplaceOption(isReplace: true, nameOfFolderToInstall: app.relativeBundlePath, appToReplace: app))
             }
             self.installReplaceComfirmVisible = true
             self.installOptionSemaphore.wait()
@@ -238,6 +240,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
             }
             
             outputFolder = self.bundlePath.appendingPathComponent(installOptionChosen.nameOfFolderToInstall)
+            appToReplace = installOptionChosen.appToReplace
             if installOptionChosen.isReplace {
                 try fm.removeItem(at: outputFolder)
                 self.apps.removeAll { appNow in
@@ -279,7 +282,10 @@ struct LCAppListView : View, LCAppBannerDelegate {
 
             
         }
-    
+        // set data folder to the folder of the chosen app
+        if let appToReplace = appToReplace {
+            finalNewApp?.setDataUUID(appToReplace.getDataUUIDNoAssign())
+        }
         self.apps.append(finalNewApp!)
         self.installprogressVisible = false
     }

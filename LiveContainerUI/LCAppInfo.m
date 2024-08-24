@@ -74,6 +74,10 @@
     return _info[@"LCDataUUID"];
 }
 
+- (NSString*)getDataUUIDNoAssign {
+    return _info[@"LCDataUUID"];
+}
+
 - (NSString*)tweakFolder {
     return _info[@"LCTweakFolder"];
 }
