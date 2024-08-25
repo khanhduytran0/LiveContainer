@@ -2,7 +2,7 @@
 #import <Foundation/Foundation.h>
 @interface LCSwiftBridge : NSObject
 + (UIViewController * _Nonnull)getRootVC;
-+ (BOOL)launchToGuestAppWithURL:(NSURL * _Nullable)url;
++ (void)openWebPageWithUrlStr:(NSString*  _Nonnull)urlStr;
 @end
 
 @interface LCAppDelegateSwiftUI : UIResponder <UIApplicationDelegate>

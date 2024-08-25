@@ -15,4 +15,8 @@
     return [LCObjcBridge getRootVC];
 }
 
++ (void)openWebPageWithUrlStr:(NSString*  _Nonnull)urlStr {
+    [LCObjcBridge openWebPageWithUrlStr:urlStr];
+}
+
 @end

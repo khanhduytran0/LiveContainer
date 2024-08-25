@@ -13,4 +13,5 @@
 
 @interface LCSwiftBridge : NSObject
 + (UIViewController * _Nonnull)getRootVC;
++ (void)openWebPageWithUrlStr:(NSURL* _Nonnull)url;
 @end

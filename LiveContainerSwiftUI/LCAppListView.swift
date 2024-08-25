@@ -46,21 +46,27 @@ struct LCAppListView : View, LCAppBannerDelegate {
     @State var appDataFolderNames: [String]
     @State var tweakFolderNames: [String]
     
+    @State var didAppear = false
     // ipa choosing stuff
     @State var choosingIPA = false
-    @State var installErrorShow = false
-    @State var installErrorInfo = ""
+    @State var errorShow = false
+    @State var errorInfo = ""
     
     // ipa installing stuff
     @State var installprogressVisible = false
     @State var installProgressPercentage = 0.0
+    @State var uiInstallProgressPercentage = 0.0
     
     @State var installReplaceComfirmVisible = false
     @State var installOptions: [AppReplaceOption]
     @State var installOptionChosen: AppReplaceOption?
     @State var installOptionSemaphore = DispatchSemaphore(value: 0)
     
-
+    @State var webViewOpened = false
+    @State var webViewURL : URL = URL(string: "https://www.google.com")!
+    @State private var webViewUrlInputOpened = false
+    @State private var webViewUrlInputContent = ""
+    @State private var webViewUrlInputSemaphore = DispatchSemaphore(value: 0)
  
     init() {
         let fm = FileManager()
@@ -118,7 +124,6 @@ struct LCAppListView : View, LCAppBannerDelegate {
     
     var body: some View {
         NavigationView {
-            
             ScrollView {
                 LazyVStack(pinnedViews:[.sectionHeaders]) {
                     Section {
@@ -131,9 +136,19 @@ struct LCAppListView : View, LCAppBannerDelegate {
                         .padding()
                     } header: {
                         GeometryReader{ g in
-                            ProgressView(value: installProgressPercentage)
+                            ProgressView(value: uiInstallProgressPercentage)
                                     .labelsHidden()
                                     .opacity(installprogressVisible ? 1 : 0)
+                                    .scaleEffect(y: 0.5)
+                                    .onChange(of: installProgressPercentage) { newValue in
+                                        if newValue > uiInstallProgressPercentage {
+                                            withAnimation(.easeIn(duration: 0.3)) {
+                                                uiInstallProgressPercentage = newValue
+                                            }
+                                        } else {
+                                            uiInstallProgressPercentage = newValue
+                                        }
+                                    }
                         }
                     }
 
@@ -141,7 +156,12 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 .animation(.easeInOut, value: apps)
 
             }
-            
+            .onAppear {
+                if !didAppear {
+                    didAppear = true
+                    checkIfAppDelegateNeedOpenWebPage()
+                }
+            }
             
             .navigationTitle("My Apps")
             .toolbar {
@@ -159,13 +179,18 @@ struct LCAppListView : View, LCAppBannerDelegate {
                         
                     })
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Open Link", systemImage: "link", action: {
+                        onOpenWebViewTapped()
+                    })
+                }
             }
 
             
         }
         
-        .alert(isPresented: $installErrorShow){
-            Alert(title: Text("Installation Failed"), message: Text(installErrorInfo))
+        .alert(isPresented: $errorShow){
+            Alert(title: Text("Error"), message: Text(errorInfo))
         }
         .fileImporter(isPresented: $choosingIPA, allowedContentTypes: [UTType(filenameExtension: "ipa")!]) { result in
             startInstallApp(result)
@@ -190,9 +215,93 @@ struct LCAppListView : View, LCAppBannerDelegate {
         } message: {
             Text("There is an existing application with the same bundle identifier. Replace one or install as new.")
         }
+        .textFieldAlert(
+            isPresented: $webViewUrlInputOpened,
+            title: "Enter Url or Url Scheme",
+            text: $webViewUrlInputContent,
+            placeholder: "scheme://",
+            action: { newText in
+                self.webViewUrlInputContent = newText!
+                webViewUrlInputSemaphore.signal()
+            },
+            actionCancel: {_ in
+                self.webViewUrlInputContent = ""
+                webViewUrlInputSemaphore.signal()
+            }
+        )
+        .fullScreenCover(isPresented: $webViewOpened) {
+            LCWebView(url: $webViewURL, apps: $apps, isPresent: $webViewOpened)
+        }
 
     }
     
+    func onOpenWebViewTapped() {
+        DispatchQueue.global().async {
+            webViewUrlInputOpened = true
+            webViewUrlInputSemaphore.wait()
+            if webViewUrlInputContent == "" {
+                return
+            }
+            openWebView(urlString: webViewUrlInputContent)
+            webViewUrlInputContent = ""
+        }
+    }
+    
+    func checkIfAppDelegateNeedOpenWebPage() {
+        LCObjcBridge.openUrlStrFunc = openWebView;
+        if LCObjcBridge.urlStrToOpen != nil {
+            self.openWebView(urlString: LCObjcBridge.urlStrToOpen!)
+            LCObjcBridge.urlStrToOpen = nil
+        }
+    }
+    
+    func openWebView(urlString: String) {
+        guard var urlToOpen = URLComponents(string: urlString), urlToOpen.url != nil else {
+            errorInfo = "The input url is invalid. Please check and try again"
+            errorShow = true
+            webViewUrlInputContent = ""
+            return
+        }
+        webViewUrlInputContent = ""
+        if urlToOpen.scheme == nil || urlToOpen.scheme! == "" {
+            urlToOpen.scheme = "https"
+        }
+        if urlToOpen.scheme != "https" && urlToOpen.scheme != "http" {
+            var appToLaunch : LCAppInfo? = nil
+            appLoop: 
+            for app in apps {
+                if let schemes = app.urlSchemes() {
+                    for scheme in schemes {
+                        if let scheme = scheme as? String, scheme == urlToOpen.scheme {
+                            appToLaunch = app
+                            break appLoop
+                        }
+                    }
+                }
+            }
+            guard let appToLaunch = appToLaunch else {
+                errorInfo = "Scheme \"\(urlToOpen.scheme!)\" cannot be opened by any app installed in LiveContainer."
+                errorShow = true
+                return
+            }
+            
+            UserDefaults.standard.setValue(appToLaunch.relativeBundlePath!, forKey: "selected")
+            UserDefaults.standard.setValue(urlToOpen.url!.absoluteString, forKey: "launchAppUrlScheme")
+            LCUtils.launchToGuestApp()
+            
+            return
+        }
+        webViewURL = urlToOpen.url!
+        if webViewOpened {
+            webViewOpened = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                webViewOpened = true
+            })
+        } else {
+            webViewOpened = true
+        }
+    }
+
 
     
     func startInstallApp(_ result:Result<URL, any Error>) {
@@ -202,8 +311,8 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 self.installprogressVisible = true
                 try installIpaFile(fileUrl)
             } catch {
-                installErrorInfo = error.localizedDescription
-                installErrorShow = true
+                errorInfo = error.localizedDescription
+                errorShow = true
                 self.installprogressVisible = false
             }
         }
