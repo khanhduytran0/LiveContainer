@@ -79,3 +79,36 @@ public struct TextFieldAlertModifier: ViewModifier {
     }
 
 }
+
+struct SiteAssociationDetailItem : Codable {
+    var appID: String?
+    var appIDs: [String]?
+    
+    func getBundleIds() -> [String] {
+        var ans : [String] = []
+        // get rid of developer id
+        if let appID = appID, appID.count > 11 {
+            let index = appID.index(appID.startIndex, offsetBy: 11)
+            let modifiedString = String(appID[index...])
+            ans.append(modifiedString)
+        }
+        if let appIDs = appIDs {
+            for appID in appIDs {
+                if appID.count > 11 {
+                    let index = appID.index(appID.startIndex, offsetBy: 11)
+                    let modifiedString = String(appID[index...])
+                    ans.append(modifiedString)
+                }
+            }
+        }
+        return ans
+    }
+}
+
+struct AppLinks : Codable {
+    var details : [SiteAssociationDetailItem]?
+}
+
+struct SiteAssociation : Codable {
+    var applinks: AppLinks?
+}

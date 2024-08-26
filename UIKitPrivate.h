@@ -16,8 +16,13 @@
 @property(nonatomic, copy) id shouldDismissHandler;
 @end
 
+@interface UIActivityContinuationManager : UIResponder
+- (NSDictionary*)handleActivityContinuation:(NSDictionary*)activityDict isSuspended:(id)isSuspended;
+@end
+
 @interface UIApplication(private)
 - (void)suspend;
+- (UIActivityContinuationManager*)_getActivityContinuationManager;
 @end
 
 @interface UIContextMenuInteraction(private)
