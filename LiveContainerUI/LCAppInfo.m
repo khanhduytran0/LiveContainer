@@ -163,16 +163,14 @@
     [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
 }
 
-- (void)preprocessBundleBeforeSiging:(NSURL *)bundleURL completion:(dispatch_block_t)completion {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        // Remove faulty file
-        [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"LiveContainer"] error:nil];
-        // Remove PlugIns folder
-        [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
-        // Remove code signature from all library files
-        [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
-        dispatch_async(dispatch_get_main_queue(), completion);
-    });
+- (void)preprocessBundleBeforeSiging:(NSURL *)bundleURL {
+    // Remove faulty file
+    [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"LiveContainer"] error:nil];
+    // Remove PlugIns folder
+    [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
+    // Remove code signature from all library files
+    [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
+    
 }
 
 // return "SignNeeded" if sign is needed, other wise return an error
@@ -213,16 +211,11 @@
     } else {
         return @"Failed to find ALTCertificate.p12. Please refresh your store and try again.";
     }
-    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
     
     // Sign app if JIT-less is set up
     if ([info[@"LCJITLessSignID"] unsignedLongValue] != signID) {
         NSURL *appPathURL = [NSURL fileURLWithPath:appPath];
-        [self preprocessBundleBeforeSiging:appPathURL completion:^{
-            dispatch_semaphore_signal(sema);
-        }];
-        dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-        
+        [self preprocessBundleBeforeSiging:appPathURL];
         // We need to temporarily fake bundle ID and main executable to sign properly
         NSString *tmpExecPath = [appPath stringByAppendingPathComponent:@"LiveContainer.tmp"];
         if (!info[@"LCBundleIdentifier"]) {

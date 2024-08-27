@@ -14,29 +14,6 @@ struct AppReplaceOption : Hashable {
     var appToReplace: LCAppInfo?
 }
 
-class ProgressObserver : NSObject {
-    var delegate : (_ fraction: Double) -> Void;
-    
-    init(delegate: @escaping (_: Double) -> Void) {
-        self.delegate = delegate
-    }
-    
-    override func observeValue(forKeyPath keyPath: String?,
-                                        of object: Any?,
-                                           change: [NSKeyValueChangeKey : Any]?,
-                                          context: UnsafeMutableRawPointer?) {
-        
-        if let theKeyPath = keyPath {
-            if theKeyPath == "fractionCompleted" {
-                let progress = object as! Progress
-                self.delegate(progress.fractionCompleted)
-            }
-        }
-        
-        
-    }
-}
-
 struct LCAppListView : View, LCAppBannerDelegate {
     private var docPath: URL
     var bundlePath: URL
@@ -56,6 +33,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
     @State var installprogressVisible = false
     @State var installProgressPercentage = 0.0
     @State var uiInstallProgressPercentage = 0.0
+    @State var installObserver : NSKeyValueObservation?
     
     @State var installReplaceComfirmVisible = false
     @State var installOptions: [AppReplaceOption]
@@ -166,18 +144,23 @@ struct LCAppListView : View, LCAppBannerDelegate {
             .navigationTitle("My Apps")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Add", systemImage: "plus", action: {
-                        if choosingIPA {
-                            choosingIPA = false
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                    if !installprogressVisible {
+                        Button("Add", systemImage: "plus", action: {
+                            if choosingIPA {
+                                choosingIPA = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                                    choosingIPA = true
+                                })
+                            } else {
                                 choosingIPA = true
-                            })
-                        } else {
-                            choosingIPA = true
-                        }
+                            }
 
-                        
-                    })
+                            
+                        })
+                    } else {
+                        ProgressView().progressViewStyle(.circular)
+                    }
+
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Open Link", systemImage: "link", action: {
@@ -252,6 +235,9 @@ struct LCAppListView : View, LCAppBannerDelegate {
         if LCObjcBridge.urlStrToOpen != nil {
             self.openWebView(urlString: LCObjcBridge.urlStrToOpen!)
             LCObjcBridge.urlStrToOpen = nil
+        } else if let urlStr = UserDefaults.standard.string(forKey: "webPageToOpen") {
+            UserDefaults.standard.removeObject(forKey: "webPageToOpen")
+            self.openWebView(urlString: urlStr)
         }
     }
     
@@ -319,10 +305,6 @@ struct LCAppListView : View, LCAppBannerDelegate {
 
     }
     
-    func onInstallProgress(_ fraction : Double) {
-        self.installProgressPercentage = fraction
-    }
-    
     
     func installIpaFile(_ url:URL) throws {
         if(!url.startAccessingSecurityScopedResource()) {
@@ -332,8 +314,9 @@ struct LCAppListView : View, LCAppBannerDelegate {
         
         let installProgress = Progress.discreteProgress(totalUnitCount: 100)
         self.installProgressPercentage = 0.0
-        let progressObserver = ProgressObserver(delegate: onInstallProgress)
-        installProgress.addObserver(progressObserver, forKeyPath: "fractionCompleted", context: nil)
+        self.installObserver = installProgress.observe(\.fractionCompleted) { p, v in
+            self.installProgressPercentage = p.fractionCompleted
+        }
         let decompressProgress = Progress.discreteProgress(totalUnitCount: 100)
         installProgress.addChild(decompressProgress, withPendingUnitCount: 80)
         
@@ -361,7 +344,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
             return app.bundleIdentifier()! == newAppInfo.bundleIdentifier()
         }
         if fm.fileExists(atPath: outputFolder.path) || sameBundleIdApp.count > 0 {
-            appRelativePath = "\(newAppInfo.bundleIdentifier()!)_\(CFAbsoluteTimeGetCurrent()).app"
+            appRelativePath = "\(newAppInfo.bundleIdentifier()!)_\(Int(CFAbsoluteTimeGetCurrent())).app"
             
             self.installOptions = [AppReplaceOption(isReplace: false, nameOfFolderToInstall: appRelativePath)]
             

@@ -40,6 +40,12 @@ struct LCAppBanner : View {
     @State private var errorShow = false
     @State private var errorInfo = ""
     
+    @State private var isSingingInProgress = false
+    @State private var signProgress = 0.0
+    @State private var isAppRunning = false
+    
+    @State private var observer : NSKeyValueObservation?
+    
     init(appInfo: LCAppInfo, delegate: LCAppBannerDelegate, appDataFolders: [String], tweakFolders: [String]) {
         _appInfo = State(initialValue: appInfo)
         _appDataFolders = State(initialValue: appDataFolders)
@@ -71,11 +77,34 @@ struct LCAppBanner : View {
             Button {
                 runApp()
             } label: {
-                Text("Run").bold().foregroundColor(.white)
+                if !isSingingInProgress {
+                    Text("Run").bold().foregroundColor(.white)
+                } else {
+                    ProgressView().progressViewStyle(.circular)
+                }
+
             }
             .padding()
+            .frame(idealWidth: 70)
             .frame(height: 32)
-            .background(Capsule().fill(Color("FontColor")))
+            .fixedSize()
+            .background(GeometryReader { g in
+                if !isSingingInProgress {
+                    Capsule().fill(Color("FontColor"))
+                } else {
+                    let w = g.size.width
+                    let h = g.size.height
+                    Capsule()
+                        .fill(Color("FontColor")).opacity(0.2)
+                    Circle()
+                        .fill(Color("FontColor"))
+                        .frame(width: w * 2, height: w * 2)
+                        .offset(x: (signProgress - 2) * g.size.width, y: h/2-w)
+                }
+
+            })
+            .clipShape(Capsule())
+            .disabled(isAppRunning)
             
         }
         .padding()
@@ -105,7 +134,7 @@ struct LCAppBanner : View {
                     Button {
                         renameDataFolder()
                     } label: {
-                        Label("Rename data folder", systemImage: "pencel")
+                        Label("Rename data folder", systemImage: "pencil")
                     }
                 }
 
@@ -195,8 +224,46 @@ struct LCAppBanner : View {
     }
     
     func runApp() {
-        UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
-        LCUtils.launchToGuestApp()
+        isAppRunning = true
+        DispatchQueue.global().async {
+            let patchInfo = appInfo.patchExec()
+            if patchInfo == "SignNeeded" {
+                let bundlePath = URL(fileURLWithPath: appInfo.bundlePath())
+                let signProgress = LCUtils.signAppBundle(bundlePath) { success, error in
+                    self.appInfo.signCleanUp(withSuccessStatus: success)
+                    self.isSingingInProgress = false
+                    if success {
+                        self.isSingingInProgress = false
+                        UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
+                        LCUtils.launchToGuestApp()
+                    } else {
+                        errorInfo = error != nil ? error!.localizedDescription : "Signing failed with unknown error"
+                        errorShow = true
+                    }
+                }
+                guard let signProgress = signProgress else {
+                    errorInfo = "Failed to initiate signing!"
+                    errorShow = true
+                    self.isAppRunning = false
+                    return
+                }
+                self.isSingingInProgress = true
+                self.observer = signProgress.observe(\.fractionCompleted) { p, v in
+                    self.signProgress = signProgress.fractionCompleted
+                }
+            } else if patchInfo != nil {
+                errorInfo = patchInfo!
+                errorShow = true
+                self.isAppRunning = false
+                return
+            } else {
+                UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
+                LCUtils.launchToGuestApp()
+            }
+            self.isAppRunning = false
+        }
+        
+
     }
     
     func setDataFolder(folderName: String?) {
@@ -268,7 +335,8 @@ struct LCAppBanner : View {
     }
     
     func uninstall() {
-        DispatchQueue.global().async {
+        // Add delay because of https://stackoverflow.com/questions/60358948/swiftui-delete-row-in-list-with-context-menu-ui-glitch
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) {
             do {
                 self.confirmAppRemovalShow = true;
                 self.appRemovalSemaphore.wait()

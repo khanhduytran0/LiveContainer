@@ -177,7 +177,7 @@ struct LCWebView: View {
                 return
             }
             
-            runAppAlertMsg = "This web page is can be opened in \"\(appToLaunch.displayName()!)\" according to its Associated Domains, continue?"
+            runAppAlertMsg = "This web page can be opened in \"\(appToLaunch.displayName()!)\" according to its Associated Domains, continue?"
             runAppAlertShow = true
             self.doRunAppSemaphore.wait()
             if !doRunApp {
@@ -264,7 +264,7 @@ class WebViewDelegate : NSObject,WKNavigationDelegate {
             return
         }
         
-        var loadSemaphore = DispatchSemaphore(value: 0)
+        let loadSemaphore = DispatchSemaphore(value: 0)
         // download and read apple-app-site-association
         let appleAppSiteAssociationURLs = [
             URL(string: "https://\(host)/apple-app-site-association")!,
