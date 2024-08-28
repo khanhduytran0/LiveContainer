@@ -15,13 +15,9 @@ struct AppReplaceOption : Hashable {
 }
 
 struct LCAppListView : View, LCAppBannerDelegate {
-    private var docPath: URL
-    var bundlePath: URL
-    var dataPath: URL
-    var tweakPath: URL
-    @State var apps: [LCAppInfo]
-    @State var appDataFolderNames: [String]
-    @State var tweakFolderNames: [String]
+    @Binding var apps: [LCAppInfo]
+    @Binding var appDataFolderNames: [String]
+    @Binding var tweakFolderNames: [String]
     
     @State var didAppear = false
     // ipa choosing stuff
@@ -38,66 +34,20 @@ struct LCAppListView : View, LCAppBannerDelegate {
     @State var installReplaceComfirmVisible = false
     @State var installOptions: [AppReplaceOption]
     @State var installOptionChosen: AppReplaceOption?
-    @State var installOptionSemaphore = DispatchSemaphore(value: 0)
+    @State var installOptionContinuation : CheckedContinuation<Void, Never>? = nil
     
     @State var webViewOpened = false
     @State var webViewURL : URL = URL(string: "https://www.google.com")!
     @State private var webViewUrlInputOpened = false
     @State private var webViewUrlInputContent = ""
-    @State private var webViewUrlInputSemaphore = DispatchSemaphore(value: 0)
+    @State private var webViewUrlInputContinuation : CheckedContinuation<Void, Never>? = nil
  
-    init() {
-        let fm = FileManager()
-        self.docPath = fm.urls(for: .documentDirectory, in: .userDomainMask).last!
-        self.bundlePath = self.docPath.appendingPathComponent("Applications")
-        self.dataPath = self.docPath.appendingPathComponent("Data/Application")
-        self.tweakPath = self.docPath.appendingPathComponent("Tweaks")
+    init(apps: Binding<[LCAppInfo]>, appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
         _installOptions = State(initialValue: [])
         _installOptionChosen = State(initialValue: nil)
-        var tempAppDataFolderNames : [String] = []
-        var tempTweakFolderNames : [String] = []
-        
-        var tempApps: [LCAppInfo] = []
-
-        do {
-            // load apps
-            try fm.createDirectory(at: self.bundlePath, withIntermediateDirectories: true)
-            let appDirs = try fm.contentsOfDirectory(atPath: self.bundlePath.path)
-            for appDir in appDirs {
-                if !appDir.hasSuffix(".app") {
-                    continue
-                }
-                let newApp = LCAppInfo(bundlePath: "\(self.bundlePath.path)/\(appDir)")!
-                newApp.relativeBundlePath = appDir
-                tempApps.append(newApp)
-            }
-            // load document folders
-            try fm.createDirectory(at: self.dataPath, withIntermediateDirectories: true)
-            let dataDirs = try fm.contentsOfDirectory(atPath: self.dataPath.path)
-            for dataDir in dataDirs {
-                let dataDirUrl = self.dataPath.appendingPathComponent(dataDir)
-                if !dataDirUrl.hasDirectoryPath {
-                    continue
-                }
-                tempAppDataFolderNames.append(dataDir)
-            }
-            
-            // load tweak folders
-            try fm.createDirectory(at: self.tweakPath, withIntermediateDirectories: true)
-            let tweakDirs = try fm.contentsOfDirectory(atPath: self.tweakPath.path)
-            for tweakDir in tweakDirs {
-                let tweakDirUrl = self.tweakPath.appendingPathComponent(tweakDir)
-                if !tweakDirUrl.hasDirectoryPath {
-                    continue
-                }
-                tempTweakFolderNames.append(tweakDir)
-            }
-        } catch {
-            NSLog("[LC] error:\(error)")
-        }
-        _apps = State(initialValue: tempApps)
-        _appDataFolderNames = State(initialValue: tempAppDataFolderNames)
-        _tweakFolderNames = State(initialValue: tempTweakFolderNames)
+        _apps = apps
+        _appDataFolderNames = appDataFolderNames
+        _tweakFolderNames = tweakFolderNames
     }
     
     var body: some View {
@@ -107,7 +57,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                     Section {
                         LazyVStack {
                             ForEach(apps, id: \.self) { app in
-                                LCAppBanner(appInfo: app, delegate: self, appDataFolders: appDataFolderNames, tweakFolders: tweakFolderNames)
+                                LCAppBanner(appInfo: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
                             }
                             .transition(.scale)
                         }
@@ -164,26 +114,26 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Open Link", systemImage: "link", action: {
-                        onOpenWebViewTapped()
+                        Task { await onOpenWebViewTapped() }
                     })
                 }
             }
 
             
         }
-        
+        .navigationViewStyle(StackNavigationViewStyle())
         .alert(isPresented: $errorShow){
             Alert(title: Text("Error"), message: Text(errorInfo))
         }
         .fileImporter(isPresented: $choosingIPA, allowedContentTypes: [UTType(filenameExtension: "ipa")!]) { result in
-            startInstallApp(result)
+            Task { await startInstallApp(result) }
 
         }
         .alert("Installation", isPresented: $installReplaceComfirmVisible) {
             ForEach(installOptions, id: \.self) { installOption in
                 Button(role: installOption.isReplace ? .destructive : nil, action: {
                     self.installOptionChosen = installOption
-                    self.installOptionSemaphore.signal()
+                    self.installOptionContinuation?.resume()
                 }, label: {
                     Text(installOption.isReplace ? installOption.nameOfFolderToInstall : "Install as new")
                 })
@@ -191,7 +141,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
             }
             Button(role: .cancel, action: {
                 self.installOptionChosen = nil
-                self.installOptionSemaphore.signal()
+                self.installOptionContinuation?.resume()
             }, label: {
                 Text("Abort Installation")
             })
@@ -205,11 +155,11 @@ struct LCAppListView : View, LCAppBannerDelegate {
             placeholder: "scheme://",
             action: { newText in
                 self.webViewUrlInputContent = newText!
-                webViewUrlInputSemaphore.signal()
+                webViewUrlInputContinuation?.resume()
             },
             actionCancel: {_ in
                 self.webViewUrlInputContent = ""
-                webViewUrlInputSemaphore.signal()
+                webViewUrlInputContinuation?.resume()
             }
         )
         .fullScreenCover(isPresented: $webViewOpened) {
@@ -218,16 +168,17 @@ struct LCAppListView : View, LCAppBannerDelegate {
 
     }
     
-    func onOpenWebViewTapped() {
-        DispatchQueue.global().async {
+    func onOpenWebViewTapped() async {
+        await withCheckedContinuation { c in
             webViewUrlInputOpened = true
-            webViewUrlInputSemaphore.wait()
+            webViewUrlInputContinuation = c
+        }
             if webViewUrlInputContent == "" {
                 return
             }
             openWebView(urlString: webViewUrlInputContent)
             webViewUrlInputContent = ""
-        }
+        
     }
     
     func checkIfAppDelegateNeedOpenWebPage() {
@@ -290,23 +241,20 @@ struct LCAppListView : View, LCAppBannerDelegate {
 
 
     
-    func startInstallApp(_ result:Result<URL, any Error>) {
-        DispatchQueue.global().async {
-            do {
-                let fileUrl = try result.get()
-                self.installprogressVisible = true
-                try installIpaFile(fileUrl)
-            } catch {
-                errorInfo = error.localizedDescription
-                errorShow = true
-                self.installprogressVisible = false
-            }
+    func startInstallApp(_ result:Result<URL, any Error>) async {
+        do {
+            let fileUrl = try result.get()
+            self.installprogressVisible = true
+            try await installIpaFile(fileUrl)
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+            self.installprogressVisible = false
         }
-
     }
     
     
-    func installIpaFile(_ url:URL) throws {
+    func installIpaFile(_ url:URL) async throws {
         if(!url.startAccessingSecurityScopedResource()) {
             throw "Failed to access IPA";
         }
@@ -337,7 +285,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
         }
 
         var appRelativePath = "\(newAppInfo.bundleIdentifier()!).app"
-        var outputFolder = self.bundlePath.appendingPathComponent(appRelativePath)
+        var outputFolder = LCPath.bundlePath.appendingPathComponent(appRelativePath)
         var appToReplace : LCAppInfo? = nil
         // Folder exist! show alert for user to choose which bundle to replace
         let sameBundleIdApp = self.apps.filter { app in
@@ -351,8 +299,12 @@ struct LCAppListView : View, LCAppBannerDelegate {
             for app in sameBundleIdApp {
                 self.installOptions.append(AppReplaceOption(isReplace: true, nameOfFolderToInstall: app.relativeBundlePath, appToReplace: app))
             }
-            self.installReplaceComfirmVisible = true
-            self.installOptionSemaphore.wait()
+
+            await withCheckedContinuation { c in
+                self.installOptionContinuation = c
+                self.installReplaceComfirmVisible = true
+            }
+            
             
             // user cancelled
             guard let installOptionChosen = self.installOptionChosen else {
@@ -361,7 +313,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 return
             }
             
-            outputFolder = self.bundlePath.appendingPathComponent(installOptionChosen.nameOfFolderToInstall)
+            outputFolder = LCPath.bundlePath.appendingPathComponent(installOptionChosen.nameOfFolderToInstall)
             appToReplace = installOptionChosen.appToReplace
             if installOptionChosen.isReplace {
                 try fm.removeItem(at: outputFolder)
@@ -382,16 +334,16 @@ struct LCAppListView : View, LCAppBannerDelegate {
         }
         if patchResult == "SignNeeded" {
             // sign it
-            let signSemaphore = DispatchSemaphore(value: 0)
             var error : Error? = nil
             var success = false
-            let signProgress = LCUtils.signAppBundle(outputFolder) { success1, error1 in
-                error = error1
-                success = success1
-                signSemaphore.signal()
+            await withCheckedContinuation { c in
+                let signProgress = LCUtils.signAppBundle(outputFolder) { success1, error1 in
+                    error = error1
+                    success = success1
+                    c.resume()
+                }
+                installProgress.addChild(signProgress!, withPendingUnitCount: 20)
             }
-            installProgress.addChild(signProgress!, withPendingUnitCount: 20)
-            signSemaphore.wait()
             
             if let error = error {
                 finalNewApp?.signCleanUp(withSuccessStatus: false)
@@ -413,17 +365,10 @@ struct LCAppListView : View, LCAppBannerDelegate {
     }
     
     func removeApp(app: LCAppInfo) {
-        self.apps.removeAll { now in
-            return app == now
+        DispatchQueue.main.async {
+            self.apps.removeAll { now in
+                return app == now
+            }
         }
     }
-    
-    func getDocPath() -> URL {
-        return self.docPath
-    }
-    
-}
-
-#Preview {
-    LCAppListView()
 }

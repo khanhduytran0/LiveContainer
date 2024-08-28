@@ -11,14 +11,13 @@ import UniformTypeIdentifiers
 
 protocol LCAppBannerDelegate {
     func removeApp(app: LCAppInfo)
-    func getDocPath() -> URL
 }
 
 struct LCAppBanner : View {
     @State var appInfo: LCAppInfo
     var delegate: LCAppBannerDelegate
-    @State var appDataFolders: [String]
-    @State var tweakFolders: [String]
+    @Binding var appDataFolders: [String]
+    @Binding var tweakFolders: [String]
     
     @State private var uiDataFolder : String?
     @State private var uiTweakFolder : String?
@@ -30,12 +29,12 @@ struct LCAppBanner : View {
     
     @State private var confirmAppRemoval = false
     @State private var confirmAppFolderRemoval = false
-    @State private var appRemovalSemaphore = DispatchSemaphore(value: 0)
-    @State private var appFolderRemovalSemaphore = DispatchSemaphore(value: 0)
+    @State private var appRemovalContinuation : CheckedContinuation<Void, Never>? = nil
+    @State private var appFolderRemovalContinuation : CheckedContinuation<Void, Never>? = nil
     
     @State private var renameFolderShow = false
     @State private var renameFolderContent = ""
-    @State private var renameFolerSemaphore = DispatchSemaphore(value: 0)
+    @State private var renameFolerContinuation : CheckedContinuation<Void, Never>? = nil
     
     @State private var errorShow = false
     @State private var errorInfo = ""
@@ -46,10 +45,10 @@ struct LCAppBanner : View {
     
     @State private var observer : NSKeyValueObservation?
     
-    init(appInfo: LCAppInfo, delegate: LCAppBannerDelegate, appDataFolders: [String], tweakFolders: [String]) {
+    init(appInfo: LCAppInfo, delegate: LCAppBannerDelegate, appDataFolders: Binding<[String]>, tweakFolders: Binding<[String]>) {
         _appInfo = State(initialValue: appInfo)
-        _appDataFolders = State(initialValue: appDataFolders)
-        _tweakFolders = State(initialValue: tweakFolders)
+        _appDataFolders = appDataFolders
+        _tweakFolders = tweakFolders
         self.delegate = delegate
         _uiDataFolder = State(initialValue: appInfo.getDataUUIDNoAssign())
         _uiTweakFolder = State(initialValue: appInfo.tweakFolder())
@@ -75,7 +74,7 @@ struct LCAppBanner : View {
             }
             Spacer()
             Button {
-                runApp()
+                Task{ await runApp() }
             } label: {
                 if !isSingingInProgress {
                     Text("Run").bold().foregroundColor(.white)
@@ -115,7 +114,7 @@ struct LCAppBanner : View {
         .contextMenu{
             Text(appInfo.relativeBundlePath)
             Button(role: .destructive) {
-                uninstall()
+                 Task{ await uninstall() }
             } label: {
                 Label("Uninstall", systemImage: "trash")
             }
@@ -126,13 +125,13 @@ struct LCAppBanner : View {
             }
             Menu(content: {
                 Button {
-                    createFolder()
+                    Task{ await createFolder() }
                 } label: {
                     Label("New data folder", systemImage: "plus")
                 }
                 if uiDataFolder != nil {
                     Button {
-                        renameDataFolder()
+                        Task{ await renameDataFolder() }
                     } label: {
                         Label("Rename data folder", systemImage: "pencil")
                     }
@@ -174,13 +173,13 @@ struct LCAppBanner : View {
         .alert("Confirm Uninstallation", isPresented: $confirmAppRemovalShow) {
             Button(role: .destructive) {
                 self.confirmAppRemoval = true
-                self.appRemovalSemaphore.signal()
+                self.appRemovalContinuation?.resume()
             } label: {
                 Text("Uninstall")
             }
             Button("Cancel", role: .cancel) {
                 self.confirmAppRemoval = false
-                self.appRemovalSemaphore.signal()
+                self.appRemovalContinuation?.resume()
             }
         } message: {
             Text("Are you sure you want to uninstall \(appInfo.displayName()!)?")
@@ -188,13 +187,13 @@ struct LCAppBanner : View {
         .alert("Delete Data Folder", isPresented: $confirmAppFolderRemovalShow) {
             Button(role: .destructive) {
                 self.confirmAppFolderRemoval = true
-                self.appFolderRemovalSemaphore.signal()
+                self.appFolderRemovalContinuation?.resume()
             } label: {
                 Text("Delete")
             }
             Button("Cancel", role: .cancel) {
                 self.confirmAppFolderRemoval = false
-                self.appFolderRemovalSemaphore.signal()
+                self.appFolderRemovalContinuation?.resume()
             }
         } message: {
             Text("Do you also want to delete data folder of \(appInfo.displayName()!)? You can keep it for future use.")
@@ -206,11 +205,11 @@ struct LCAppBanner : View {
             placeholder: "",
             action: { newText in
                 self.renameFolderContent = newText!
-                renameFolerSemaphore.signal()
+                renameFolerContinuation?.resume()
             },
             actionCancel: {_ in 
                 self.renameFolderContent = ""
-                renameFolerSemaphore.signal()
+                renameFolerContinuation?.resume()
             }
         )
         .alert("Error", isPresented: $errorShow) {
@@ -223,47 +222,45 @@ struct LCAppBanner : View {
         
     }
     
-    func runApp() {
+    func runApp() async {
         isAppRunning = true
-        DispatchQueue.global().async {
-            let patchInfo = appInfo.patchExec()
-            if patchInfo == "SignNeeded" {
-                let bundlePath = URL(fileURLWithPath: appInfo.bundlePath())
-                let signProgress = LCUtils.signAppBundle(bundlePath) { success, error in
-                    self.appInfo.signCleanUp(withSuccessStatus: success)
+
+        let patchInfo = appInfo.patchExec()
+        if patchInfo == "SignNeeded" {
+            let bundlePath = URL(fileURLWithPath: appInfo.bundlePath())
+            let signProgress = LCUtils.signAppBundle(bundlePath) { success, error in
+                self.appInfo.signCleanUp(withSuccessStatus: success)
+                self.isSingingInProgress = false
+                if success {
                     self.isSingingInProgress = false
-                    if success {
-                        self.isSingingInProgress = false
-                        UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
-                        LCUtils.launchToGuestApp()
-                    } else {
-                        errorInfo = error != nil ? error!.localizedDescription : "Signing failed with unknown error"
-                        errorShow = true
-                    }
-                }
-                guard let signProgress = signProgress else {
-                    errorInfo = "Failed to initiate signing!"
+                    UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
+                    LCUtils.launchToGuestApp()
+                } else {
+                    errorInfo = error != nil ? error!.localizedDescription : "Signing failed with unknown error"
                     errorShow = true
-                    self.isAppRunning = false
-                    return
                 }
-                self.isSingingInProgress = true
-                self.observer = signProgress.observe(\.fractionCompleted) { p, v in
-                    self.signProgress = signProgress.fractionCompleted
-                }
-            } else if patchInfo != nil {
-                errorInfo = patchInfo!
+            }
+            guard let signProgress = signProgress else {
+                errorInfo = "Failed to initiate signing!"
                 errorShow = true
                 self.isAppRunning = false
                 return
-            } else {
-                UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
-                LCUtils.launchToGuestApp()
             }
+            self.isSingingInProgress = true
+            self.observer = signProgress.observe(\.fractionCompleted) { p, v in
+                self.signProgress = signProgress.fractionCompleted
+            }
+        } else if patchInfo != nil {
+            errorInfo = patchInfo!
+            errorShow = true
             self.isAppRunning = false
+            return
+        } else {
+            UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
+            LCUtils.launchToGuestApp()
         }
+        self.isAppRunning = false
         
-
     }
     
     func setDataFolder(folderName: String?) {
@@ -272,60 +269,65 @@ struct LCAppBanner : View {
         self.uiPickerDataFolder = folderName
     }
     
-    func createFolder() {
-        DispatchQueue.global().async {
-            self.renameFolderContent = NSUUID().uuidString
+    func createFolder() async {
+        
+        self.renameFolderContent = NSUUID().uuidString
+        
+        await withCheckedContinuation { c in
+            self.renameFolerContinuation = c
             self.renameFolderShow = true
-            self.renameFolerSemaphore.wait()
-            if self.renameFolderContent == "" {
-                return
-            }
-            let fm = FileManager()
-            let dest = self.delegate.getDocPath().appendingPathComponent("Data/Application").appendingPathComponent(self.renameFolderContent)
-            do {
-                try fm.createDirectory(at: dest, withIntermediateDirectories: false)
-            } catch {
-                errorShow = true
-                errorInfo = error.localizedDescription
-                return
-            }
-            
-            self.appDataFolders.append(self.renameFolderContent)
-            self.setDataFolder(folderName: self.renameFolderContent)
         }
+        
+        if self.renameFolderContent == "" {
+            return
+        }
+        let fm = FileManager()
+        let dest = LCPath.dataPath.appendingPathComponent(self.renameFolderContent)
+        do {
+            try fm.createDirectory(at: dest, withIntermediateDirectories: false)
+        } catch {
+            errorShow = true
+            errorInfo = error.localizedDescription
+            return
+        }
+        
+        self.appDataFolders.append(self.renameFolderContent)
+        self.setDataFolder(folderName: self.renameFolderContent)
+        
     }
     
-    func renameDataFolder() {
+    func renameDataFolder() async {
         if self.appInfo.getDataUUIDNoAssign() == nil {
             return
         }
         
-        DispatchQueue.global().async {
-            self.renameFolderContent = self.uiDataFolder == nil ? "" : self.uiDataFolder!
+        self.renameFolderContent = self.uiDataFolder == nil ? "" : self.uiDataFolder!
+        await withCheckedContinuation { c in
+            self.renameFolerContinuation = c
             self.renameFolderShow = true
-            self.renameFolerSemaphore.wait()
-            if self.renameFolderContent == "" {
-                return
-            }
-            let fm = FileManager()
-            let orig = self.delegate.getDocPath().appendingPathComponent("Data/Application").appendingPathComponent(appInfo.getDataUUIDNoAssign())
-            let dest = self.delegate.getDocPath().appendingPathComponent("Data/Application").appendingPathComponent(self.renameFolderContent)
-            do {
-                try fm.moveItem(at: orig, to: dest)
-            } catch {
-                errorShow = true
-                errorInfo = error.localizedDescription
-                return
-            }
-
-            let i = self.appDataFolders.firstIndex(of: self.appInfo.getDataUUIDNoAssign())
-            guard let i = i else {
-                return
-            }
-            
-            self.appDataFolders[i] = self.renameFolderContent
-            self.setDataFolder(folderName: self.renameFolderContent)
         }
+        if self.renameFolderContent == "" {
+            return
+        }
+        let fm = FileManager()
+        let orig = LCPath.dataPath.appendingPathComponent(appInfo.getDataUUIDNoAssign())
+        let dest = LCPath.dataPath.appendingPathComponent(self.renameFolderContent)
+        do {
+            try fm.moveItem(at: orig, to: dest)
+        } catch {
+            errorShow = true
+            errorInfo = error.localizedDescription
+            return
+        }
+        
+        let i = self.appDataFolders.firstIndex(of: self.appInfo.getDataUUIDNoAssign())
+        guard let i = i else {
+            return
+        }
+        
+        self.appDataFolders[i] = self.renameFolderContent
+        self.setDataFolder(folderName: self.renameFolderContent)
+        
     }
     
     func setTweakFolder(folderName: String?) {
@@ -334,39 +336,51 @@ struct LCAppBanner : View {
         self.uiPickerTweakFolder = folderName
     }
     
-    func uninstall() {
-        // Add delay because of https://stackoverflow.com/questions/60358948/swiftui-delete-row-in-list-with-context-menu-ui-glitch
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) {
-            do {
+    func uninstall() async {
+        do {
+            await withCheckedContinuation { c in
+                self.appRemovalContinuation = c
                 self.confirmAppRemovalShow = true;
-                self.appRemovalSemaphore.wait()
-                if !self.confirmAppRemoval {
-                    return
-                }
-                if self.appInfo.getDataUUIDNoAssign() != nil {
-                    self.confirmAppFolderRemovalShow = true;
-                    self.appFolderRemovalSemaphore.wait()
-                } else {
-                    self.confirmAppFolderRemoval = false;
-                }
-
-                
-                let fm = FileManager()
-                try fm.removeItem(atPath: self.appInfo.bundlePath()!)
-                self.delegate.removeApp(app: self.appInfo)
-                if self.confirmAppFolderRemoval {
-                    let fm = FileManager()
-                    let dataFolderPath = self.delegate.getDocPath().appendingPathComponent("Data/Application").appendingPathComponent(appInfo.dataUUID()!)
-                    try fm.removeItem(at: dataFolderPath)
-                }
-                
-            } catch {
-                errorShow = true
-                errorInfo = error.localizedDescription
-
             }
+            
+            if !self.confirmAppRemoval {
+                return
+            }
+            if self.appInfo.getDataUUIDNoAssign() != nil {
+                self.confirmAppFolderRemovalShow = true;
+                await withCheckedContinuation { c in
+                    self.appFolderRemovalContinuation = c
+                    self.confirmAppFolderRemovalShow = true;
+                }
+            } else {
+                self.confirmAppFolderRemoval = false;
+            }
+            
+            
+            let fm = FileManager()
+            try fm.removeItem(atPath: self.appInfo.bundlePath()!)
+            self.delegate.removeApp(app: self.appInfo)
+            if self.confirmAppFolderRemoval {
+                let fm = FileManager()
+                let dataUUID = appInfo.dataUUID()!
+                let dataFolderPath = LCPath.dataPath.appendingPathComponent(dataUUID)
+//                try fm.removeItem(at: dataFolderPath)
+                
+                DispatchQueue.main.async {
+                    self.appDataFolders.removeAll(where: { f in
+                        NSLog("[NMSL] \(f) vs \(dataUUID)")
+                        return f == dataUUID
+                    })
+                }
+            }
+            
+        } catch {
+            errorShow = true
+            errorInfo = error.localizedDescription
+            
         }
+    }
         
 
-    }
+    
 }

@@ -7,6 +7,16 @@
 
 import SwiftUI
 
+struct LCPath {
+    public static let docPath = {
+        let fm = FileManager()
+        return fm.urls(for: .documentDirectory, in: .userDomainMask).last!
+    }()
+    public static let bundlePath = docPath.appendingPathComponent("Applications")
+    public static let dataPath = docPath.appendingPathComponent("Data/Application")
+    public static let tweakPath = docPath.appendingPathComponent("Tweaks")
+}
+
 extension String: LocalizedError {
     public var errorDescription: String? { return self }
 }

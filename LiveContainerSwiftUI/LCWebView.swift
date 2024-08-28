@@ -24,7 +24,7 @@ struct LCWebView: View {
     @State private var runAppAlertMsg = ""
     @State private var doRunApp = false
     @State private var renameFolderContent = ""
-    @State private var doRunAppSemaphore = DispatchSemaphore(value: 0)
+    @State private var doRunAppContinuation : CheckedContinuation<Void, Never>? = nil
     
     @State private var errorShow = false
     @State private var errorInfo = ""
@@ -101,11 +101,11 @@ struct LCWebView: View {
         .alert("Run App", isPresented: $runAppAlertShow) {
             Button("Run", action: {
                 self.doRunApp = true
-                self.doRunAppSemaphore.signal()
+                self.doRunAppContinuation?.resume()
             })
             Button("Cancel", role: .cancel, action: {
                 self.doRunApp = false
-                self.doRunAppSemaphore.signal()
+                self.doRunAppContinuation?.resume()
             })
         } message: {
             Text(runAppAlertMsg)
@@ -126,68 +126,71 @@ struct LCWebView: View {
         webView.setObserver(observer: observer)
     }
     
-    public func onURLSchemeDetected(url: URL) {
-        DispatchQueue.global().async {
-            var appToLaunch : LCAppInfo? = nil
-        appLoop: for app in apps {
-                if let schemes = app.urlSchemes() {
-                    for scheme in schemes {
-                        if let scheme = scheme as? String, scheme == url.scheme {
-                            appToLaunch = app
-                            break appLoop
-                        }
-                    }
+    public func onURLSchemeDetected(url: URL) async {
+        var appToLaunch : LCAppInfo? = nil
+    appLoop: for app in apps {
+        if let schemes = app.urlSchemes() {
+            for scheme in schemes {
+                if let scheme = scheme as? String, scheme == url.scheme {
+                    appToLaunch = app
+                    break appLoop
                 }
             }
-            
-            guard let appToLaunch = appToLaunch else {
-                errorInfo = "Scheme \"\(url.scheme!)\" cannot be opened by any app installed in LiveContainer."
-                errorShow = true
-                return
-            }
-            
-            runAppAlertMsg = "This web page is trying to launch \"\(appToLaunch.displayName()!)\", continue?"
-            runAppAlertShow = true
-            self.doRunAppSemaphore.wait()
-            if !doRunApp {
-                return
-            }
-            
-            UserDefaults.standard.setValue(appToLaunch.relativeBundlePath!, forKey: "selected")
-            UserDefaults.standard.setValue(url.absoluteString, forKey: "launchAppUrlScheme")
-            LCUtils.launchToGuestApp()
         }
     }
-    
-    public func onUniversalLinkDetected(url: URL, bundleIDs: [String]) {
-        DispatchQueue.global().async {
-            var bundleIDToAppDict: [String: LCAppInfo] = [:]
-            for app in apps {
-                bundleIDToAppDict[app.bundleIdentifier()!] = app
-            }
-            
-            var appToLaunch: LCAppInfo? = nil
-            for bundleID in bundleIDs {
-                if let app = bundleIDToAppDict[bundleID] {
-                    appToLaunch = app
-                    break
-                }
-            }
-            guard let appToLaunch = appToLaunch else {
-                return
-            }
-            
-            runAppAlertMsg = "This web page can be opened in \"\(appToLaunch.displayName()!)\" according to its Associated Domains, continue?"
-            runAppAlertShow = true
-            self.doRunAppSemaphore.wait()
-            if !doRunApp {
-                return
-            }
-            UserDefaults.standard.setValue(appToLaunch.relativeBundlePath!, forKey: "selected")
-            UserDefaults.standard.setValue(url.absoluteString, forKey: "launchAppUrlScheme")
-            LCUtils.launchToGuestApp()
+        
+        guard let appToLaunch = appToLaunch else {
+            errorInfo = "Scheme \"\(url.scheme!)\" cannot be opened by any app installed in LiveContainer."
+            errorShow = true
+            return
         }
-
+        
+        runAppAlertMsg = "This web page is trying to launch \"\(appToLaunch.displayName()!)\", continue?"
+        
+        await withCheckedContinuation { c in
+            self.doRunAppContinuation = c
+            runAppAlertShow = true
+        }
+        
+        if !doRunApp {
+            return
+        }
+        
+        UserDefaults.standard.setValue(appToLaunch.relativeBundlePath!, forKey: "selected")
+        UserDefaults.standard.setValue(url.absoluteString, forKey: "launchAppUrlScheme")
+        LCUtils.launchToGuestApp()
+        
+    }
+    
+    public func onUniversalLinkDetected(url: URL, bundleIDs: [String]) async {
+        var bundleIDToAppDict: [String: LCAppInfo] = [:]
+        for app in apps {
+            bundleIDToAppDict[app.bundleIdentifier()!] = app
+        }
+        
+        var appToLaunch: LCAppInfo? = nil
+        for bundleID in bundleIDs {
+            if let app = bundleIDToAppDict[bundleID] {
+                appToLaunch = app
+                break
+            }
+        }
+        guard let appToLaunch = appToLaunch else {
+            return
+        }
+        
+        runAppAlertMsg = "This web page can be opened in \"\(appToLaunch.displayName()!)\" according to its Associated Domains, continue?"
+        runAppAlertShow = true
+        await withCheckedContinuation { c in
+            self.doRunAppContinuation = c
+            runAppAlertShow = true
+        }
+        if !doRunApp {
+            return
+        }
+        UserDefaults.standard.setValue(appToLaunch.relativeBundlePath!, forKey: "selected")
+        UserDefaults.standard.setValue(url.absoluteString, forKey: "launchAppUrlScheme")
+        LCUtils.launchToGuestApp()
     }
 }
 
@@ -213,11 +216,11 @@ class WebViewLoadObserver : NSObject {
 
 class WebViewDelegate : NSObject,WKNavigationDelegate {
     private var pageTitle: Binding<String>
-    private var urlSchemeHandler: (URL) -> Void
-    private var universalLinkHandler: (URL , [String]) -> Void // url, [String] of all apps that can open this web page
+    private var urlSchemeHandler: (URL) async -> Void
+    private var universalLinkHandler: (URL , [String]) async -> Void // url, [String] of all apps that can open this web page
     var domainBundleIdDict : [String:[String]] = [:]
     
-    init(pageTitle: Binding<String>, urlSchemeHandler: @escaping (URL) -> Void, universalLinkHandler: @escaping (URL , [String]) -> Void) {
+    init(pageTitle: Binding<String>, urlSchemeHandler: @escaping (URL) async -> Void, universalLinkHandler: @escaping (URL , [String]) async -> Void) {
         self.pageTitle = pageTitle
         self.urlSchemeHandler = urlSchemeHandler
         self.universalLinkHandler = universalLinkHandler
@@ -232,19 +235,18 @@ class WebViewDelegate : NSObject,WKNavigationDelegate {
             return
         }
         if(scheme == "https") {
-            DispatchQueue.global().async {
-                self.loadDomainAssociations(url: url)
+            Task {
+                await self.loadDomainAssociations(url: url)
                 if let host = url.host, let appIDs = self.domainBundleIdDict[host] {
-                    self.universalLinkHandler(url, appIDs)
+                    Task{ await self.universalLinkHandler(url, appIDs) }
                 }
-
             }
             return
         }
         if(scheme == "http" || scheme == "about" || scheme == "itms-appss") {
             return;
         }
-        urlSchemeHandler(url)
+        Task{ await urlSchemeHandler(url) }
 
     }
     
@@ -253,7 +255,7 @@ class WebViewDelegate : NSObject,WKNavigationDelegate {
     }
     
     
-    func loadDomainAssociations(url: URL) {
+    func loadDomainAssociations(url: URL) async {
         if url.scheme != "https" || url.host == nil {
             return
         }
@@ -270,32 +272,39 @@ class WebViewDelegate : NSObject,WKNavigationDelegate {
             URL(string: "https://\(host)/apple-app-site-association")!,
             URL(string: "https://\(host)/.well-known/apple-app-site-association")!
             ]
-        for siteAssociationURL in appleAppSiteAssociationURLs {
-            let task = URLSession.shared.dataTask(with: siteAssociationURL) { data, response, error in
-                do {
-                    guard let data = data else {
-                        loadSemaphore.signal()
-                        return
-                    }
-                    let siteAssociationObj = try JSONDecoder().decode(SiteAssociation.self, from: data)
-                    guard let detailItems = siteAssociationObj.applinks?.details else {
-                        loadSemaphore.signal()
-                        return
-                    }
-                    self.domainBundleIdDict[host] = []
-                    for item in detailItems {
-                        self.domainBundleIdDict[host]!.append(contentsOf: item.getBundleIds())
-                    }
-                } catch {
+
+        let tasks : [String] = []
+        await withTaskGroup(of: Void.self) { group in
+            for siteAssociationURL in appleAppSiteAssociationURLs {
+                group.addTask {
+                    await withCheckedContinuation { c in
+                        let task = URLSession.shared.dataTask(with: siteAssociationURL) { data, response, error in
+                            do {
+                                guard let data = data else {
+                                    c.resume()
+                                    return
+                                }
+                                let siteAssociationObj = try JSONDecoder().decode(SiteAssociation.self, from: data)
+                                guard let detailItems = siteAssociationObj.applinks?.details else {
+                                    c.resume()
+                                    return
+                                }
+                                self.domainBundleIdDict[host] = []
+                                for item in detailItems {
+                                    self.domainBundleIdDict[host]!.append(contentsOf: item.getBundleIds())
+                                }
+                            } catch {
+                                
+                            }
+                            c.resume()
+                        }
                         
+                        task.resume()
+                    }
                 }
-                loadSemaphore.signal()
             }
-            task.resume()
         }
-        for siteAssociationURL in appleAppSiteAssociationURLs {
-            loadSemaphore.wait()
-        }
+
     }
 }
 

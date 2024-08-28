@@ -12,18 +12,29 @@ struct LCSettingsView: View {
     @State var errorShow = false
     @State var errorInfo = ""
     
+    @Binding var apps: [LCAppInfo]
+    @Binding var appDataFolderNames: [String]
+    
+    @State private var confirmAppFolderRemovalShow = false
+    @State private var confirmAppFolderRemoval = false
+    @State private var appFolderRemovalContinuation : CheckedContinuation<Void, Never>? = nil
+    @State private var folderRemoveCount = 0
+    
     @State var isJitLessEnabled = false
     @State var isAltCertIgnored = false
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
     @State var injectToLCItelf = false
     
-    init() {
+    init(apps: Binding<[LCAppInfo]>, appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
         _isAltCertIgnored = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreALTCertificate"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
         _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
+        
+        _apps = apps
+        _appDataFolderNames = appDataFolderNames
     }
     
     var body: some View {
@@ -80,6 +91,14 @@ struct LCSettingsView: View {
                     Text("Place your tweaks into the global “Tweaks” folder and LiveContainer will pick them up.")
                 }
                 
+                Section {
+                    Button(role:.destructive) {
+                        Task { await cleanUpUnusedFolders() }
+                    } label: {
+                        Text("Clean Unused Data Folders")
+                    }
+                }
+                
                 VStack{
                     Text(LCUtils.getVersionInfo())
                         .foregroundStyle(.gray)
@@ -91,6 +110,28 @@ struct LCSettingsView: View {
             .navigationBarTitle("Settings")
             .alert(isPresented: $errorShow){
                 Alert(title: Text("Error"), message: Text(errorInfo))
+            }
+            .alert("Data Folder Clean Up", isPresented: $confirmAppFolderRemovalShow) {
+                if folderRemoveCount > 0 {
+                    Button(role: .destructive) {
+                        self.confirmAppFolderRemoval = true
+                        self.appFolderRemovalContinuation?.resume()
+                    } label: {
+                        Text("Delete")
+                    }
+                }
+
+                Button("Cancel", role: .cancel) {
+                    self.confirmAppFolderRemoval = false
+                    self.appFolderRemovalContinuation?.resume()
+                }
+            } message: {
+                if folderRemoveCount > 0 {
+                    Text("Do you want to delete \(folderRemoveCount) unused data folder(s)?")
+                } else {
+                    Text("No data folder to remove. All data folders are in use.")
+                }
+
             }
             
             .onChange(of: isAltCertIgnored) { newValue in
@@ -106,6 +147,7 @@ struct LCSettingsView: View {
                 saveItem(key: "LCLoadTweaksToSelf", val: newValue)
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
         
     }
     
@@ -128,6 +170,47 @@ struct LCSettingsView: View {
             errorShow = true
         }
     
+    }
+    
+    func cleanUpUnusedFolders() async {
+        
+        var folderNameToAppDict : [String:LCAppInfo] = [:]
+        for app in apps {
+            guard let folderName = app.getDataUUIDNoAssign() else {
+                continue
+            }
+            folderNameToAppDict[folderName] = app
+        }
+        
+        var foldersToDelete : [String]  = []
+        for appDataFolderName in appDataFolderNames {
+            if folderNameToAppDict[appDataFolderName] == nil {
+                foldersToDelete.append(appDataFolderName)
+            }
+        }
+        folderRemoveCount = foldersToDelete.count
+        await withCheckedContinuation { c in
+            self.appFolderRemovalContinuation = c
+            DispatchQueue.main.async {
+                confirmAppFolderRemovalShow = true
+            }
+        }
+        if !confirmAppFolderRemoval {
+            return
+        }
+        do {
+            let fm = FileManager()
+            for folder in foldersToDelete {
+                try fm.removeItem(at: LCPath.dataPath.appendingPathComponent(folder))
+                self.appDataFolderNames.removeAll(where: { s in
+                    return s == folder
+                })
+            }
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
+        
     }
 
 }
