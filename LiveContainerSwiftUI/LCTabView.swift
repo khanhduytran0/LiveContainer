@@ -70,6 +70,11 @@ struct LCTabView: View {
                 .tabItem {
                     Label("Apps", systemImage: "square.stack.3d.up.fill")
                 }
+            LCTweaksView(tweakFolders: $tweakFolderNames)
+                .tabItem{
+                    Label("Tweaks", systemImage: "wrench.and.screwdriver")
+                }
+            
             LCSettingsView(apps: $apps, appDataFolderNames: $appDataFolderNames)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
@@ -90,10 +95,4 @@ struct LCTabView: View {
         errorInfo = errorStr
         errorShow = true
     }
-}
-
-
-
-#Preview {
-    LCTabView()
 }

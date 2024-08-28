@@ -361,14 +361,12 @@ struct LCAppBanner : View {
             try fm.removeItem(atPath: self.appInfo.bundlePath()!)
             self.delegate.removeApp(app: self.appInfo)
             if self.confirmAppFolderRemoval {
-                let fm = FileManager()
                 let dataUUID = appInfo.dataUUID()!
                 let dataFolderPath = LCPath.dataPath.appendingPathComponent(dataUUID)
-//                try fm.removeItem(at: dataFolderPath)
+                try fm.removeItem(at: dataFolderPath)
                 
                 DispatchQueue.main.async {
                     self.appDataFolders.removeAll(where: { f in
-                        NSLog("[NMSL] \(f) vs \(dataUUID)")
                         return f == dataUUID
                     })
                 }

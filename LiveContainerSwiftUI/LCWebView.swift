@@ -266,14 +266,12 @@ class WebViewDelegate : NSObject,WKNavigationDelegate {
             return
         }
         
-        let loadSemaphore = DispatchSemaphore(value: 0)
         // download and read apple-app-site-association
         let appleAppSiteAssociationURLs = [
             URL(string: "https://\(host)/apple-app-site-association")!,
             URL(string: "https://\(host)/.well-known/apple-app-site-association")!
             ]
 
-        let tasks : [String] = []
         await withTaskGroup(of: Void.self) { group in
             for siteAssociationURL in appleAppSiteAssociationURLs {
                 group.addTask {
