@@ -4,6 +4,7 @@
 
 #import "AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
+#import "LCVersionInfo.h"
 
 @implementation LCUtils
 
@@ -282,4 +283,8 @@
 
     return tmpIPAPath;
 }
++ (NSString *)getVersionInfo {
+    return [NSClassFromString(@"LCVersionInfo") getVersionStr];
+}
+
 @end

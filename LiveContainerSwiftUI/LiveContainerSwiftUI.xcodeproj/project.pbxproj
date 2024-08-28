@@ -60,8 +60,6 @@
 				173564C72C76FE3500C6C918 /* LCAppBanner.swift */,
 				173564BC2C76FE3500C6C918 /* LCAppListView.swift */,
 				173564C12C76FE3500C6C918 /* LCSettingsView.swift */,
-				173564C22C76FE3500C6C918 /* LCSwiftBridge.h */,
-				173564C42C76FE3500C6C918 /* LCSwiftBridge.m */,
 				173564BD2C76FE3500C6C918 /* LCTabView.swift */,
 				173564C02C76FE3500C6C918 /* LCTweaksView.swift */,
 				173564C52C76FE3500C6C918 /* LiveContainerSwiftUIApp.swift */,
@@ -70,6 +68,8 @@
 				178B4C3F2C7766A300DD1F74 /* LiveContainerSwiftUI-Bridging-Header.h */,
 				173564BF2C76FE3500C6C918 /* Preview Content */,
 				178B4C3D2C77654400DD1F74 /* Shared.swift */,
+				173564C22C76FE3500C6C918 /* LCSwiftBridge.h */,
+				173564C42C76FE3500C6C918 /* LCSwiftBridge.m */,
 			);
 			name = LiveContainerSwiftUI;
 			sourceTree = "<group>";

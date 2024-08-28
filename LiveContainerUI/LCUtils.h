@@ -31,5 +31,5 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
 + (BOOL)isAppGroupAltStoreLike;
 + (NSString *)appGroupPath;
 + (NSString *)storeInstallURLScheme;
-
++ (NSString *)getVersionInfo;
 @end

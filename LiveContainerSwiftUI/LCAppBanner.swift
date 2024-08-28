@@ -99,7 +99,7 @@ struct LCAppBanner : View {
                     Circle()
                         .fill(Color("FontColor"))
                         .frame(width: w * 2, height: w * 2)
-                        .offset(x: (signProgress - 2) * g.size.width, y: h/2-w)
+                        .offset(x: (signProgress - 2) * w, y: h/2-w)
                 }
 
             })
