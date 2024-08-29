@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct LCPath {
     public static let docPath = {
@@ -19,6 +20,13 @@ struct LCPath {
 
 extension String: LocalizedError {
     public var errorDescription: String? { return self }
+}
+
+extension UTType {
+    static let ipa = UTType(filenameExtension: "ipa")!
+    static let dylib = UTType(filenameExtension: "dylib")!
+    static let deb = UTType(filenameExtension: "deb")!
+    static let lcFramework = UTType(filenameExtension: "framework", conformingTo: .package)!
 }
 
 // https://stackoverflow.com/questions/56726663/how-to-add-a-textfield-to-alert-in-swiftui
@@ -121,4 +129,56 @@ struct AppLinks : Codable {
 
 struct SiteAssociation : Codable {
     var applinks: AppLinks?
+}
+
+extension LCUtils {
+    public static func signFilesInFolder(url: URL, onProgressCreated: (Progress) -> Void) async -> String? {
+        let fm = FileManager()
+        var ans : String? = nil
+        /* NSString *codesignPath = [path stringByAppendingPathComponent:@"_CodeSignature"];
+         NSString *provisionPath = [path stringByAppendingPathComponent:@"embedded.mobileprovision"];
+        NSString *tmpExecPath = [path stringByAppendingPathComponent:@"LiveContainer.tmp"];
+        NSString *tmpInfoPath = [path stringByAppendingPathComponent:@"Info.plist"];
+        [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
+        NSMutableDictionary *info = NSBundle.mainBundle.infoDictionary.mutableCopy;
+         */
+        let codesignPath = url.appendingPathComponent("_CodeSignature")
+        let provisionPath = url.appendingPathComponent("embedded.mobileprovision")
+        let tmpExecPath = url.appendingPathComponent("LiveContainer.tmp")
+        let tmpInfoPath = url.appendingPathComponent("Info.plist")
+        var info = Bundle.main.infoDictionary!;
+        info["CFBundleExecutable"] = "LiveContainer.tmp";
+        let nsInfo = info as NSDictionary
+        nsInfo.write(to: tmpInfoPath, atomically: true)
+        do {
+            try fm.copyItem(at: Bundle.main.executableURL!, to: tmpExecPath)
+        } catch {
+            return nil
+        }
+        
+        await withCheckedContinuation { c in
+            let progress = LCUtils.signAppBundle(url) { success, error in
+                do {
+                    if let error = error {
+                        ans = error.localizedDescription
+                    }
+                    try fm.removeItem(at: codesignPath)
+                    try fm.removeItem(at: provisionPath)
+                    try fm.removeItem(at: tmpExecPath)
+                    try fm.removeItem(at: tmpInfoPath)
+                } catch {
+                    ans = error.localizedDescription
+                }
+                c.resume()
+            }
+            guard let progress = progress else {
+                ans = "Failed to initiate bundle signing."
+                c.resume()
+                return
+            }
+            onProgressCreated(progress)
+        }
+        return ans
+
+    }
 }

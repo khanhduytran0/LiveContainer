@@ -125,9 +125,8 @@ struct LCAppListView : View, LCAppBannerDelegate {
         .alert(isPresented: $errorShow){
             Alert(title: Text("Error"), message: Text(errorInfo))
         }
-        .fileImporter(isPresented: $choosingIPA, allowedContentTypes: [UTType(filenameExtension: "ipa")!]) { result in
+        .fileImporter(isPresented: $choosingIPA, allowedContentTypes: [.ipa]) { result in
             Task { await startInstallApp(result) }
-
         }
         .alert("Installation", isPresented: $installReplaceComfirmVisible) {
             ForEach(installOptions, id: \.self) { installOption in
