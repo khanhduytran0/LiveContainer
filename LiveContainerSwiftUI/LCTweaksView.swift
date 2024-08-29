@@ -35,6 +35,8 @@ struct LCTweakFolderView : View {
     
     @State private var choosingTweak = false
     
+    @State private var isTweakSigning = false
+    
     init(baseUrl: URL, isRoot: Bool = false, tweakFolders: Binding<[String]>) {
         _baseUrl = State(initialValue: baseUrl)
         _tweakFolders = tweakFolders
@@ -121,37 +123,43 @@ struct LCTweakFolderView : View {
         .navigationTitle(baseUrl.lastPathComponent)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if LCUtils.certificatePassword() != nil {
+                if !isTweakSigning && LCUtils.certificatePassword() != nil {
                     Button {
-                        
+                        Task { await signAllTweaks() }
                     } label: {
                         Label("sign", systemImage: "signature")
                     }
                 }
+
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        if choosingTweak {
-                            choosingTweak = false
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                if !isTweakSigning {
+                    Menu {
+                        Button {
+                            if choosingTweak {
+                                choosingTweak = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                                    choosingTweak = true
+                                })
+                            } else {
                                 choosingTweak = true
-                            })
-                        } else {
-                            choosingTweak = true
+                            }
+                        } label: {
+                            Label("Import Tweak", systemImage: "square.and.arrow.down")
+                        }
+                        
+                        Button {
+                            Task { await createNewFolder() }
+                        } label: {
+                            Label("New folder", systemImage: "folder.badge.plus")
                         }
                     } label: {
-                        Label("Import Tweak", systemImage: "square.and.arrow.down")
+                        Label("add", systemImage: "plus")
                     }
-                    
-                    Button {
-                        Task { await createNewFolder() }
-                    } label: {
-                        Label("New folder", systemImage: "folder.badge.plus")
-                    }
-                } label: {
-                    Label("add", systemImage: "plus")
+                } else {
+                    ProgressView().progressViewStyle(.circular)
                 }
+
             }
         }
         .alert("Error", isPresented: $errorShow) {
@@ -293,6 +301,51 @@ struct LCTweakFolderView : View {
         }
     }
     
+    func signAllTweaks() async {
+        do {
+            let fm = FileManager()
+            let tmpDir = fm.temporaryDirectory.appendingPathComponent("TweakTmp")
+            if fm.fileExists(atPath: tmpDir.path) {
+                try fm.removeItem(at: tmpDir)
+            }
+            try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+            
+            var tmpPaths : [URL] = []
+            // copy items to tmp folders
+            for item in tweakItems {
+                let tmpPath = tmpDir.appendingPathComponent(item.fileUrl.lastPathComponent)
+                tmpPaths.append(tmpPath)
+                try fm.copyItem(at: item.fileUrl, to: tmpPath)
+            }
+            
+            if (LCUtils.certificatePassword() != nil) {
+                // if in jit-less mode, we need to sign
+                isTweakSigning = true
+                let error = await LCUtils.signFilesInFolder(url: tmpDir) { p in
+                    
+                }
+                isTweakSigning = false
+                if let error = error {
+                    throw error
+                }
+            }
+            
+            for tmpFile in tmpPaths {
+                let toPath = self.baseUrl.appendingPathComponent(tmpFile.lastPathComponent)
+                // remove original item and move the signed ones back
+                if fm.fileExists(atPath: toPath.path) {
+                    try fm.removeItem(at: toPath)
+                    try fm.moveItem(at: tmpFile, to: toPath)
+                }
+            }
+            
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+            return
+        }
+    }
+    
     func createNewFolder() async {
         self.newFolderContent = ""
         
@@ -317,8 +370,6 @@ struct LCTweakFolderView : View {
         if isRoot {
             tweakFolders.append(self.newFolderContent)
         }
-        
-        
     }
     
     func startInstallTweak(_ result: Result<[URL], any Error>) async {
@@ -332,6 +383,7 @@ struct LCTweakFolderView : View {
                 try fm.removeItem(at: tmpDir)
             }
             try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+            
             for fileUrl in urls {
                 // handle deb file
                 if(!fileUrl.startAccessingSecurityScopedResource()) {
@@ -351,9 +403,11 @@ struct LCTweakFolderView : View {
             
             if (LCUtils.certificatePassword() != nil) {
                 // if in jit-less mode, we need to sign
+                isTweakSigning = true
                 let error = await LCUtils.signFilesInFolder(url: tmpDir) { p in
                     
                 }
+                isTweakSigning = false
                 if let error = error {
                     throw error
                 }
