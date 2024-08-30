@@ -31,6 +31,7 @@
 
 @interface UIOpenURLAction : NSObject
 - (NSURL *)url;
+- (instancetype)initWithURL:(NSURL *)arg1;
 @end
 
 @interface UITableViewHeaderFooterView(private)

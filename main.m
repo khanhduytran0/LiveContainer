@@ -310,7 +310,23 @@ int LiveContainerMain(int argc, char *argv[]) {
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
+        NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
         [lcUserDefaults removeObjectForKey:@"selected"];
+        // wait for app to launch so that it can receive the url
+        if(launchUrl) {
+            [lcUserDefaults removeObjectForKey:@"launchAppUrlScheme"];
+            dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC));
+            dispatch_after(delay, dispatch_get_main_queue(), ^{
+                // Base64 encode the data
+                NSData *data = [launchUrl dataUsingEncoding:NSUTF8StringEncoding];
+                NSString *encodedUrl = [data base64EncodedStringWithOptions:0];
+                
+                NSString* finalUrl = [NSString stringWithFormat:@"livecontainer://open-url?url=%@", encodedUrl];
+                NSURL* url = [NSURL URLWithString: finalUrl];
+                
+                [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+            });
+        }
         NSSetUncaughtExceptionHandler(&exceptionHandler);
         setenv("LC_HOME_PATH", getenv("HOME"), 1);
         NSString *appError = invokeAppMain(selectedApp, argc, argv);

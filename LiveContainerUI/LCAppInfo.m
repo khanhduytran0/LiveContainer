@@ -5,11 +5,36 @@
 @implementation LCAppInfo
 - (instancetype)initWithBundlePath:(NSString*)bundlePath {
 	 self = [super init];
+    
 	 if(self) {
         _bundlePath = bundlePath;
         _info = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
+        
     }
     return self;
+}
+
+- (NSMutableArray*)urlSchemes {
+    // find all url schemes
+    NSMutableArray* urlSchemes = [[NSMutableArray alloc] init];
+    int nowSchemeCount = 0;
+    if (_info[@"CFBundleURLTypes"]) {
+        NSMutableArray* urlTypes = _info[@"CFBundleURLTypes"];
+
+        for(int i = 0; i < [urlTypes count]; ++i) {
+            NSMutableDictionary* nowUrlType = [urlTypes objectAtIndex:i];
+            if (!nowUrlType[@"CFBundleURLSchemes"]){
+                continue;
+            }
+            NSMutableArray *schemes = nowUrlType[@"CFBundleURLSchemes"];
+            for(int j = 0; j < [schemes count]; ++j) {
+                [urlSchemes insertObject:[schemes objectAtIndex:j] atIndex:nowSchemeCount];
+                ++nowSchemeCount;
+            }
+        }
+    }
+    
+    return urlSchemes;
 }
 
 - (NSString*)displayName {

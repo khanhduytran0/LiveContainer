@@ -11,6 +11,7 @@
 #import "UIKitPrivate.h"
 #import "UIViewController+LCAlert.h"
 #import "unarchive.h"
+#import "LCWebView.h"
 
 @implementation NSURL(hack)
 - (BOOL)safari_isHTTPFamilyURL {
@@ -22,8 +23,9 @@
 @interface LCAppListViewController ()
 @property(atomic) NSMutableArray<NSString *> *objects;
 @property(nonatomic) NSString *bundlePath, *docPath, *tweakPath;
-
+@property(atomic) NSString* pageUrlToOpen;
 @property(nonatomic) MBRoundProgressView *progressView;
+
 @end
 
 @implementation LCAppListViewController
@@ -56,13 +58,33 @@
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemPlay target:self action:@selector(launchButtonTapped)],
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonTapped)]
     ];
+    
+    UIButton* openLinkButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    openLinkButton.enabled = !!LCUtils.certificatePassword;
+    openLinkButton.frame = CGRectMake(0, 0, 40, 40);
+    [openLinkButton setImage:[UIImage systemImageNamed:@"link"] forState:UIControlStateNormal];
+    [openLinkButton addTarget:self action:@selector(openUrlButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+
+    self.navigationItem.leftBarButtonItems = @[
+        [[UIBarButtonItem alloc] initWithCustomView:openLinkButton]
+    ];
 
     self.progressView = [[MBRoundProgressView alloc] initWithFrame:CGRectMake(0, 0, 60, 60)];
+    if(self.pageUrlToOpen) {
+        [self openWebViewByURLString:self.pageUrlToOpen];
+        self.pageUrlToOpen = nil;
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [self.tableView reloadData];
+    
+    NSString* webpageToOpen = [NSUserDefaults.standardUserDefaults objectForKey:@"webPageToOpen"];
+    if(webpageToOpen) {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"webPageToOpen"];
+        [self openWebViewByURLString:webpageToOpen];
+    }
 }
 
 - (void)addButtonTapped {
@@ -302,6 +324,20 @@
             } else {
                 [self.objects removeObjectAtIndex:indexPath.row];
                 [self.tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+                [self showConfirmationDialogTitle:@"Delete Data Folder"
+                message:[NSString stringWithFormat:@"Do you also want to delete data folder of %@? You can keep it for future use.", appInfo.displayName]
+                destructive:YES
+                confirmButtonTitle:@"Delete"
+                handler:^(UIAlertAction * action) {
+                    if (action.style != UIAlertActionStyleCancel) {
+                        NSError *error = nil;
+                        NSString* dataFolderPath = [NSString stringWithFormat:@"%@/Data/Application/%@", self.docPath, [appInfo dataUUID]];
+                        [NSFileManager.defaultManager removeItemAtPath:dataFolderPath error:&error];
+                        if (error) {
+                            [self showDialogTitle:@"Error" message:error.localizedDescription];
+                        }
+                    }
+                }];
             }
         }
         handler(YES);
@@ -613,6 +649,86 @@ trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
         options:UIMenuOptionsDestructive
         children:@[confirmAction]];
     return menu;
+}
+
+
+- (void) openUrlButtonTapped {
+    [self showInputDialogTitle:@"Input URL" message:@"Input URL scheme or URL to a web page" placeholder:@"scheme://" callback:^(NSString *ans) {
+        dispatch_async(dispatch_get_main_queue(), ^(void){
+            [self openWebViewByURLString:ans];
+        });
+        return (NSString*)nil;
+    }];
+
+}
+
+- (void) openWebViewByURLString:(NSString*) urlString {
+    // wait for the loadView to call again.
+    if(!self.isViewLoaded) {
+        self.pageUrlToOpen = urlString;
+        return;
+    }
+    
+    NSURLComponents* url = [[NSURLComponents alloc] initWithString:urlString];
+    if(!url) {
+        [self showDialogTitle:@"Invalid URL" message:@"The given URL is invalid. Check it and try again."];
+    } else {
+        NSMutableArray<LCAppInfo*>* apps = [[NSMutableArray alloc] init];
+        for(int i = 0; i < [self.objects count]; ++i) {
+            LCAppInfo* appInfo = [[LCAppInfo alloc] initWithBundlePath: [NSString stringWithFormat:@"%@/%@", self.bundlePath, self.objects[i]]];
+            appInfo.relativeBundlePath = self.objects[i];
+            [apps insertObject:appInfo atIndex:i];
+        }
+        
+        // use https for http and empty scheme
+        if([url.scheme length ] == 0) {
+            url.scheme = @"https";
+        } else if (![url.scheme isEqualToString: @"https"] && ![url.scheme isEqualToString: @"http"]){
+            [self launchAppByScheme:url apps:apps];
+        }
+        LCWebView *webViewController = [[LCWebView alloc] initWithURL:url.URL apps:apps];
+        UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:webViewController];
+        navController.navigationBar.translucent = NO;
+
+        navController.modalPresentationStyle = UIModalPresentationFullScreen;
+        [self presentViewController:navController animated:YES completion:nil];
+    }
+}
+
+- (void) launchAppByScheme:(NSURLComponents*)schemeURL apps:(NSMutableArray<LCAppInfo*>*)apps {
+    // find app
+    NSString* appId = nil;
+    for(int i = 0; i < [apps count] && !appId; ++i) {
+        LCAppInfo* nowApp = apps[i];
+        NSMutableArray* schemes = [nowApp urlSchemes];
+        if(!schemes) continue;
+        for(int j = 0; j < [schemes count]; ++j) {
+            NSString* nowScheme = schemes[j];
+            if([nowScheme isEqualToString:schemeURL.scheme]) {
+                appId = [nowApp relativeBundlePath];
+                break;
+            }
+        }
+    }
+    if (!appId) {
+        [self showDialogTitle:@"Invalid Scheme" message:@"LiveContainer cannot find an app that supports this scheme."];
+        return;
+    }
+    
+    
+    NSString* message = [NSString stringWithFormat:@"You are about to launch %@, continue?", appId];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+        [NSUserDefaults.standardUserDefaults setObject:appId forKey:@"selected"];
+        [NSUserDefaults.standardUserDefaults setObject:schemeURL.string forKey:@"launchAppUrlScheme"];
+        if ([LCUtils launchToGuestApp]) return;
+    }];
+    [alert addAction:okAction];
+    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * action) {
+        
+    }];
+    [alert addAction:cancelAction];
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 @end
