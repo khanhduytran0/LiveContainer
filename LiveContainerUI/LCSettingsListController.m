@@ -44,7 +44,7 @@
 }
 
 - (void)copyAppGroupPathPressed {
-    UIPasteboard.generalPasteboard.string = LCUtils.appGroupPath;
+    UIPasteboard.generalPasteboard.string = LCUtils.appGroupPath.path;
 }
 
 - (void)copyDocumentsPathPressed {

@@ -29,7 +29,7 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
 + (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 
 + (BOOL)isAppGroupAltStoreLike;
-+ (NSString *)appGroupPath;
++ (NSURL *)appGroupPath;
 + (NSString *)storeInstallURLScheme;
 
 @end

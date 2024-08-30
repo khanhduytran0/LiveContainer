@@ -9,8 +9,8 @@
 
 #pragma mark Certificate & password
 
-+ (NSString *)appGroupPath {
-    return [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID].path;
++ (NSURL *)appGroupPath {
+    return [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
 }
 
 + (BOOL)deleteKeychainItem:(NSString *)key ofStore:(NSString *)store {
@@ -50,8 +50,7 @@
     if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCIgnoreALTCertificate"]) {
         return nil;
     }
-    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-    NSURL *url = [appGroupPath URLByAppendingPathComponent:[NSString stringWithFormat:@"Apps/%@/App.app/ALTCertificate.p12", self.storeBundleID]];
+    NSURL *url = [self.storeBundlePath URLByAppendingPathComponent:@"ALTCertificate.p12"];
     return [NSData dataWithContentsOfURL:url];
 }
 
@@ -115,9 +114,7 @@
 }
 
 + (NSURL *)storeBundlePath {
-    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-    appGroupPath = [appGroupPath URLByAppendingPathComponent:[NSString stringWithFormat:@"Apps/%@/App.app", self.storeBundleID]];
-    return appGroupPath;
+    return [self.appGroupPath URLByAppendingPathComponent:[NSString stringWithFormat:@"Apps/%@/App.app", self.storeBundleID]];
 }
 
 + (NSString *)storeInstallURLScheme {
@@ -202,7 +199,20 @@
 #pragma mark Setup
 
 + (NSString *)appGroupID {
-    return [NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"] firstObject];
+    static dispatch_once_t once;
+    static NSString *appGroupID;
+    dispatch_once(&once, ^{
+        for (NSString *group in NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"]) {
+            NSURL *path = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:group];
+            NSURL *bundlePath = [path URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app"];
+            if ([NSFileManager.defaultManager fileExistsAtPath:bundlePath.path]) {
+                // This will fail if LiveContainer is installed in both stores, but it should never be the case
+                appGroupID = group;
+                return;
+            }
+        }
+    });
+    return appGroupID;
 }
 
 + (BOOL)isAppGroupAltStoreLike {
@@ -211,8 +221,7 @@
 }
 
 + (void)changeMainExecutableTo:(NSString *)exec error:(NSError **)error {
-    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-    NSURL *infoPath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app/Info.plist"];
+    NSURL *infoPath = [self.appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app/Info.plist"];
     NSMutableDictionary *infoDict = [NSMutableDictionary dictionaryWithContentsOfURL:infoPath];
     if (!infoDict) return;
 
@@ -221,8 +230,7 @@
 }
 
 + (void)writeStoreIDToSetupExecutableWithError:(NSError **)error {
-    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-    NSURL *execPath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app/JITLessSetup"];
+    NSURL *execPath = [self.appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app/JITLessSetup"];
     NSMutableData *data = [NSMutableData dataWithContentsOfURL:execPath options:0 error:error];
     if (!data) return;
 
@@ -255,14 +263,13 @@
     if (*error) return nil;
 
     NSFileManager *manager = NSFileManager.defaultManager;
-    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-    NSURL *bundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
+    NSURL *bundlePath = [self.appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
 
-    NSURL *tmpPath = [appGroupPath URLByAppendingPathComponent:@"tmp"];
+    NSURL *tmpPath = [self.appGroupPath URLByAppendingPathComponent:@"tmp"];
     [manager removeItemAtURL:tmpPath error:nil];
 
     NSURL *tmpPayloadPath = [tmpPath URLByAppendingPathComponent:@"Payload"];
-    NSURL *tmpIPAPath = [appGroupPath URLByAppendingPathComponent:@"tmp.ipa"];
+    NSURL *tmpIPAPath = [self.appGroupPath URLByAppendingPathComponent:@"tmp.ipa"];
 
     [manager createDirectoryAtURL:tmpPath withIntermediateDirectories:YES attributes:nil error:error];
     if (*error) return nil;
