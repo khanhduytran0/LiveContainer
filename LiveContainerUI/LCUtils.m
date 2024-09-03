@@ -217,6 +217,10 @@
     return [NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"] firstObject];
 }
 
++ (NSString *)appUrlScheme {
+    return NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
+}
+
 + (BOOL)isAppGroupAltStoreLike {
     if (self.appGroupID.length == 0) return NO;
     return [NSFileManager.defaultManager fileExistsAtPath:self.storeBundlePath.path];

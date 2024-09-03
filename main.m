@@ -18,10 +18,14 @@
 static int (*appMain)(int, char**);
 static const char *dyldImageName;
 NSUserDefaults *lcUserDefaults;
+NSString* lcAppUrlScheme;
 
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
     return lcUserDefaults;
+}
++ (NSString *)lcAppUrlScheme {
+    return lcAppUrlScheme;
 }
 @end
 
@@ -347,6 +351,7 @@ int LiveContainerMain(int argc, char *argv[]) {
     NSLog(@"Ignore this: %@", UIScreen.mainScreen);
 
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
+    lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
         NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
@@ -360,7 +365,7 @@ int LiveContainerMain(int argc, char *argv[]) {
                 NSData *data = [launchUrl dataUsingEncoding:NSUTF8StringEncoding];
                 NSString *encodedUrl = [data base64EncodedStringWithOptions:0];
                 
-                NSString* finalUrl = [NSString stringWithFormat:@"livecontainer://open-url?url=%@", encodedUrl];
+                NSString* finalUrl = [NSString stringWithFormat:@"%@://open-url?url=%@", lcAppUrlScheme, encodedUrl];
                 NSURL* url = [NSURL URLWithString: finalUrl];
                 
                 [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];

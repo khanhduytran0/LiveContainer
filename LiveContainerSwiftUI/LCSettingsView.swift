@@ -21,6 +21,9 @@ struct LCSettingsView: View {
     @State private var folderRemoveCount = 0
     
     @State var isJitLessEnabled = false
+    // 0= not installed, 1= is installed, 2=current liveContainer is the second one
+    @State var multipleLiveContainerStatus = 0
+    
     @State var isAltCertIgnored = false
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
@@ -35,6 +38,13 @@ struct LCSettingsView: View {
         
         _apps = apps
         _appDataFolderNames = appDataFolderNames
+        if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {
+            _multipleLiveContainerStatus = State(initialValue: 2)
+        } else if UIApplication.shared.canOpenURL(URL(string: "livecontainer2://")!) {
+            _multipleLiveContainerStatus = State(initialValue: 1)
+        } else {
+            _multipleLiveContainerStatus = State(initialValue: 0)
+        }
     }
     
     var body: some View {
@@ -51,20 +61,33 @@ struct LCSettingsView: View {
                             Text("Setup JIT-less certificate")
                         }
                     }
-                    if isJitLessEnabled {
-                        Button {
-                            installAnotherLC()
-                        } label: {
-                            Text("Install another LiveContainer")
-                        }
-                    }
-
-                    
                 } header: {
                     Text("JIT-Less")
                 } footer: {
                     Text("JIT-less allows you to use LiveContainer without having to enable JIT. Requires AltStore or SideStore.")
                 }
+                
+                Section{
+                    Button {
+                        installAnotherLC()
+                    } label: {
+                        if multipleLiveContainerStatus == 0 {
+                            Text("Install another LiveContainer")
+                        } else if multipleLiveContainerStatus == 1 {
+                            Text("Second LiveContainer Already Installed")
+                        } else if multipleLiveContainerStatus == 2 {
+                            Text("This is the second LiveContainer")
+                        }
+
+                    }
+                    .disabled(multipleLiveContainerStatus > 0)
+                } header: {
+                    Text("Multiple LiveContainers")
+                } footer: {
+                    Text("By installing multiple LiveContainers, and converting apps to Shared Apps, you can open one app among all LiveContainers with most of its data and settings.")
+                }
+                
+                
                 Section {
                     Toggle(isOn: $isAltCertIgnored) {
                         Text("Ignore ALTCertificate.p12")
