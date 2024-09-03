@@ -20,6 +20,10 @@ struct LCSettingsView: View {
     @State private var appFolderRemovalContinuation : CheckedContinuation<Void, Never>? = nil
     @State private var folderRemoveCount = 0
     
+    @State private var confirmKeyChainRemovalShow = false
+    @State private var confirmKeyChainRemoval = false
+    @State private var confirmKeyChainContinuation : CheckedContinuation<Void, Never>? = nil
+    
     @State var isJitLessEnabled = false
     // 0= not installed, 1= is installed, 2=current liveContainer is the second one
     @State var multipleLiveContainerStatus = 0
@@ -50,23 +54,24 @@ struct LCSettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                
-                Section{
-                    Button {
-                        setupJitLess()
-                    } label: {
-                        if isJitLessEnabled {
-                            Text("Renew JIT-less certificate")
-                        } else {
-                            Text("Setup JIT-less certificate")
+                if multipleLiveContainerStatus != 2 {
+                    Section{
+                        Button {
+                            setupJitLess()
+                        } label: {
+                            if isJitLessEnabled {
+                                Text("Renew JIT-less certificate")
+                            } else {
+                                Text("Setup JIT-less certificate")
+                            }
                         }
+                    } header: {
+                        Text("JIT-Less")
+                    } footer: {
+                        Text("JIT-less allows you to use LiveContainer without having to enable JIT. Requires AltStore or SideStore.")
                     }
-                } header: {
-                    Text("JIT-Less")
-                } footer: {
-                    Text("JIT-less allows you to use LiveContainer without having to enable JIT. Requires AltStore or SideStore.")
                 }
-                
+
                 Section{
                     Button {
                         installAnotherLC()
@@ -84,7 +89,7 @@ struct LCSettingsView: View {
                 } header: {
                     Text("Multiple LiveContainers")
                 } footer: {
-                    Text("By installing multiple LiveContainers, and converting apps to Shared Apps, you can open one app among all LiveContainers with most of its data and settings.")
+                    Text("By installing multiple LiveContainers, and converting apps to Shared Apps, you can open one app between all LiveContainers with most of its data and settings.")
                 }
                 
                 
@@ -116,7 +121,7 @@ struct LCSettingsView: View {
                 
                 Section {
                     Toggle(isOn: $injectToLCItelf) {
-                        Text("Load Tewaks to LiveContainer Itself")
+                        Text("Load Tweaks to LiveContainer Itself")
                     }
                 } footer: {
                     Text("Place your tweaks into the global “Tweaks” folder and LiveContainer will pick them up.")
@@ -127,6 +132,11 @@ struct LCSettingsView: View {
                         Task { await cleanUpUnusedFolders() }
                     } label: {
                         Text("Clean Unused Data Folders")
+                    }
+                    Button(role:.destructive) {
+                        Task { await removeKeyChain() }
+                    } label: {
+                        Text("Clean Up Keychain")
                     }
                 }
                 
@@ -164,7 +174,21 @@ struct LCSettingsView: View {
                 }
 
             }
-            
+            .alert("Keychain Clean Up", isPresented: $confirmKeyChainRemovalShow) {
+                Button(role: .destructive) {
+                    self.confirmKeyChainRemoval = true
+                    self.confirmKeyChainContinuation?.resume()
+                } label: {
+                    Text("Delete")
+                }
+
+                Button("Cancel", role: .cancel) {
+                    self.confirmKeyChainRemoval = false
+                    self.confirmKeyChainContinuation?.resume()
+                }
+            } message: {
+                Text("If some app's account can not be synced between LiveContainers, it's may because it is still stored in current LiveContainer's private keychain. Cleaning up keychain may solve this issue, but it may sign you out of some of your accounts. Continue?")
+            }
             .onChange(of: isAltCertIgnored) { newValue in
                 saveItem(key: "LCIgnoreALTCertificate", val: newValue)
             }
@@ -263,6 +287,28 @@ struct LCSettingsView: View {
             errorShow = true
         }
         
+    }
+    
+    func removeKeyChain() async {
+        await withCheckedContinuation { c in
+            self.confirmKeyChainContinuation = c
+            DispatchQueue.main.async {
+                confirmKeyChainRemovalShow = true
+            }
+        }
+        if !confirmKeyChainRemoval {
+            return
+        }
+        
+        [kSecClassGenericPassword, kSecClassInternetPassword, kSecClassCertificate, kSecClassKey, kSecClassIdentity].forEach {
+          let status = SecItemDelete([
+            kSecClass: $0,
+            kSecAttrSynchronizable: kSecAttrSynchronizableAny
+          ] as CFDictionary)
+          if status != errSecSuccess && status != errSecItemNotFound {
+              //Error while removing class $0
+          }
+        }
     }
 
 }
