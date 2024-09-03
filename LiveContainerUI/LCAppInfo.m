@@ -11,13 +11,17 @@
 @implementation LCAppInfo
 - (instancetype)initWithBundlePath:(NSString*)bundlePath {
 	 self = [super init];
-    
+    self.isShared = false;
 	 if(self) {
         _bundlePath = bundlePath;
         _info = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
         
     }
     return self;
+}
+
+- (void)setBundlePath:(NSString*)newBundlePath {
+    _bundlePath = newBundlePath;
 }
 
 - (NSMutableArray*)urlSchemes {

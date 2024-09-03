@@ -51,6 +51,14 @@ struct LCSettingsView: View {
                             Text("Setup JIT-less certificate")
                         }
                     }
+                    if isJitLessEnabled {
+                        Button {
+                            installAnotherLC()
+                        } label: {
+                            Text("Install another LiveContainer")
+                        }
+                    }
+
                     
                 } header: {
                     Text("JIT-Less")
@@ -170,6 +178,27 @@ struct LCSettingsView: View {
             errorShow = true
         }
     
+    }
+    
+    func installAnotherLC() {
+        if !LCUtils.isAppGroupAltStoreLike() {
+            errorInfo = "Unsupported installation method. Please use AltStore or SideStore to setup this feature."
+            errorShow = true
+            return;
+        }
+        let password = LCUtils.certificatePassword()
+        let lcDomain = UserDefaults.init(suiteName: LCUtils.appGroupID())
+        lcDomain?.setValue(password, forKey: "LCCertificatePassword")
+        
+        
+        do {
+            let packedIpaUrl = try LCUtils.archiveIPA(withBundleName: "LiveContainer2")
+            let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), packedIpaUrl.absoluteString)
+            UIApplication.shared.open(URL(string: storeInstallUrl)!)
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
     }
     
     func cleanUpUnusedFolders() async {

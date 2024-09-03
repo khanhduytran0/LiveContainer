@@ -16,6 +16,9 @@ protocol LCAppBannerDelegate {
 struct LCAppBanner : View {
     @State var appInfo: LCAppInfo
     var delegate: LCAppBannerDelegate
+    
+    @State var uiIsShared : Bool
+    
     @Binding var appDataFolders: [String]
     @Binding var tweakFolders: [String]
     
@@ -36,6 +39,14 @@ struct LCAppBanner : View {
     @State private var renameFolderContent = ""
     @State private var renameFolerContinuation : CheckedContinuation<Void, Never>? = nil
     
+    @State private var confirmMoveToAppGroupShow = false
+    @State private var confirmMoveToAppGroup = false
+    @State private var confirmMoveToAppGroupContinuation : CheckedContinuation<Void, Never>? = nil
+    
+    @State private var confirmMoveToPrivateDocShow = false
+    @State private var confirmMoveToPrivateDoc = false
+    @State private var confirmMoveToPrivateDocContinuation : CheckedContinuation<Void, Never>? = nil
+    
     @State private var errorShow = false
     @State private var errorInfo = ""
     
@@ -54,6 +65,8 @@ struct LCAppBanner : View {
         _uiTweakFolder = State(initialValue: appInfo.tweakFolder())
         _uiPickerDataFolder = _uiDataFolder
         _uiPickerTweakFolder = _uiTweakFolder
+        
+        _uiIsShared = State(initialValue: appInfo.isShared)
         
     }
     
@@ -113,51 +126,60 @@ struct LCAppBanner : View {
         
         .contextMenu{
             Text(appInfo.relativeBundlePath)
-            Button(role: .destructive) {
-                 Task{ await uninstall() }
-            } label: {
-                Label("Uninstall", systemImage: "trash")
-            }
-            Button {
-                // Add to home screen
-            } label: {
-                Label("Add to home screen", systemImage: "plus.app")
-            }
-            Menu(content: {
-                Button {
-                    Task{ await createFolder() }
+            if !uiIsShared {
+                Button(role: .destructive) {
+                     Task{ await uninstall() }
                 } label: {
-                    Label("New data folder", systemImage: "plus")
+                    Label("Uninstall", systemImage: "trash")
                 }
-                if uiDataFolder != nil {
+                Button {
+                    Task { await moveToAppGroup()}
+                } label: {
+                    Label("Convert to Shared App", systemImage: "arrowshape.turn.up.left")
+                }
+                Menu(content: {
                     Button {
-                        Task{ await renameDataFolder() }
+                        Task{ await createFolder() }
                     } label: {
-                        Label("Rename data folder", systemImage: "pencil")
+                        Label("New data folder", systemImage: "plus")
                     }
-                }
+                    if uiDataFolder != nil {
+                        Button {
+                            Task{ await renameDataFolder() }
+                        } label: {
+                            Label("Rename data folder", systemImage: "pencil")
+                        }
+                    }
 
-                Picker(selection: $uiPickerDataFolder , label: Text("")) {
-                    ForEach(appDataFolders, id:\.self) { folderName in
-                        Button(folderName) {
-                            setDataFolder(folderName: folderName)
-                        }.tag(Optional(folderName))
+                    Picker(selection: $uiPickerDataFolder , label: Text("")) {
+                        ForEach(appDataFolders, id:\.self) { folderName in
+                            Button(folderName) {
+                                setDataFolder(folderName: folderName)
+                            }.tag(Optional(folderName))
+                        }
                     }
-                }
-            }, label: {
-                Label("Change Data Folder", systemImage: "folder.badge.questionmark")
-            })
-            
-            Menu(content: {
-                Picker(selection: $uiPickerTweakFolder , label: Text("")) {
-                    Label("None", systemImage: "nosign").tag(Optional<String>(nil))
-                    ForEach(tweakFolders, id:\.self) { folderName in
-                        Text(folderName).tag(Optional(folderName))
+                }, label: {
+                    Label("Change Data Folder", systemImage: "folder.badge.questionmark")
+                })
+                
+                Menu(content: {
+                    Picker(selection: $uiPickerTweakFolder , label: Text("")) {
+                        Label("None", systemImage: "nosign").tag(Optional<String>(nil))
+                        ForEach(tweakFolders, id:\.self) { folderName in
+                            Text(folderName).tag(Optional(folderName))
+                        }
                     }
+                }, label: {
+                    Label("Change Tweak Folder", systemImage: "gear")
+                })
+            } else {
+                Button {
+                    Task { await movePrivateDoc() }
+                } label: {
+                    Label("Convert to Private App", systemImage: "arrowshape.turn.up.left")
                 }
-            }, label: {
-                Label("Change Tweak Folder", systemImage: "gear")
-            })
+            }
+
         }
         .onChange(of: uiPickerDataFolder, perform: { newValue in
             if newValue != uiDataFolder {
@@ -197,6 +219,34 @@ struct LCAppBanner : View {
             }
         } message: {
             Text("Do you also want to delete data folder of \(appInfo.displayName()!)? You can keep it for future use.")
+        }
+        .alert("Move to App Group", isPresented: $confirmMoveToAppGroupShow) {
+            Button {
+                self.confirmMoveToAppGroup = true
+                self.confirmMoveToAppGroupContinuation?.resume()
+            } label: {
+                Text("Move")
+            }
+            Button("Cancel", role: .cancel) {
+                self.confirmMoveToAppGroup = false
+                self.confirmMoveToAppGroupContinuation?.resume()
+            }
+        } message: {
+            Text("Moving this app to App Group allows other LiveContainers to run this app with all its data and tweak preserved. If you want to access its data and tweak again from the file app, move it back.")
+        }
+        .alert("Move to Private Document Folder", isPresented: $confirmMoveToPrivateDocShow) {
+            Button {
+                self.confirmMoveToPrivateDoc = true
+                self.confirmMoveToPrivateDocContinuation?.resume()
+            } label: {
+                Text("Move")
+            }
+            Button("Cancel", role: .cancel) {
+                self.confirmMoveToPrivateDoc = false
+                self.confirmMoveToPrivateDocContinuation?.resume()
+            }
+        } message: {
+            Text("Moving this app to Private Document Folder allows you to access its data and tweaks in the Files app, but it can not be run by other LiveContainers.")
         }
         .textFieldAlert(
             isPresented: $renameFolderShow,
@@ -373,10 +423,82 @@ struct LCAppBanner : View {
             }
             
         } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
+    }
+    
+    func moveToAppGroup() async {
+        await withCheckedContinuation { c in
+            confirmMoveToAppGroupContinuation = c
+            confirmMoveToAppGroupShow = true
+        }
+        if !confirmMoveToAppGroup {
+            return
+        }
+        
+        do {
+            try LCPath.ensureAppGroupPaths()
+            let fm = FileManager()
+            try fm.moveItem(atPath: appInfo.bundlePath(), toPath: LCPath.lcGroupBundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
+            if let dataFolder = appInfo.getDataUUIDNoAssign(), dataFolder.count > 0 {
+                try fm.moveItem(at: LCPath.dataPath.appendingPathComponent(dataFolder),
+                                to: LCPath.lcGroupDataPath.appendingPathComponent(dataFolder))
+                appDataFolders.removeAll(where: { s in
+                    return s == dataFolder
+                })
+            }
+            if let tweakFolder = appInfo.tweakFolder(), tweakFolder.count > 0 {
+                try fm.moveItem(at: LCPath.tweakPath.appendingPathComponent(tweakFolder),
+                                to: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder))
+                tweakFolders.removeAll(where: { s in
+                    return s == tweakFolder
+                })
+            }
+            appInfo.setBundlePath(LCPath.lcGroupBundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
+            appInfo.isShared = true
+            uiIsShared = true
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
+        
+    }
+    
+    func movePrivateDoc() async {
+        await withCheckedContinuation { c in
+            confirmMoveToPrivateDocContinuation = c
+            confirmMoveToPrivateDocShow = true
+        }
+        if !confirmMoveToPrivateDoc {
+            return
+        }
+        
+        do {
+            let fm = FileManager()
+            try fm.moveItem(atPath: appInfo.bundlePath(), toPath: LCPath.bundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
+            if let dataFolder = appInfo.getDataUUIDNoAssign(), dataFolder.count > 0 {
+                try fm.moveItem(at: LCPath.lcGroupDataPath.appendingPathComponent(dataFolder),
+                                to: LCPath.dataPath.appendingPathComponent(dataFolder))
+                appDataFolders.append(dataFolder)
+                uiDataFolder = dataFolder
+                uiPickerDataFolder = dataFolder
+            }
+            if let tweakFolder = appInfo.tweakFolder(), tweakFolder.count > 0 {
+                try fm.moveItem(at: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder),
+                                to: LCPath.tweakPath.appendingPathComponent(tweakFolder))
+                tweakFolders.append(tweakFolder)
+                uiTweakFolder = tweakFolder
+                uiPickerTweakFolder = tweakFolder
+            }
+            appInfo.setBundlePath(LCPath.bundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
+            appInfo.isShared = false
+            uiIsShared = false
+        } catch {
             errorShow = true
             errorInfo = error.localizedDescription
-            
         }
+        
     }
         
 

@@ -13,6 +13,8 @@
    NSString* _bundlePath;
 }
 @property NSString* relativeBundlePath;
+@property bool isShared;
+- (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;
 - (UIImage*)icon;
 - (NSString*)displayName;

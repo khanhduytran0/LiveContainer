@@ -16,6 +16,35 @@ struct LCPath {
     public static let bundlePath = docPath.appendingPathComponent("Applications")
     public static let dataPath = docPath.appendingPathComponent("Data/Application")
     public static let tweakPath = docPath.appendingPathComponent("Tweaks")
+    
+    public static let lcGroupDocPath = {
+        let fm = FileManager()
+        // it seems that Apple don't want to create one for us, so we just borrow our Store's
+        if let appGroupPath = LCUtils.appGroupPath() {
+            return URL(fileURLWithPath: appGroupPath + "/LiveContainer", isDirectory: true)
+        } else if let appGroupPathUrl =
+                    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.SideStore.SideStore") {
+            return appGroupPathUrl.appendingPathComponent("LiveContainer")
+        } else {
+            return docPath
+        }
+    }()
+    public static let lcGroupBundlePath = lcGroupDocPath.appendingPathComponent("Applications")
+    public static let lcGroupDataPath = lcGroupDocPath.appendingPathComponent("Data/Application")
+    public static let lcGroupTweakPath = lcGroupDocPath.appendingPathComponent("Tweaks")
+    
+    public static func ensureAppGroupPaths() throws {
+        let fm = FileManager()
+        if !fm.fileExists(atPath: LCPath.lcGroupBundlePath.path) {
+            try fm.createDirectory(at: LCPath.lcGroupBundlePath, withIntermediateDirectories: true)
+        }
+        if !fm.fileExists(atPath: LCPath.lcGroupDataPath.path) {
+            try fm.createDirectory(at: LCPath.lcGroupDataPath, withIntermediateDirectories: true)
+        }
+        if !fm.fileExists(atPath: LCPath.lcGroupTweakPath.path) {
+            try fm.createDirectory(at: LCPath.lcGroupTweakPath, withIntermediateDirectories: true)
+        }
+    }
 }
 
 extension String: LocalizedError {
@@ -135,13 +164,6 @@ extension LCUtils {
     public static func signFilesInFolder(url: URL, onProgressCreated: (Progress) -> Void) async -> String? {
         let fm = FileManager()
         var ans : String? = nil
-        /* NSString *codesignPath = [path stringByAppendingPathComponent:@"_CodeSignature"];
-         NSString *provisionPath = [path stringByAppendingPathComponent:@"embedded.mobileprovision"];
-        NSString *tmpExecPath = [path stringByAppendingPathComponent:@"LiveContainer.tmp"];
-        NSString *tmpInfoPath = [path stringByAppendingPathComponent:@"Info.plist"];
-        [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
-        NSMutableDictionary *info = NSBundle.mainBundle.infoDictionary.mutableCopy;
-         */
         let codesignPath = url.appendingPathComponent("_CodeSignature")
         let provisionPath = url.appendingPathComponent("embedded.mobileprovision")
         let tmpExecPath = url.appendingPathComponent("LiveContainer.tmp")

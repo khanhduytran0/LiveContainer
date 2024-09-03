@@ -33,6 +33,19 @@ struct LCTabView: View {
                 }
                 let newApp = LCAppInfo(bundlePath: "\(LCPath.bundlePath.path)/\(appDir)")!
                 newApp.relativeBundlePath = appDir
+                newApp.isShared = false
+                tempApps.append(newApp)
+            }
+            
+            try fm.createDirectory(at: LCPath.lcGroupBundlePath, withIntermediateDirectories: true)
+            let appDirsShared = try fm.contentsOfDirectory(atPath: LCPath.lcGroupBundlePath.path)
+            for appDir in appDirsShared {
+                if !appDir.hasSuffix(".app") {
+                    continue
+                }
+                let newApp = LCAppInfo(bundlePath: "\(LCPath.lcGroupBundlePath.path)/\(appDir)")!
+                newApp.relativeBundlePath = appDir
+                newApp.isShared = true
                 tempApps.append(newApp)
             }
             // load document folders

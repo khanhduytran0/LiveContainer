@@ -186,12 +186,35 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSFileManager *fm = NSFileManager.defaultManager;
     NSString *docPath = [fm URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
         .lastObject.path;
+    
+    NSURL *appGroupFolder = nil;
+    
     NSString *bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", docPath, selectedApp];
     NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+    bool isSharedBundle = false;
+    if (!appBundle) {    
+        NSString *appGroupID = [NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"] firstObject];
+        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:appGroupID];
+        appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
+        
+        NSString *bundlePath2 = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, selectedApp];
+        appBundle = [[NSBundle alloc] initWithPath:bundlePath2];
+        isSharedBundle = true;
+    }
+    
+    if(!appBundle) {
+        return @"App not found";
+    }
+    
     NSError *error;
 
     // Setup tweak loader
-    NSString *tweakFolder = [docPath stringByAppendingPathComponent:@"Tweaks"];
+    NSString *tweakFolder = nil;
+    if (isSharedBundle) {
+        tweakFolder = [appGroupFolder.path  stringByAppendingPathComponent:@"Tweaks"];
+    } else {
+        tweakFolder = [docPath stringByAppendingPathComponent:@"Tweaks"];
+    }
     setenv("LC_GLOBAL_TWEAKS_FOLDER", tweakFolder.UTF8String, 1);
 
     // Update TweakLoader symlink
@@ -249,7 +272,14 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     }
 
     // Overwrite home and tmp path
-    NSString *newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, dataUUID];
+    NSString *newHomePath = nil;
+    if(isSharedBundle) {
+        newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", appGroupFolder.path, dataUUID];
+    } else {
+        newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, dataUUID];
+    }
+    
+    
     NSString *newTmpPath = [newHomePath stringByAppendingPathComponent:@"tmp"];
     remove(newTmpPath.UTF8String);
     symlink(getenv("TMPDIR"), newTmpPath.UTF8String);

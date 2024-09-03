@@ -5,7 +5,13 @@ extern NSUserDefaults *lcUserDefaults;
 
 @implementation LCSharedUtils
 + (NSString *)certificatePassword {
-    return [lcUserDefaults objectForKey:@"LCCertificatePassword"];
+    NSString* ans = [lcUserDefaults objectForKey:@"LCCertificatePassword"];
+    if(ans) {
+        return ans;
+    } else {
+        NSString *appGroupID = [NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"] firstObject];
+        return [[[NSUserDefaults alloc] initWithSuiteName:appGroupID] objectForKey:@"LCCertificatePassword"];
+    }
 }
 
 + (BOOL)launchToGuestApp {
