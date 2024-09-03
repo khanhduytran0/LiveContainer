@@ -169,7 +169,6 @@ void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
     NSString *url = urlAction.url.absoluteString;
     if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-relaunch", NSUserDefaults.lcAppUrlScheme]]) {
         // Ignore
-        return;
     } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://open-web-page?", NSUserDefaults.lcAppUrlScheme]]) {
         NSURLComponents* lcUrl = [NSURLComponents componentsWithString:url];
         NSString* realUrlEncoded = lcUrl.queryItems[0].value;
@@ -178,7 +177,6 @@ void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
         NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:realUrlEncoded options:0];
         NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
         LCOpenWebPage(decodedUrl, url);
-        return;
     } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://open-url", NSUserDefaults.lcAppUrlScheme]]) {
         // Open guest app's URL scheme
         NSURLComponents* lcUrl = [NSURLComponents componentsWithString:url];
@@ -199,13 +197,12 @@ void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
             [self hook_scene:scene didReceiveActions:newActions fromTransitionContext:context];
         }
 
-        return;
     } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-launch?bundle-name=", NSUserDefaults.lcAppUrlScheme]]){
+
         // If it's not current app, then switch
         if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
             LCShowSwitchAppConfirmation(urlAction.url);
         }
-        return;
         
     }
 

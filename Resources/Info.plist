@@ -62,6 +62,8 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>2.1.2</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.games</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>sidestore</string>
