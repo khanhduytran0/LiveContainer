@@ -19,6 +19,7 @@ static int (*appMain)(int, char**);
 static const char *dyldImageName;
 NSUserDefaults *lcUserDefaults;
 NSString* lcAppUrlScheme;
+NSString* lcAppGroup;
 
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
@@ -352,6 +353,7 @@ int LiveContainerMain(int argc, char *argv[]) {
 
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
+    lcAppGroup = [NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"] firstObject];
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
         NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];

@@ -121,6 +121,7 @@ struct LCTweakFolderView : View {
 
         }
         .navigationTitle(baseUrl.lastPathComponent)
+        .navigationViewStyle(StackNavigationViewStyle())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if !isTweakSigning && LCUtils.certificatePassword() != nil {

@@ -3,6 +3,7 @@
 
 extern NSUserDefaults *lcUserDefaults;
 extern NSString *lcAppUrlScheme;
+extern NSString* lcAppGroup;
 
 @implementation LCSharedUtils
 + (NSString *)certificatePassword {
@@ -10,8 +11,7 @@ extern NSString *lcAppUrlScheme;
     if(ans) {
         return ans;
     } else {
-        NSString *appGroupID = [NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"] firstObject];
-        return [[[NSUserDefaults alloc] initWithSuiteName:appGroupID] objectForKey:@"LCCertificatePassword"];
+        return [[[NSUserDefaults alloc] initWithSuiteName:lcAppGroup] objectForKey:@"LCCertificatePassword"];
     }
 }
 

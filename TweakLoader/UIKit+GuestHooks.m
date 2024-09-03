@@ -63,7 +63,7 @@ void openUniversalLink(NSString* decodedUrl) {
     [uacm handleActivityContinuation:dict isSuspended:nil];
 }
 
-void LCOpenWebPage(NSString* webPageUrlString) {
+void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
     NSString *message = [NSString stringWithFormat:@"Are you sure you want to open the web page and launch an app? Doing so will terminate this app. You can try to open it in the current app if it supports Universal Links."];
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
@@ -78,7 +78,7 @@ void LCOpenWebPage(NSString* webPageUrlString) {
     }];
     if([NSUserDefaults.lcAppUrlScheme isEqualToString:@"livecontainer"] && [UIApplication.sharedApplication canOpenURL:[NSURL URLWithString: @"livecontainer2://"]]) {
         UIAlertAction* openlc2Action = [UIAlertAction actionWithTitle:@"Open In LiveContainer2" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-            NSURLComponents* newUrlComp = [NSURLComponents componentsWithString:webPageUrlString];
+            NSURLComponents* newUrlComp = [NSURLComponents componentsWithString:originalUrl];
             [newUrlComp setScheme:@"livecontainer2"];
             [UIApplication.sharedApplication openURL:[newUrlComp URL] options:@{} completionHandler:nil];
             window.windowScene = nil;
@@ -116,7 +116,7 @@ void LCOpenWebPage(NSString* webPageUrlString) {
         // Convert the base64 encoded url into String
         NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:realUrlEncoded options:0];
         NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
-        LCOpenWebPage(decodedUrl);
+        LCOpenWebPage(decodedUrl, url);
         return;
     } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://open-url", NSUserDefaults.lcAppUrlScheme]]) {
         // pass url to guest app
@@ -136,7 +136,7 @@ void LCOpenWebPage(NSString* webPageUrlString) {
         }
         
         return;
-    } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-launch?", NSUserDefaults.lcAppUrlScheme]]) {
+    } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-launch?bundle-name=", NSUserDefaults.lcAppUrlScheme]]) {
         if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
             LCShowSwitchAppConfirmation([NSURL URLWithString:url]);
         }
@@ -177,7 +177,7 @@ void LCOpenWebPage(NSString* webPageUrlString) {
         // launch to UI and open web page
         NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:realUrlEncoded options:0];
         NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
-        LCOpenWebPage(decodedUrl);
+        LCOpenWebPage(decodedUrl, url);
         return;
     } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://open-url", NSUserDefaults.lcAppUrlScheme]]) {
         // Open guest app's URL scheme
@@ -200,7 +200,7 @@ void LCOpenWebPage(NSString* webPageUrlString) {
         }
 
         return;
-    } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-launch?", NSUserDefaults.lcAppUrlScheme]]){
+    } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-launch?bundle-name=", NSUserDefaults.lcAppUrlScheme]]){
         // If it's not current app, then switch
         if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
             LCShowSwitchAppConfirmation(urlAction.url);
