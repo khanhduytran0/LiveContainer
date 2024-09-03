@@ -2,10 +2,17 @@
 #import "UIKitPrivate.h"
 
 extern NSUserDefaults *lcUserDefaults;
+extern NSString *lcAppUrlScheme;
+extern NSString* lcAppGroup;
 
 @implementation LCSharedUtils
 + (NSString *)certificatePassword {
-    return [lcUserDefaults objectForKey:@"LCCertificatePassword"];
+    NSString* ans = [lcUserDefaults objectForKey:@"LCCertificatePassword"];
+    if(ans) {
+        return ans;
+    } else {
+        return [[[NSUserDefaults alloc] initWithSuiteName:lcAppGroup] objectForKey:@"LCCertificatePassword"];
+    }
 }
 
 + (BOOL)launchToGuestApp {
@@ -16,7 +23,7 @@ extern NSUserDefaults *lcUserDefaults;
         urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
     } else if (self.certificatePassword) {
         tries = 8;
-        urlScheme = @"livecontainer://livecontainer-relaunch";
+        urlScheme = [NSString stringWithFormat:@"%@://livecontainer-relaunch", lcAppUrlScheme];
     } else {
         urlScheme = @"sidestore://sidejit-enable?bid=%@";
     }

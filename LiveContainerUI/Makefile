@@ -2,7 +2,8 @@ include $(THEOS)/makefiles/common.mk
 
 FRAMEWORK_NAME = LiveContainerUI
 
-LiveContainerUI_FILES = LCAppDelegate.m LCJITLessSetupViewController.m LCMachOUtils.m LCAppListViewController.m LCSettingsListController.m LCTabBarController.m LCTweakListViewController.m LCUtils.m MBRoundProgressView.m UIViewController+LCAlert.m unarchive.m LCAppInfo.m LCWebView.m
+#LiveContainerUI_FILES = LCAppDelegate.m LCJITLessSetupViewController.m LCMachOUtils.m LCAppListViewController.m LCSettingsListController.m LCTabBarController.m LCTweakListViewController.m LCUtils.m MBRoundProgressView.m UIViewController+LCAlert.m unarchive.m LCAppInfo.m LCWebView.m
+LiveContainerUI_FILES = LCVersionInfo.m LCJITLessSetupViewController.m LCUtils.m LCMachOUtils.m LCAppDelegateSwiftUI.m
 LiveContainerUI_CFLAGS = \
   -fobjc-arc \
   -DCONFIG_TYPE=\"$(CONFIG_TYPE)\" \

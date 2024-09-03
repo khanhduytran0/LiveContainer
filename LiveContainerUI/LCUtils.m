@@ -4,6 +4,7 @@
 
 #import "AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
+#import "LCVersionInfo.h"
 
 @implementation LCUtils
 
@@ -55,7 +56,13 @@
 }
 
 + (NSData *)certificateDataProperty {
-    return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+    NSData* ans = [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+    if(ans) {
+        return ans;
+    } else {
+        return [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
+    }
+    
 }
 
 + (NSData *)certificateData {
@@ -65,7 +72,11 @@
 
 + (NSString *)certificatePassword {
     if (self.certificateDataFile) {
-        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];;
+        NSString* ans = [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
+        if(ans) {
+            return ans;
+        }
+        return [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
     } else if (self.certificateDataProperty) {
         return @"";
     } else {
@@ -75,6 +86,7 @@
 
 + (void)setCertificatePassword:(NSString *)certPassword {
     [NSUserDefaults.standardUserDefaults setObject:certPassword forKey:@"LCCertificatePassword"];
+    [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] setObject:certPassword forKey:@"LCCertificatePassword"];
 }
 
 #pragma mark LCSharedUtils wrappers
@@ -225,6 +237,10 @@
     return appGroupID;
 }
 
++ (NSString *)appUrlScheme {
+    return NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
+}
+
 + (BOOL)isAppGroupAltStoreLike {
     if (self.appGroupID.length == 0) return NO;
     return [NSFileManager.defaultManager fileExistsAtPath:self.storeBundlePath.path];
@@ -299,4 +315,56 @@
 
     return tmpIPAPath;
 }
+
++ (NSURL *)archiveIPAWithBundleName:(NSString*)newBundleName error:(NSError **)error {
+    if (*error) return nil;
+
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    NSURL *bundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
+
+    NSURL *tmpPath = [appGroupPath URLByAppendingPathComponent:@"tmp"];
+    [manager removeItemAtURL:tmpPath error:nil];
+
+    NSURL *tmpPayloadPath = [tmpPath URLByAppendingPathComponent:@"Payload"];
+    NSURL *tmpIPAPath = [appGroupPath URLByAppendingPathComponent:@"tmp.ipa"];
+
+    [manager createDirectoryAtURL:tmpPath withIntermediateDirectories:YES attributes:nil error:error];
+    if (*error) return nil;
+
+    [manager copyItemAtURL:bundlePath toURL:tmpPayloadPath error:error];
+    if (*error) return nil;
+    
+    NSURL *infoPath = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/Info.plist"];
+    NSMutableDictionary *infoDict = [NSMutableDictionary dictionaryWithContentsOfURL:infoPath];
+    if (!infoDict) return nil;
+
+    infoDict[@"CFBundleDisplayName"] = newBundleName;
+    infoDict[@"CFBundleName"] = newBundleName;
+    infoDict[@"CFBundleIdentifier"] = [NSString stringWithFormat:@"com.kdt.%@", newBundleName];
+    infoDict[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0] = [newBundleName lowercaseString];
+    infoDict[@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconFiles"][0] = @"AppIcon2_60x60@2x";
+    infoDict[@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconFiles"][1] = @"AppIcon2_76x76@2x~ipad";
+    infoDict[@"CFBundleIcons"][@"CFBundlePrimaryIcon"][@"CFBundleIconFiles"][0] = @"AppIcon2_60x60@2x";
+    
+    
+    [infoDict writeToURL:infoPath error:error];
+
+    dlopen("/System/Library/PrivateFrameworks/PassKitCore.framework/PassKitCore", RTLD_GLOBAL);
+    NSData *zipData = [[NSClassFromString(@"PKZipArchiver") new] zippedDataForURL:tmpPayloadPath.URLByDeletingLastPathComponent];
+    if (!zipData) return nil;
+
+    [manager removeItemAtURL:tmpPath error:error];
+    if (*error) return nil;
+
+    [zipData writeToURL:tmpIPAPath options:0 error:error];
+    if (*error) return nil;
+
+    return tmpIPAPath;
+}
+
++ (NSString *)getVersionInfo {
+    return [NSClassFromString(@"LCVersionInfo") getVersionStr];
+}
+
 @end
