@@ -19,7 +19,6 @@ static int (*appMain)(int, char**);
 static const char *dyldImageName;
 NSUserDefaults *lcUserDefaults;
 NSString* lcAppUrlScheme;
-NSString* lcAppGroup;
 
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
@@ -197,9 +196,9 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", docPath, selectedApp];
     NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
     bool isSharedBundle = false;
-    if (!appBundle) {    
-        NSString *appGroupID = [NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"] firstObject];
-        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:appGroupID];
+    // not found locally, let's look for the app in shared folder
+    if (!appBundle) {
+        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
         appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
         
         NSString *bundlePath2 = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, selectedApp];
@@ -353,7 +352,6 @@ int LiveContainerMain(int argc, char *argv[]) {
 
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
-    lcAppGroup = [NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"] firstObject];
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
     if (selectedApp) {
         NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];

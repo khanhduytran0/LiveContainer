@@ -20,8 +20,8 @@ struct LCPath {
     public static let lcGroupDocPath = {
         let fm = FileManager()
         // it seems that Apple don't want to create one for us, so we just borrow our Store's
-        if let appGroupPath = LCUtils.appGroupPath() {
-            return URL(fileURLWithPath: appGroupPath + "/LiveContainer", isDirectory: true)
+        if let appGroupPathUrl = LCUtils.appGroupPath() {
+            return appGroupPathUrl.appendingPathComponent("LiveContainer")
         } else if let appGroupPathUrl =
                     FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.SideStore.SideStore") {
             return appGroupPathUrl.appendingPathComponent("LiveContainer")

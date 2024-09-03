@@ -3,15 +3,32 @@
 
 extern NSUserDefaults *lcUserDefaults;
 extern NSString *lcAppUrlScheme;
-extern NSString* lcAppGroup;
 
 @implementation LCSharedUtils
+
++ (NSString *)appGroupID {
+    static dispatch_once_t once;
+    static NSString *appGroupID;
+    dispatch_once(&once, ^{
+        for (NSString *group in NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"]) {
+            NSURL *path = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:group];
+            NSURL *bundlePath = [path URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app"];
+            if ([NSFileManager.defaultManager fileExistsAtPath:bundlePath.path]) {
+                // This will fail if LiveContainer is installed in both stores, but it should never be the case
+                appGroupID = group;
+                return;
+            }
+        }
+    });
+    return appGroupID;
+}
+
 + (NSString *)certificatePassword {
     NSString* ans = [lcUserDefaults objectForKey:@"LCCertificatePassword"];
     if(ans) {
         return ans;
     } else {
-        return [[[NSUserDefaults alloc] initWithSuiteName:lcAppGroup] objectForKey:@"LCCertificatePassword"];
+        return [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
     }
 }
 
