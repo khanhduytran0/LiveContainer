@@ -67,6 +67,7 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>sidestore</string>
+		<string>livecontainer</string>
 		<string>livecontainer2</string>
 		<string>livecontainer3</string>
 	</array>

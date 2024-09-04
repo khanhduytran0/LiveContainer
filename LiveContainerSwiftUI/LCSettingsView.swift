@@ -307,6 +307,8 @@ struct LCSettingsView: View {
           ] as CFDictionary)
           if status != errSecSuccess && status != errSecItemNotFound {
               //Error while removing class $0
+              errorInfo = status.description
+              errorShow = true
           }
         }
     }

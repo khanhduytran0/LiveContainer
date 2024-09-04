@@ -209,6 +209,9 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     if(!appBundle) {
         return @"App not found";
     }
+    if(isSharedBundle) {
+        [LCSharedUtils setAppRunningByThisLC:selectedApp];
+    }
     
     NSError *error;
 
@@ -279,6 +282,12 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSString *newHomePath = nil;
     if(isSharedBundle) {
         newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", appGroupFolder.path, dataUUID];
+        // move data folder to private library
+        NSURL *libraryPathUrl = [fm URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
+        NSString *sharedAppDataFolderPath = [libraryPathUrl.path stringByAppendingPathComponent:@"SharedDocuments"];
+        NSString* dataFolderPath = [appGroupFolder.path stringByAppendingPathComponent:[NSString stringWithFormat:@"Data/Application/%@", dataUUID]];
+        newHomePath = [sharedAppDataFolderPath stringByAppendingPathComponent: dataUUID];
+        [fm moveItemAtPath:dataFolderPath toPath:newHomePath error:&error];
     } else {
         newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, dataUUID];
     }
@@ -298,6 +307,7 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         NSString *dirPath = [newHomePath stringByAppendingPathComponent:dir];
         [fm createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:nil];
     }
+    [LCSharedUtils setupPreferences:newHomePath];
 
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
@@ -352,14 +362,55 @@ int LiveContainerMain(int argc, char *argv[]) {
 
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
+    
+    [LCSharedUtils moveSharedAppFolderBack];
+    
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
+    NSString* runningLC = [LCSharedUtils getAppRunningLCSchemeWithBundleId:selectedApp];
+    NSLog(@"[NMSL] running lc = %@, selectedApp= %@", runningLC, selectedApp);
+    // if another instance is running, we just switch to that one, these should be called after uiapplication initialized
+    if(selectedApp && runningLC) {
+        [lcUserDefaults removeObjectForKey:@"selected"];
+        NSString* selectedAppBackUp = selectedApp;
+        selectedApp = nil;
+        dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
+        dispatch_after(delay, dispatch_get_main_queue(), ^{
+            // Base64 encode the data
+            NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, selectedAppBackUp];
+            NSURL* url = [NSURL URLWithString:urlStr];
+            if([[UIApplication sharedApplication] canOpenURL:url]){
+                [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                
+                NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
+                // also pass url scheme to another lc
+                if(launchUrl) {
+                    [lcUserDefaults removeObjectForKey:@"launchAppUrlScheme"];
+
+                    // Base64 encode the data
+                    NSData *data = [launchUrl dataUsingEncoding:NSUTF8StringEncoding];
+                    NSString *encodedUrl = [data base64EncodedStringWithOptions:0];
+                    
+                    NSString* finalUrl = [NSString stringWithFormat:@"%@://open-url?url=%@", runningLC, encodedUrl];
+                    NSURL* url = [NSURL URLWithString: finalUrl];
+                    
+                    [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+
+                }
+            } else {
+                [LCSharedUtils removeAppRunningByLC: runningLC];
+            }
+        });
+
+    }
+    
     if (selectedApp) {
+        
         NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
         [lcUserDefaults removeObjectForKey:@"selected"];
         // wait for app to launch so that it can receive the url
         if(launchUrl) {
             [lcUserDefaults removeObjectForKey:@"launchAppUrlScheme"];
-            dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC));
+            dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
             dispatch_after(delay, dispatch_get_main_queue(), ^{
                 // Base64 encode the data
                 NSData *data = [launchUrl dataUsingEncoding:NSUTF8StringEncoding];
@@ -376,10 +427,12 @@ int LiveContainerMain(int argc, char *argv[]) {
         NSString *appError = invokeAppMain(selectedApp, argc, argv);
         if (appError) {
             [lcUserDefaults setObject:appError forKey:@"error"];
+            [LCSharedUtils setAppRunningByThisLC:nil];
             // potentially unrecovable state, exit now
             return 1;
         }
     }
+    [LCSharedUtils setAppRunningByThisLC:nil];
     void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerUI.framework/LiveContainerUI", RTLD_LAZY);
     assert(LiveContainerUIHandle);
     if([NSBundle.mainBundle.executablePath.lastPathComponent isEqualToString:@"JITLessSetup"]) {

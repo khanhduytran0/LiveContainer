@@ -17,18 +17,18 @@ static void NSUDGuestHooksInit() {
 - (CFStringRef)_identifier;
 @end
 
-// NSFileManager simulate app group
 @implementation NSUserDefaults(LiveContainerHooks)
 
 - (CFStringRef)hook__container {
+    // let LiveContainer it self bypass
+
+    if(self == NSUserDefaults.lcUserDefaults || CFStringHasPrefix([self _identifier], CFSTR("com.apple"))) {
+        return [self hook__container];
+    }
     const char *homeDir = getenv("HOME");
     CFStringRef cfHomeDir = CFStringCreateWithCString(NULL, homeDir, kCFStringEncodingUTF8);
-    // let LiveContainer it self bypass
-    CFComparisonResult r = CFStringCompare([self _identifier], kCFPreferencesCurrentApplication, 0);
-    if(r == kCFCompareEqualTo) {
-        return nil;
-    }
     return cfHomeDir;
+    
 }
 
 @end

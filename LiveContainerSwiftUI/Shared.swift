@@ -203,4 +203,24 @@ extension LCUtils {
         return ans
 
     }
+    
+    public static func getAppRunningLCScheme(bundleId: String) -> String? {
+        // Retrieve the app group path using the app group ID
+        let infoPath = LCPath.lcGroupDocPath.appendingPathComponent("appLock.plist")
+        // Read the plist file into a dictionary
+        guard let info = NSDictionary(contentsOf: infoPath) as? [String: String] else {
+            return nil
+        }
+        // Iterate over the dictionary to find the matching bundle ID
+        for (key, value) in info {
+            if value == bundleId {
+                if key == LCUtils.appUrlScheme() {
+                    return nil
+                }
+                return key
+            }
+        }
+        
+        return nil
+    }
 }

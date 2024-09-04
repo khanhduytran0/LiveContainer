@@ -80,7 +80,17 @@ struct LCAppBanner : View {
                     
 
                 VStack (alignment: .leading, content: {
-                    Text(appInfo.displayName()).font(.system(size: 16)).bold()
+                    HStack {
+                        Text(appInfo.displayName()).font(.system(size: 16)).bold()
+                        if uiIsShared {
+                            Text("SHARED").font(.system(size: 8)).bold().padding(2)
+                                .frame(width: 50, height:16)
+                                .background(
+                                    Capsule().fill(Color("BadgeColor"))
+                                )
+                        }
+                    }
+
                     Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(Color("FontColor"))
                     Text(uiDataFolder == nil ? "Data folder not created yet" : uiDataFolder!).font(.system(size: 8)).foregroundColor(Color("FontColor"))
                 })
@@ -273,6 +283,13 @@ struct LCAppBanner : View {
     }
     
     func runApp() async {
+        if let runningLC = LCUtils.getAppRunningLCScheme(bundleId: self.appInfo.relativeBundlePath) {
+            let openURL = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(self.appInfo.relativeBundlePath!)")!
+            if await UIApplication.shared.canOpenURL(openURL) {
+                await UIApplication.shared.open(openURL)
+                return
+            }
+        }
         isAppRunning = true
 
         let patchInfo = appInfo.patchExec()
