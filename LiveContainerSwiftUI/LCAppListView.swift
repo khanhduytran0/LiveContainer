@@ -271,17 +271,27 @@ struct LCAppListView : View, LCAppBannerDelegate {
         }
         let decompressProgress = Progress.discreteProgress(totalUnitCount: 100)
         installProgress.addChild(decompressProgress, withPendingUnitCount: 80)
+        let payloadPath = fm.temporaryDirectory.appendingPathComponent("Payload")
+        if fm.fileExists(atPath: payloadPath.path) {
+            try fm.removeItem(at: payloadPath)
+        }
         
         // decompress
         extract(url.path, fm.temporaryDirectory.path, decompressProgress)
         url.stopAccessingSecurityScopedResource()
         
-        let payloadPath = fm.temporaryDirectory.appendingPathComponent("Payload")
         let payloadContents = try fm.contentsOfDirectory(atPath: payloadPath.path)
-        if payloadContents.count < 1 || !payloadContents[0].hasSuffix(".app") {
+        var appBundleName : String? = nil
+        for fileName in payloadContents {
+            if fileName.hasSuffix(".app") {
+                appBundleName = fileName
+                break
+            }
+        }
+        guard let appBundleName = appBundleName else {
             throw "App bundle not found"
         }
-        let appBundleName = payloadContents[0]
+
         let appFolderPath = payloadPath.appendingPathComponent(appBundleName)
         
         guard let newAppInfo = LCAppInfo(bundlePath: appFolderPath.path) else {

@@ -147,40 +147,65 @@ extern NSString *lcAppUrlScheme;
 
 }
 
-+ (void)setupPreferences:(NSString*) newHomePath {
+// move all plists file from fromPath to toPath
++ (void)movePreferencesFromPath:(NSString*) plistLocationFrom toPath:(NSString*)plistLocationTo {
     NSFileManager* fm = [[NSFileManager alloc] init];
     NSError* error1;
-    NSString* plistLocationFrom = [NSString stringWithFormat:@"%@/Library/Preferences/", newHomePath];
     NSArray<NSString *> * plists = [fm contentsOfDirectoryAtPath:plistLocationFrom error:&error1];
 
-    NSString* plistLocationTo = [NSString stringWithFormat:@"%s/Library/Preferences/", getenv("LC_HOME_PATH")];
-    // remove all symbolic links first
+    // remove all plists in toPath first
     NSArray *directoryContents = [fm contentsOfDirectoryAtPath:plistLocationTo error:&error1];
     for (NSString *item in directoryContents) {
-        NSString *itemPath = [plistLocationTo stringByAppendingPathComponent:item];
-
-        // Get the attributes of the item
-        NSDictionary *attributes = [fm attributesOfItemAtPath:itemPath error:&error1];
-        if (error1) {
-            NSLog(@"Error reading attributes of item: %@, %@", item, error1.localizedDescription);
+        // Check if the item is a plist and does not contain "LiveContainer"
+        if(![item hasSuffix:@".plist"] || [item containsString:@"livecontainer"]) {
             continue;
         }
-
-        // Check if the item is a symbolic link
-        if ([attributes[NSFileType] isEqualToString:NSFileTypeSymbolicLink]) {
-            // Attempt to delete the symbolic link
-            [fm removeItemAtPath:itemPath error:&error1];
-        }
+        NSString *itemPath = [plistLocationTo stringByAppendingPathComponent:item];
+        // Attempt to delete the file
+        [fm removeItemAtPath:itemPath error:&error1];
     }
     
-    // link all plists
-    for(int i =0; i < [plists count]; ++i) {
-        NSString* linkPath = [NSString stringWithFormat:@"%@/%@", plistLocationTo, plists[i]];
-        if([fm fileExistsAtPath:linkPath] && ![linkPath containsString:@"livecontainer"]) {
-            [fm removeItemAtPath:linkPath error:&error1];
+    [fm createDirectoryAtPath:plistLocationTo withIntermediateDirectories:YES attributes:@{} error:&error1];
+    // move all plists in fromPath to toPath
+    for (NSString* item in plists) {
+        if(![item hasSuffix:@".plist"] || [item containsString:@"livecontainer"]) {
+            continue;
         }
-        symlink([NSString stringWithFormat:@"%@/%@", plistLocationFrom, plists[i]].UTF8String, linkPath.UTF8String);
+        NSString* toPlistPath = [NSString stringWithFormat:@"%@/%@", plistLocationTo, item];
+        NSString* fromPlistPath = [NSString stringWithFormat:@"%@/%@", plistLocationFrom, item];
+        
+        [fm moveItemAtPath:fromPlistPath toPath:toPlistPath error:&error1];
+        if(error1) {
+            NSLog(@"[NMSL] error1 = %@", error1.description);
+        }
+        
     }
+
+}
+
+// to make apple happy and prevent, we have to load all preferences into NSUserDefault so that guest app can read them
++ (void)loadPreferencesFromPath:(NSString*) plistLocationFrom {
+    NSFileManager* fm = [[NSFileManager alloc] init];
+    NSError* error1;
+    NSArray<NSString *> * plists = [fm contentsOfDirectoryAtPath:plistLocationFrom error:&error1];
+    
+    // move all plists in fromPath to toPath
+    for (NSString* item in plists) {
+        if(![item hasSuffix:@".plist"] || [item containsString:@"livecontainer"]) {
+            continue;
+        }
+        NSString* fromPlistPath = [NSString stringWithFormat:@"%@/%@", plistLocationFrom, item];
+        // load, the file and sync
+        NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithContentsOfFile:fromPlistPath];
+        NSUserDefaults* nud = [[NSUserDefaults alloc] initWithSuiteName: [item substringToIndex:[item length]-6]];
+        for(NSString* key in dict) {
+            [nud setObject:dict[key] forKey:key];
+        }
+        
+        [nud synchronize];
+        
+    }
+
 }
 
 // move app data to private folder to prevent 0xdead10cc https://forums.developer.apple.com/forums/thread/126438

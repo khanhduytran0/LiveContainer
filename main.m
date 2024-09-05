@@ -201,8 +201,8 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
         appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
         
-        NSString *bundlePath2 = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, selectedApp];
-        appBundle = [[NSBundle alloc] initWithPath:bundlePath2];
+        bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, selectedApp];
+        appBundle = [[NSBundle alloc] initWithPath:bundlePath];
         isSharedBundle = true;
     }
     
@@ -255,19 +255,6 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
 
     // Overwrite NSUserDefaults
     NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
-
-    // Overwrite NSBundle
-    overwriteMainNSBundle(appBundle);
-
-    // Overwrite CFBundle
-    overwriteMainCFBundle();
-
-    // Overwrite executable info
-    NSMutableArray<NSString *> *objcArgv = NSProcessInfo.processInfo.arguments.mutableCopy;
-    objcArgv[0] = appBundle.executablePath;
-    [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
-    NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
-    *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
     
     // Set & save the folder it it does not exist in Info.plist
     NSString* dataUUID = appBundle.infoDictionary[@"LCDataUUID"];
@@ -307,8 +294,27 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         NSString *dirPath = [newHomePath stringByAppendingPathComponent:dir];
         [fm createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:nil];
     }
-    [LCSharedUtils setupPreferences:newHomePath];
+    [LCSharedUtils loadPreferencesFromPath:[newHomePath stringByAppendingPathComponent:@"Library/Preferences"]];
+    [lcUserDefaults setObject:dataUUID forKey:@"lastLaunchDataUUID"];
+    if(isSharedBundle) {
+        [lcUserDefaults setObject:@"Shared" forKey:@"lastLaunchType"];
+    } else {
+        [lcUserDefaults setObject:@"Private" forKey:@"lastLaunchType"];
+    }
 
+    
+    // Overwrite NSBundle
+    overwriteMainNSBundle(appBundle);
+
+    // Overwrite CFBundle
+    overwriteMainCFBundle();
+
+    // Overwrite executable info
+    NSMutableArray<NSString *> *objcArgv = NSProcessInfo.processInfo.arguments.mutableCopy;
+    objcArgv[0] = appBundle.executablePath;
+    [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
+    NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
+    *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
@@ -363,6 +369,25 @@ int LiveContainerMain(int argc, char *argv[]) {
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
     
+    // move preferences first then the entire folder
+    
+
+    NSString* lastLaunchDataUUID = [lcUserDefaults objectForKey:@"lastLaunchDataUUID"];
+    if(lastLaunchDataUUID) {
+        NSString* lastLaunchType = [lcUserDefaults objectForKey:@"lastLaunchType"];
+        NSString* preferencesTo;
+        NSURL *libraryPathUrl = [NSFileManager.defaultManager URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
+        NSURL *docPathUrl = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject;
+        if([lastLaunchType isEqualToString:@"Shared"]) {
+            preferencesTo = [libraryPathUrl.path stringByAppendingPathComponent:[NSString stringWithFormat:@"SharedDocuments/%@/Library/Preferences", lastLaunchDataUUID]];
+        } else {
+            preferencesTo = [docPathUrl.path stringByAppendingPathComponent:[NSString stringWithFormat:@"Data/Application/%@/Library/Preferences", lastLaunchDataUUID]];
+        }
+        [LCSharedUtils movePreferencesFromPath:[NSString stringWithFormat:@"%@/Preferences", libraryPathUrl.path] toPath:preferencesTo];
+        [lcUserDefaults removeObjectForKey:@"lastLaunchDataUUID"];
+        [lcUserDefaults removeObjectForKey:@"lastLaunchType"];
+    }
+
     [LCSharedUtils moveSharedAppFolderBack];
     
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
