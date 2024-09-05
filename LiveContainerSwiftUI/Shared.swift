@@ -161,6 +161,17 @@ struct SiteAssociation : Codable {
 }
 
 extension LCUtils {
+    // 0= not installed, 1= is installed, 2=current liveContainer is the second one
+    public static let multiLCStatus = {
+        if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {
+            return 2
+        } else if UIApplication.shared.canOpenURL(URL(string: "livecontainer2://")!) {
+            return 1
+        } else {
+            return 0
+        }
+    }()
+    
     public static func signFilesInFolder(url: URL, onProgressCreated: (Progress) -> Void) async -> String? {
         let fm = FileManager()
         var ans : String? = nil

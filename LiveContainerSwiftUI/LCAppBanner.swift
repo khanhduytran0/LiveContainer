@@ -182,7 +182,7 @@ struct LCAppBanner : View {
                 }, label: {
                     Label("Change Tweak Folder", systemImage: "gear")
                 })
-            } else {
+            } else if LCUtils.multiLCStatus != 2 {
                 Button {
                     Task { await movePrivateDoc() }
                 } label: {
@@ -483,6 +483,13 @@ struct LCAppBanner : View {
     }
     
     func movePrivateDoc() async {
+        let runningLC = LCUtils.getAppRunningLCScheme(bundleId: appInfo.relativeBundlePath!)
+        if runningLC != nil {
+            errorInfo = "Data of this app is currently in \(runningLC!). Open \(runningLC!) and launch it to 'My Apps' screen and try again."
+            errorShow = true
+            return
+        }
+        
         await withCheckedContinuation { c in
             confirmMoveToPrivateDocContinuation = c
             confirmMoveToPrivateDocShow = true

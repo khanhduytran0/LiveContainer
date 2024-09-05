@@ -101,6 +101,36 @@ void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
 
 }
 
+void handleLiveContainerLaunch(NSURL* url) {
+    // If it's not current app, then switch
+    // check if there are other LCs is running this app
+    NSString* bundleName = nil;
+    NSString* openUrl = nil;
+    NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
+    for (NSURLQueryItem* queryItem in components.queryItems) {
+        if ([queryItem.name isEqualToString:@"bundle-name"]) {
+            bundleName = queryItem.value;
+        } else if ([queryItem.name isEqualToString:@"open-url"]) {
+            NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:queryItem.value options:0];
+            openUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
+        }
+    }
+    
+    if ([bundleName isEqualToString:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
+        if(openUrl) {
+            openUniversalLink(openUrl);
+        }
+    } else {
+        NSString* runningLC = [NSClassFromString(@"LCSharedUtils") getAppRunningLCSchemeWithBundleId:bundleName];
+        if(runningLC) {
+            NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, bundleName];
+            [UIApplication.sharedApplication openURL:[NSURL URLWithString:urlStr] options:@{} completionHandler:nil];
+            return;
+        }
+        LCShowSwitchAppConfirmation(url);
+    }
+}
+
 // Handler for AppDelegate
 @implementation UIApplication(LiveContainerHook)
 - (void)hook__applicationOpenURLAction:(id)action payload:(NSDictionary *)payload origin:(id)origin {
@@ -137,10 +167,7 @@ void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
         
         return;
     } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-launch?bundle-name=", NSUserDefaults.lcAppUrlScheme]]) {
-        if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
-            LCShowSwitchAppConfirmation([NSURL URLWithString:url]);
-        }
-        return;
+        handleLiveContainerLaunch([NSURL URLWithString:url]);
         // Not what we're looking for, pass it
         
     }
@@ -198,27 +225,7 @@ void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
         }
 
     } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-launch?bundle-name=", NSUserDefaults.lcAppUrlScheme]]){
-        
-        // If it's not current app, then switch
-        if (![url hasSuffix:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
-            // check if there are other LCs is running this app
-            NSURLComponents* components = [NSURLComponents componentsWithString:url];
-            for (NSURLQueryItem* queryItem in components.queryItems) {
-                if ([queryItem.name isEqualToString:@"bundle-name"]) {
-                    NSString* runningLC = [NSClassFromString(@"LCSharedUtils") getAppRunningLCSchemeWithBundleId:queryItem.value];
-                    if(runningLC) {
-                        NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, queryItem.value];
-                        [UIApplication.sharedApplication openURL:[NSURL URLWithString:urlStr] options:@{} completionHandler:nil];
-                        return;
-                    }
-                    break;
-                }
-            }
-            
-            
-            
-            LCShowSwitchAppConfirmation(urlAction.url);
-        }
+        handleLiveContainerLaunch(urlAction.url);
         
     }
 

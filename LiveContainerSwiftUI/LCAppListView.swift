@@ -60,6 +60,10 @@ struct LCAppListView : View, LCAppBannerDelegate {
                                 LCAppBanner(appInfo: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
                             }
                             .transition(.scale)
+                            
+                            if LCUtils.multiLCStatus == 2 {
+                                Text("Manage apps in the primary LiveContainer").foregroundStyle(.gray).padding()
+                            }
                         }
                         .padding()
                     } header: {
@@ -94,23 +98,24 @@ struct LCAppListView : View, LCAppBannerDelegate {
             .navigationTitle("My Apps")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    if !installprogressVisible {
-                        Button("Add", systemImage: "plus", action: {
-                            if choosingIPA {
-                                choosingIPA = false
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                    if LCUtils.multiLCStatus != 2 {
+                        if !installprogressVisible {
+                            Button("Add", systemImage: "plus", action: {
+                                if choosingIPA {
+                                    choosingIPA = false
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                                        choosingIPA = true
+                                    })
+                                } else {
                                     choosingIPA = true
-                                })
-                            } else {
-                                choosingIPA = true
-                            }
+                                }
 
-                            
-                        })
-                    } else {
-                        ProgressView().progressViewStyle(.circular)
+                                
+                            })
+                        } else {
+                            ProgressView().progressViewStyle(.circular)
+                        }
                     }
-
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Open Link", systemImage: "link", action: {

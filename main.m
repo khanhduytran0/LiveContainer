@@ -367,7 +367,6 @@ int LiveContainerMain(int argc, char *argv[]) {
     
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
     NSString* runningLC = [LCSharedUtils getAppRunningLCSchemeWithBundleId:selectedApp];
-    NSLog(@"[NMSL] running lc = %@, selectedApp= %@", runningLC, selectedApp);
     // if another instance is running, we just switch to that one, these should be called after uiapplication initialized
     if(selectedApp && runningLC) {
         [lcUserDefaults removeObjectForKey:@"selected"];

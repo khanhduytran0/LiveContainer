@@ -1,6 +1,7 @@
 #import "LCAppDelegateSwiftUI.h"
 #import <UIKit/UIKit.h>
 #import "LCUtils.h"
+#import "LCSharedUtils.h"
 
 @implementation LCAppDelegateSwiftUI
 
@@ -23,7 +24,21 @@
        NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:urlComponent.queryItems[0].value options:0];
        NSString *decodedUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
        [NSClassFromString(@"LCSwiftBridge") openWebPageWithUrlStr:decodedUrl];
+   } else if([url.host isEqualToString:@"livecontainer-launch"]) {
+       NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
+       for (NSURLQueryItem* queryItem in components.queryItems) {
+           if ([queryItem.name isEqualToString:@"bundle-name"]) {
+               NSString* runningLC = [NSClassFromString(@"LCSharedUtils") getAppRunningLCSchemeWithBundleId:queryItem.value];
+               if(runningLC) {
+                   NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, queryItem.value];
+                   [UIApplication.sharedApplication openURL:[NSURL URLWithString:urlStr] options:@{} completionHandler:nil];
+                   return YES;
+               }
+               break;
+           }
+       }
    }
+
     return [LCUtils launchToGuestAppWithURL:url];
 }
 

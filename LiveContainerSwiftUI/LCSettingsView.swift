@@ -25,8 +25,6 @@ struct LCSettingsView: View {
     @State private var confirmKeyChainContinuation : CheckedContinuation<Void, Never>? = nil
     
     @State var isJitLessEnabled = false
-    // 0= not installed, 1= is installed, 2=current liveContainer is the second one
-    @State var multipleLiveContainerStatus = 0
     
     @State var isAltCertIgnored = false
     @State var frameShortIcon = false
@@ -42,19 +40,13 @@ struct LCSettingsView: View {
         
         _apps = apps
         _appDataFolderNames = appDataFolderNames
-        if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {
-            _multipleLiveContainerStatus = State(initialValue: 2)
-        } else if UIApplication.shared.canOpenURL(URL(string: "livecontainer2://")!) {
-            _multipleLiveContainerStatus = State(initialValue: 1)
-        } else {
-            _multipleLiveContainerStatus = State(initialValue: 0)
-        }
+
     }
     
     var body: some View {
         NavigationView {
             Form {
-                if multipleLiveContainerStatus != 2 {
+                if LCUtils.multiLCStatus != 2 {
                     Section{
                         Button {
                             setupJitLess()
@@ -76,16 +68,16 @@ struct LCSettingsView: View {
                     Button {
                         installAnotherLC()
                     } label: {
-                        if multipleLiveContainerStatus == 0 {
+                        if LCUtils.multiLCStatus == 0 {
                             Text("Install another LiveContainer")
-                        } else if multipleLiveContainerStatus == 1 {
-                            Text("Second LiveContainer Already Installed")
-                        } else if multipleLiveContainerStatus == 2 {
+                        } else if LCUtils.multiLCStatus == 1 {
+                            Text("Reinstall another LiveContainer")
+                        } else if LCUtils.multiLCStatus == 2 {
                             Text("This is the second LiveContainer")
                         }
 
                     }
-                    .disabled(multipleLiveContainerStatus > 0)
+                    .disabled(LCUtils.multiLCStatus == 2)
                 } header: {
                     Text("Multiple LiveContainers")
                 } footer: {

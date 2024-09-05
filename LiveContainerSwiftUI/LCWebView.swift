@@ -126,6 +126,24 @@ struct LCWebView: View {
         webView.setObserver(observer: observer)
     }
     
+    func launchToApp(bundleId: String, url: URL) {
+        if let runningLC = LCUtils.getAppRunningLCScheme(bundleId: bundleId) {
+            
+            let encodedUrl = Data(url.absoluteString.utf8).base64EncodedString()
+            if let urlToOpen = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(bundleId)&open-url=\(encodedUrl)"), UIApplication.shared.canOpenURL(urlToOpen) {
+                NSLog("[NMSL] urlToOpen = \(urlToOpen.absoluteString)")
+                UIApplication.shared.open(urlToOpen)
+                isPresent = false
+                return
+            }
+
+        }
+        
+        UserDefaults.standard.setValue(bundleId, forKey: "selected")
+        UserDefaults.standard.setValue(url.absoluteString, forKey: "launchAppUrlScheme")
+        LCUtils.launchToGuestApp()
+    }
+    
     public func onURLSchemeDetected(url: URL) async {
         var appToLaunch : LCAppInfo? = nil
     appLoop: for app in apps {
@@ -156,9 +174,7 @@ struct LCWebView: View {
             return
         }
         
-        UserDefaults.standard.setValue(appToLaunch.relativeBundlePath!, forKey: "selected")
-        UserDefaults.standard.setValue(url.absoluteString, forKey: "launchAppUrlScheme")
-        LCUtils.launchToGuestApp()
+        launchToApp(bundleId: appToLaunch.relativeBundlePath!, url: url)
         
     }
     
@@ -188,9 +204,7 @@ struct LCWebView: View {
         if !doRunApp {
             return
         }
-        UserDefaults.standard.setValue(appToLaunch.relativeBundlePath!, forKey: "selected")
-        UserDefaults.standard.setValue(url.absoluteString, forKey: "launchAppUrlScheme")
-        LCUtils.launchToGuestApp()
+        launchToApp(bundleId: appToLaunch.relativeBundlePath!, url: url)
     }
 }
 

@@ -61,15 +61,26 @@ extern NSString *lcAppUrlScheme;
     NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
     if(![components.host isEqualToString:@"livecontainer-launch"]) return NO;
 
+    NSString* launchBundleId = nil;
+    NSString* openUrl = nil;
     for (NSURLQueryItem* queryItem in components.queryItems) {
         if ([queryItem.name isEqualToString:@"bundle-name"]) {
-            [lcUserDefaults setObject:queryItem.value forKey:@"selected"];
-
-            // Attempt to restart LiveContainer with the selected guest app
-            return [self launchToGuestApp];
-            break;
+            launchBundleId = queryItem.value;
+        } else if ([queryItem.name isEqualToString:@"open-url"]){
+            NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:queryItem.value options:0];
+            openUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
         }
     }
+    if(launchBundleId) {
+        if (openUrl) {
+            [lcUserDefaults setObject:openUrl forKey:@"launchAppUrlScheme"];
+        }
+        
+        // Attempt to restart LiveContainer with the selected guest app
+        [lcUserDefaults setObject:launchBundleId forKey:@"selected"];
+        return [self launchToGuestApp];
+    }
+    
     return NO;
 }
 
@@ -172,6 +183,7 @@ extern NSString *lcAppUrlScheme;
     }
 }
 
+// move app data to private folder to prevent 0xdead10cc https://forums.developer.apple.com/forums/thread/126438
 + (void)moveSharedAppFolderBack {
     NSFileManager *fm = NSFileManager.defaultManager;
     NSURL *libraryPathUrl = [fm URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask]
