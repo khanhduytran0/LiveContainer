@@ -11,6 +11,8 @@ import SwiftUI
 struct LCSettingsView: View {
     @State var errorShow = false
     @State var errorInfo = ""
+    @State var successShow = false
+    @State var successInfo = ""
     
     @Binding var apps: [LCAppInfo]
     @Binding var appDataFolderNames: [String]
@@ -120,6 +122,11 @@ struct LCSettingsView: View {
                 }
                 
                 Section {
+                    Button {
+                        Task { await moveDanglingFolders() }
+                    } label: {
+                        Text("Move Dangling Folders Out of App Group")
+                    }
                     Button(role:.destructive) {
                         Task { await cleanUpUnusedFolders() }
                     } label: {
@@ -143,6 +150,9 @@ struct LCSettingsView: View {
             .navigationBarTitle("Settings")
             .alert(isPresented: $errorShow){
                 Alert(title: Text("Error"), message: Text(errorInfo))
+            }
+            .alert(isPresented: $successShow){
+                Alert(title: Text("Success"), message: Text(successInfo))
             }
             .alert("Data Folder Clean Up", isPresented: $confirmAppFolderRemovalShow) {
                 if folderRemoveCount > 0 {
@@ -302,6 +312,52 @@ struct LCSettingsView: View {
               errorInfo = status.description
               errorShow = true
           }
+        }
+    }
+    
+    func moveDanglingFolders() async {
+        let fm = FileManager()
+        do {
+            var appDataFoldersInUse : Set<String> = Set();
+            var tweakFoldersInUse : Set<String> = Set();
+            for app in apps {
+                if !app.isShared {
+                    continue
+                }
+                if let folder = app.getDataUUIDNoAssign() {
+                    appDataFoldersInUse.update(with: folder);
+                }
+                if let folder = app.tweakFolder() {
+                    tweakFoldersInUse.update(with: folder);
+                }
+
+            }
+            
+            var movedDataFolderCount = 0
+            let sharedDataFolders = try fm.contentsOfDirectory(atPath: LCPath.lcGroupDataPath.path)
+            for sharedDataFolder in sharedDataFolders {
+                if appDataFoldersInUse.contains(sharedDataFolder) {
+                    continue
+                }
+                try fm.moveItem(at: LCPath.lcGroupDataPath.appendingPathComponent(sharedDataFolder), to: LCPath.dataPath.appendingPathComponent(sharedDataFolder))
+                movedDataFolderCount += 1
+            }
+            
+            var movedTweakFolderCount = 0
+            let sharedTweakFolders = try fm.contentsOfDirectory(atPath: LCPath.lcGroupTweakPath.path)
+            for tweakFolderInUse in sharedTweakFolders {
+                if tweakFoldersInUse.contains(tweakFolderInUse) || tweakFolderInUse == "TweakLoader.dylib" {
+                    continue
+                }
+                try fm.moveItem(at: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolderInUse), to: LCPath.tweakPath.appendingPathComponent(tweakFolderInUse))
+                movedTweakFolderCount += 1
+            }
+            successInfo = "Moved \(movedDataFolderCount) data folder(s) and \(movedTweakFolderCount) tweak folders."
+            successShow = true
+            
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
         }
     }
 
