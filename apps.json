@@ -1,0 +1,83 @@
+{
+  "name": "LiveContainer",
+  "identifier": "com.livecontainer.source",
+  "website": "https://github.com/khanhduytran0/LiveContainer",
+  "subtitle": "LiveContainer official Altstore source.",
+  "description": "This is the official Altstore source for LiveContainer.\n\n Run iOS app without actually installing it!",
+  "tintColor": "#0784FC",
+  "iconURL": "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/Resources/AppIcon76x76.png",
+  "headerURL": "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/screenshots/header.png",
+  "apps": [
+    {
+      "beta": false,
+      "name": "LiveContainer",
+      "bundleIdentifier": "com.kdt.livecontainer",
+      "developerName": "khanhduytran0",
+      "subtitle": "Run iOS app without actually installing it!",
+      "version": "",
+      "versionDate": "",
+      "versionDescription": "",
+      "downloadURL": "",
+      "localizedDescription": "Run iOS app without actually installing it!",
+      "iconURL": "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/Resources/AppIcon76x76.png",
+      "tintColor": "#0784FC",
+      "category": "utilities",
+      "size": 0,
+      "screenshotURLs": [
+        "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/screenshots/1.png"
+      ],
+      "appPermissions": {
+        "entitlements": [
+          "application-identifier",
+          "com.apple.security.application-groups",
+          "get-task-allow<",
+          "keychain-access-groups"
+        ],
+        "privacy": {
+          "LSRequiresIPhoneOS": "The guest app is requesting for this permission.",
+          "NFCReaderUsageDescription": "The guest app is requesting for this permission.",
+          "NSAppleMusicUsageDescription": "The guest app is requesting for this permission.",
+          "NSBluetoothAlwaysUsageDescription": "The guest app is requesting for this permission.",
+          "NSBluetoothPeripheralUsageDescription": "The guest app is requesting for this permission.",
+          "NSCalendarsFullAccessUsageDescription": "The guest app is requesting for this permission.",
+          "NSCalendarsWriteOnlyAccessUsageDescription": "The guest app is requesting for this permission.",
+          "NSCameraUsageDescription": "The guest app is requesting for this permission.",
+          "NSContactsUsageDescription": "The guest app is requesting for this permission.",
+          "NSFaceIDUsageDescription": "The guest app is requesting for this permission.",
+          "NSFallDetectionUsageDescription": "The guest app is requesting for this permission.",
+          "NSGKFriendListUsageDescription": "The guest app is requesting for this permission.",
+          "NSHealthClinicalHealthRecordsShareUsageDescription": "The guest app is requesting for this permission.",
+          "NSHealthRequiredReadAuthorizationTypeIdentifiers": "The guest app is requesting for this permission.",
+          "NSHomeKitUsageDescription": "The guest app is requesting for this permission.",
+          "NSIdentityUsageDescription": "The guest app is requesting for this permission.",
+          "NSLocalNetworkUsageDescription": "The guest app is requesting for this permission.",
+          "NSLocationDefaultAccuracyReduced": "The guest app is requesting for this permission.",
+          "NSLocationTemporaryUsageDescriptionDictionary": "The guest app is requesting for this permission.",
+          "NSLocationUsageDescription": "The guest app is requesting for this permission.",
+          "NSLocationWhenInUseUsageDescription": "The guest app is requesting for this permission.",
+          "NSMicrophoneUsageDescription": "The guest app is requesting for this permission.",
+          "NSMotionUsageDescription": "The guest app is requesting for this permission.",
+          "NSNearbyInteractionAllowOnceUsageDescription": "The guest app is requesting for this permission.",
+          "NSNearbyInteractionUsageDescription": "The guest app is requesting for this permission.",
+          "NSPhotoLibraryAddUsageDescription": "The guest app is requesting for this permission.",
+          "NSPhotoLibraryUsageDescription": "The guest app is requesting for this permission.",
+          "NSRemindersFullAccessUsageDescription": "The guest app is requesting for this permission.",
+          "NSSensorKitUsageDescription": "The guest app is requesting for this permission.",
+          "NSSiriUsageDescription": "The guest app is requesting for this permission.",
+          "NSSpeechRecognitionUsageDescription": "The guest app is requesting for this permission.",
+          "NSUserTrackingUsageDescription": "The guest app is requesting for this permission.",
+          "SBAppUsesLocalNotifications": "The guest app is requesting for this permission.",
+          "UIApplicationSceneManifest": "The guest app is requesting for this permission."
+        }
+      },
+      "versions": [
+        {
+        }
+      ]
+    }
+  ],
+  "news": [
+    {
+    }
+  ]
+}
