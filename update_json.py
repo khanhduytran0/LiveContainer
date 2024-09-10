@@ -53,7 +53,7 @@ def update_json_file(json_file, latest_release):
 
     description = latest_release["body"]
 
-    download_url = f"https://github.com/staubgeborener/LiveContainer/releases/download/{version}/com.kdt.livecontainer_{version}.ipa"
+    download_url = f"https://github.com/khanhduytran0/LiveContainer/releases/download/{version}/com.kdt.livecontainer_{version}.ipa"
     size = get_file_size(download_url) if download_url else None
 
     version_entry = {
@@ -88,11 +88,11 @@ def update_json_file(json_file, latest_release):
         "caption": f"Update of LiveContainer just got released!",
         "date": latest_release["published_at"],
         "identifier": news_identifier,
-        "imageURL": "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/screenshots/release.png",
+        "imageURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/screenshots/release.png",
         "notify": True,
         "tintColor": "#0784FC",
         "title": f"{full_version} - LiveContainer  {date_string}",
-        "url": f"https://github.com/Staubgeborener/LiveContainer/releases/tag/{tag}"
+        "url": f"https://github.com/khanhduytran0/LiveContainer/releases/tag/{tag}"
     }
 
     news_entry_exists = any(item["identifier"] == news_identifier for item in data["news"])
@@ -108,7 +108,7 @@ def update_json_file(json_file, latest_release):
         raise
 
 def main():
-    repo_url = "Staubgeborener/LiveContainer"
+    repo_url = "khanhduytran0/LiveContainer"
     json_file = "apps.json"
 
     try:
