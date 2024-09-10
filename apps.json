@@ -5,8 +5,8 @@
   "subtitle": "LiveContainer official Altstore source.",
   "description": "This is the official Altstore source for LiveContainer.\n\n Run iOS app without actually installing it!",
   "tintColor": "#0784FC",
-  "iconURL": "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/Resources/AppIcon76x76.png",
-  "headerURL": "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/screenshots/header.png",
+  "iconURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/Resources/AppIcon76x76.png",
+  "headerURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/screenshots/header.png",
   "apps": [
     {
       "beta": false,
@@ -14,23 +14,23 @@
       "bundleIdentifier": "com.kdt.livecontainer",
       "developerName": "khanhduytran0",
       "subtitle": "Run iOS app without actually installing it!",
-      "version": "2.1.3",
-      "versionDate": "2024-09-10",
-      "versionDescription": "just a test",
-      "downloadURL": "https://github.com/staubgeborener/LiveContainer/releases/download/2.1.3/com.kdt.livecontainer_2.1.3.ipa",
+      "version": "2.1.2",
+      "versionDate": "2024-08-15",
+      "versionDescription": "Feature: AltStore support",
+      "downloadURL": "https://github.com/khanhduytran0/LiveContainer/releases/download/2.1.2/com.kdt.livecontainer_2.1.2.ipa",
       "localizedDescription": "Run iOS app without actually installing it!",
-      "iconURL": "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/Resources/AppIcon76x76.png",
+      "iconURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/Resources/AppIcon76x76.png",
       "tintColor": "#0784FC",
       "category": "utilities",
       "size": 0,
       "screenshotURLs": [
-        "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/screenshots/1.png"
+        "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/screenshots/1.png"
       ],
       "appPermissions": {
         "entitlements": [
           "application-identifier",
           "com.apple.security.application-groups",
-          "get-task-allow<",
+          "get-task-allow",
           "keychain-access-groups"
         ],
         "privacy": {
@@ -72,10 +72,10 @@
       },
       "versions": [
         {
-          "version": "2.1.3",
-          "date": "2024-09-10",
+          "version": "2.1.2",
+          "date": "2024-08-15",
           "localizedDescription": "just a test",
-          "downloadURL": "https://github.com/staubgeborener/LiveContainer/releases/download/2.1.3/com.kdt.livecontainer_2.1.3.ipa",
+          "downloadURL": "https://github.com/khanhduytran0/LiveContainer/releases/download/2.1.2/com.kdt.livecontainer_2.1.2.ipa",
           "size": 0
         }
       ]
@@ -85,13 +85,13 @@
     {
       "appID": "com.kdt.livecontainer",
       "caption": "Update of LiveContainer just got released!",
-      "date": "2024-09-10T10:47:52Z",
-      "identifier": "release-2.1.3",
-      "imageURL": "https://raw.githubusercontent.com/Staubgeborener/LiveContainer/main/screenshots/release.png",
+      "date": "2024-08-15T08:24:55Z",
+      "identifier": "release-2.1.2",
+      "imageURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/screenshots/release.png",
       "notify": true,
       "tintColor": "#0784FC",
-      "title": "2.1.3 - LiveContainer  10/09/24",
-      "url": "https://github.com/Staubgeborener/LiveContainer/releases/tag/2.1.3"
+      "title": "2.1.2 - LiveContainer  15/08/24",
+      "url": "https://github.com/khanhduytran0/LiveContainer/releases/tag/2.1.2"
     }
   ]
 }
