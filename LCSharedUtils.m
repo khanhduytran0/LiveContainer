@@ -62,13 +62,30 @@ extern NSString *lcAppUrlScheme;
     NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
     if (!access(tsPath.UTF8String, F_OK)) {
         urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
+        NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
+        if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
+            [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:nil];
+            return YES;
+        }
     } else {
-        urlScheme = @"sidestore://sidejit-enable?bid=%@";
-    }
-    NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
-    if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
-        [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:nil];
-        return YES;
+        NSUserDefaults* groupUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]];
+        
+        NSString* sideJITServerAddress = [groupUserDefaults objectForKey:@"LCSideJITServerAddress"];
+        NSString* deviceUDID = [groupUserDefaults objectForKey:@"LCDeviceUDID"];
+        if (!sideJITServerAddress || !deviceUDID) {
+            return NO;
+        }
+        NSString* launchJITUrlStr = [NSString stringWithFormat: @"%@/%@/%@", sideJITServerAddress, deviceUDID, NSBundle.mainBundle.bundleIdentifier];
+        NSURLSession* session = [NSURLSession sharedSession];
+        NSURL* launchJITUrl = [NSURL URLWithString:launchJITUrlStr];
+        NSURLRequest* req = [[NSURLRequest alloc] initWithURL:launchJITUrl];
+        NSURLSessionDataTask *task = [session dataTaskWithRequest:req completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+            if(error) {
+                NSLog(@"[LC] failed to contact SideJITServer: %@", error);
+            }
+        }];
+        [task resume];
+        
     }
     return NO;
 }

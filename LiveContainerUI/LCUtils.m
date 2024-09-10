@@ -350,7 +350,31 @@
     infoDict[@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconFiles"][0] = @"AppIcon60x60_2";
     infoDict[@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconFiles"][1] = @"AppIcon76x76_2";
     infoDict[@"CFBundleIcons"][@"CFBundlePrimaryIcon"][@"CFBundleIconFiles"][0] = @"AppIcon60x60_2";
+    // reset a executable name so they don't look the same on the log
+    NSURL* appBundlePath = [tmpPayloadPath URLByAppendingPathComponent:@"App.app"];
     
+    NSURL* execFromPath = [appBundlePath URLByAppendingPathComponent:infoDict[@"CFBundleExecutable"]];
+    infoDict[@"CFBundleExecutable"] = @"LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou2";
+    NSURL* execToPath = [appBundlePath URLByAppendingPathComponent:infoDict[@"CFBundleExecutable"]];
+    
+    [manager moveItemAtURL:execFromPath toURL:execToPath error:error];
+    if (*error) {
+        NSLog(@"[LC] %@", *error);
+        return nil;
+    }
+    
+    // We have to change executable's UUID so iOS won't consider 2 executables the same
+    NSString* errorChangeUUID = LCParseMachO([execToPath.path UTF8String], ^(const char *path, struct mach_header_64 *header) {
+        LCChangeExecUUID(header);
+    });
+    if (errorChangeUUID) {
+        NSMutableDictionary* details = [NSMutableDictionary dictionary];
+        [details setValue:errorChangeUUID forKey:NSLocalizedDescriptionKey];
+        // populate the error object with the details
+        *error = [NSError errorWithDomain:@"world" code:200 userInfo:details];
+        NSLog(@"[LC] %@", errorChangeUUID);
+        return nil;
+    }
     
     [infoDict writeToURL:infoPath error:error];
 

@@ -5,6 +5,7 @@ typedef void (^LCParseMachOCallback)(const char *path, struct mach_header_64 *he
 NSString *LCParseMachO(const char *path, LCParseMachOCallback callback);
 void LCPatchAddRPath(const char *path, struct mach_header_64 *header);
 void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
+void LCChangeExecUUID(struct mach_header_64 *header);
 
 @interface PKZipArchiver : NSObject
 

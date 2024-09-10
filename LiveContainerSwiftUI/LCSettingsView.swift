@@ -33,6 +33,9 @@ struct LCSettingsView: View {
     @State var silentSwitchApp = false
     @State var injectToLCItelf = false
     
+    @State var sideJITServerAddress : String
+    @State var deviceUDID: String
+    
     init(apps: Binding<[LCAppInfo]>, appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
         _isAltCertIgnored = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreALTCertificate"))
@@ -42,6 +45,18 @@ struct LCSettingsView: View {
         
         _apps = apps
         _appDataFolderNames = appDataFolderNames
+        
+        if let configSideJITServerAddress = LCUtils.appGroupUserDefault.string(forKey: "LCSideJITServerAddress") {
+            _sideJITServerAddress = State(initialValue: configSideJITServerAddress)
+        } else {
+            _sideJITServerAddress = State(initialValue: "")
+        }
+        
+        if let configDeviceUDID = LCUtils.appGroupUserDefault.string(forKey: "LCDeviceUDID") {
+            _deviceUDID = State(initialValue: configDeviceUDID)
+        } else {
+            _deviceUDID = State(initialValue: "")
+        }
 
     }
     
@@ -95,14 +110,32 @@ struct LCSettingsView: View {
                     Text("If you see frequent re-sign, enable this option.")
                 }
                 
-                Section{
-                    Toggle(isOn: $frameShortIcon) {
-                        Text("Frame Short Icon")
+//                Section{
+//                    Toggle(isOn: $frameShortIcon) {
+//                        Text("Frame Short Icon")
+//                    }
+//                } header: {
+//                    Text("Miscellaneous")
+//                } footer: {
+//                    Text("Frame shortcut icons with LiveContainer icon.")
+//                }
+                Section {
+                    HStack {
+                        Text("Address")
+                        Spacer()
+                        TextField("http://x.x.x.x:8080", text: $sideJITServerAddress)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("UDID")
+                        Spacer()
+                        TextField("", text: $deviceUDID)
+                            .multilineTextAlignment(.trailing)
                     }
                 } header: {
-                    Text("Miscellaneous")
+                    Text("JIT")
                 } footer: {
-                    Text("Frame shortcut icons with LiveContainer icon.")
+                    Text("Set up your SideJITServer/JITStreamer server. Local Network permission is required.")
                 }
                 
                 Section {
@@ -203,13 +236,23 @@ struct LCSettingsView: View {
             .onChange(of: injectToLCItelf) { newValue in
                 saveItem(key: "LCLoadTweaksToSelf", val: newValue)
             }
+            .onChange(of: deviceUDID) { newValue in
+                saveAppGroupItem(key: "LCDeviceUDID", val: newValue)
+            }
+            .onChange(of: sideJITServerAddress) { newValue in
+                saveAppGroupItem(key: "LCSideJITServerAddress", val: newValue)
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         
     }
     
-    func saveItem(key: String, val: Bool) {
+    func saveItem(key: String, val: Any) {
         UserDefaults.standard.setValue(val, forKey: key)
+    }
+    
+    func saveAppGroupItem(key: String, val: Any) {
+        LCUtils.appGroupUserDefault.setValue(val, forKey: key)
     }
     
     func setupJitLess() {

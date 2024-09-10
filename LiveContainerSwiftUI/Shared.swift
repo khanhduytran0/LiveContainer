@@ -171,6 +171,8 @@ struct SiteAssociation : Codable {
 }
 
 extension LCUtils {
+    public static let appGroupUserDefault = UserDefaults.init(suiteName: LCUtils.appGroupID())!
+    
     // 0= not installed, 1= is installed, 2=current liveContainer is the second one
     public static let multiLCStatus = {
         if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {

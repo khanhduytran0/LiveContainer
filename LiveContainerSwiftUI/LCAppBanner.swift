@@ -309,7 +309,7 @@ struct LCAppBanner : View {
                 renameFolerContinuation?.resume()
             }
         )
-        .alert("Enabling JIT", isPresented: $enablingJITShow) {
+        .alert("Waiting for JIT", isPresented: $enablingJITShow) {
             Button {
                 self.confirmEnablingJIT = true
                 self.confirmEnablingJITContinuation?.resume()
