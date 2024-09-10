@@ -53,7 +53,7 @@ def update_json_file(json_file, latest_release):
 
     description = latest_release["body"]
 
-    download_url = f"https://github.com/khanhduytran0/LiveContainer/releases/download/{version}/com.kdt.livecontainer_{version}.ipa"
+    download_url = f"https://github.com/staubgeborener/LiveContainer/releases/download/{version}/com.kdt.livecontainer_{version}.ipa"
     size = get_file_size(download_url) if download_url else None
 
     version_entry = {
