@@ -77,29 +77,11 @@
           "localizedDescription": "just a test",
           "downloadURL": "https://github.com/staubgeborener/LiveContainer/releases/download/2.1.3/com.kdt.livecontainer_2.1.3.ipa",
           "size": 0
-        },
-        {
-          "version": "",
-          "date": "",
-          "localizedDescription": "",
-          "downloadURL": "",
-          "size": 0
         }
       ]
     }
   ],
   "news": [
-    {
-      "appID": "",
-      "caption": "",
-      "date": "",
-      "identifier": "",
-      "imageURL": "",
-      "notify": true,
-      "tintColor": "",
-      "title": "",
-      "url": ""
-    },
     {
       "appID": "com.kdt.livecontainer",
       "caption": "Update of LiveContainer just got released!",
