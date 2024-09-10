@@ -72,12 +72,26 @@
       },
       "versions": [
         {
+          "version": "",
+          "date": "",
+          "localizedDescription": "",
+          "downloadURL": "",
+          "size": 0
         }
       ]
     }
   ],
   "news": [
     {
+      "appID": "",
+      "caption": "",
+      "date": "",
+      "identifier": "",
+      "imageURL": "",
+      "notify": true,
+      "tintColor": "",
+      "title": "",
+      "url": ""
     }
   ]
 }
