@@ -94,6 +94,10 @@
     return [NSClassFromString(@"LCSharedUtils") launchToGuestApp];
 }
 
++ (BOOL)askForJIT {
+    return [NSClassFromString(@"LCSharedUtils") askForJIT];
+}
+
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url {
     return [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
 }

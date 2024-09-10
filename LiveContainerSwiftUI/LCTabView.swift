@@ -100,6 +100,7 @@ struct LCTabView: View {
         }.onAppear() {
             checkLastLaunchError()
         }
+        .environmentObject(DataManager.shared.bundleIDToLaunchModel)
     }
     
     func checkLastLaunchError() {

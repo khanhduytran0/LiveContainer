@@ -47,6 +47,16 @@ struct LCPath {
     }
 }
 
+class BundleIDToLaunchModel: ObservableObject {
+    @Published var bundleIdToLaunch: String = ""
+}
+
+class DataManager {
+    static let shared = DataManager()
+    let bundleIDToLaunchModel = BundleIDToLaunchModel()
+}
+
+
 extension String: LocalizedError {
     public var errorDescription: String? { return self }
 }

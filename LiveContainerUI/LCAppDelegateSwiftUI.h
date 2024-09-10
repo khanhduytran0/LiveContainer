@@ -3,6 +3,7 @@
 @interface LCSwiftBridge : NSObject
 + (UIViewController * _Nonnull)getRootVC;
 + (void)openWebPageWithUrlStr:(NSString*  _Nonnull)urlStr;
++ (void)launchAppWithBundleId:(NSString*  _Nonnull)bundleId;
 @end
 
 @interface LCAppDelegateSwiftUI : UIResponder <UIApplicationDelegate>

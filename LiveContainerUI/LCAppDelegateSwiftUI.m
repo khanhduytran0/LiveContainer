@@ -28,18 +28,13 @@
        NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
        for (NSURLQueryItem* queryItem in components.queryItems) {
            if ([queryItem.name isEqualToString:@"bundle-name"]) {
-               NSString* runningLC = [NSClassFromString(@"LCSharedUtils") getAppRunningLCSchemeWithBundleId:queryItem.value];
-               if(runningLC) {
-                   NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, queryItem.value];
-                   [UIApplication.sharedApplication openURL:[NSURL URLWithString:urlStr] options:@{} completionHandler:nil];
-                   return YES;
-               }
+               [NSClassFromString(@"LCSwiftBridge") launchAppWithBundleId:queryItem.value];
                break;
            }
        }
    }
 
-    return [LCUtils launchToGuestAppWithURL:url];
+    return NO;
 }
 
 @end

@@ -14,6 +14,8 @@
 }
 @property NSString* relativeBundlePath;
 @property bool isShared;
+- (bool)isJITNeeded;
+- (void)setIsJITNeeded:(bool)isJITNeeded;
 - (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;
 - (UIImage*)icon;

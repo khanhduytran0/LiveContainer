@@ -21,6 +21,10 @@ import SwiftUI
         }
     }
     
+    @objc public static func launchApp(bundleId: String) {
+        DataManager.shared.bundleIDToLaunchModel.bundleIdToLaunch = bundleId
+    }
+    
     @objc public static func getRootVC() -> UIViewController {
         let rootView = LCTabView()
         let rootVC = UIHostingController(rootView: rootView)

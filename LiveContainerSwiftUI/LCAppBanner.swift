@@ -18,6 +18,7 @@ struct LCAppBanner : View {
     var delegate: LCAppBannerDelegate
     
     @State var uiIsShared : Bool
+    @State var uiIsJITNeeded : Bool
     
     @Binding var appDataFolders: [String]
     @Binding var tweakFolders: [String]
@@ -47,6 +48,10 @@ struct LCAppBanner : View {
     @State private var confirmMoveToPrivateDoc = false
     @State private var confirmMoveToPrivateDocContinuation : CheckedContinuation<Void, Never>? = nil
     
+    @State private var enablingJITShow = false
+    @State private var confirmEnablingJIT = false
+    @State private var confirmEnablingJITContinuation : CheckedContinuation<Void, Never>? = nil
+    
     @State private var errorShow = false
     @State private var errorInfo = ""
     
@@ -55,6 +60,7 @@ struct LCAppBanner : View {
     @State private var isAppRunning = false
     
     @State private var observer : NSKeyValueObservation?
+    @EnvironmentObject private var bundleIDToLaunchModel : BundleIDToLaunchModel
     
     init(appInfo: LCAppInfo, delegate: LCAppBannerDelegate, appDataFolders: Binding<[String]>, tweakFolders: Binding<[String]>) {
         _appInfo = State(initialValue: appInfo)
@@ -67,7 +73,7 @@ struct LCAppBanner : View {
         _uiPickerTweakFolder = _uiTweakFolder
         
         _uiIsShared = State(initialValue: appInfo.isShared)
-        
+        _uiIsJITNeeded = State(initialValue: appInfo.isJITNeeded())
     }
     
     var body: some View {
@@ -87,6 +93,13 @@ struct LCAppBanner : View {
                                 .frame(width: 50, height:16)
                                 .background(
                                     Capsule().fill(Color("BadgeColor"))
+                                )
+                        }
+                        if uiIsJITNeeded {
+                            Text("JIT").font(.system(size: 8)).bold().padding(2)
+                                .frame(width: 30, height:16)
+                                .background(
+                                    Capsule().fill(Color("JITBadgeColor"))
                                 )
                         }
                     }
@@ -147,6 +160,23 @@ struct LCAppBanner : View {
                 } label: {
                     Label("Convert to Shared App", systemImage: "arrowshape.turn.up.left")
                 }
+                Button {
+                    Task { await toggleJITNeeded()}
+                } label: {
+                    if uiIsJITNeeded {
+                        Label("Don't Need JIT", systemImage: "bolt.slash")
+                    } else {
+                        Label("Mark as JIT Needed", systemImage: "bolt")
+                    }
+
+                }
+                
+                Button {
+                    copyLaunchUrl()
+                } label: {
+                    Label("Copy Launch Url", systemImage: "link")
+                }
+                
                 Menu(content: {
                     Button {
                         Task{ await createFolder() }
@@ -201,6 +231,13 @@ struct LCAppBanner : View {
                 setTweakFolder(folderName: newValue)
             }
         })
+        .onChange(of: bundleIDToLaunchModel.bundleIdToLaunch, perform: { newValue in
+            Task { await handleURLSchemeLaunch() }
+        })
+        
+        .onAppear() {
+            Task { await handleURLSchemeLaunch() }
+        }
         
         .alert("Confirm Uninstallation", isPresented: $confirmAppRemovalShow) {
             Button(role: .destructive) {
@@ -272,14 +309,34 @@ struct LCAppBanner : View {
                 renameFolerContinuation?.resume()
             }
         )
+        .alert("Enabling JIT", isPresented: $enablingJITShow) {
+            Button {
+                self.confirmEnablingJIT = true
+                self.confirmEnablingJITContinuation?.resume()
+            } label: {
+                Text("Launch Now")
+            }
+            Button("Cancel", role: .cancel) {
+                self.confirmEnablingJIT = false
+                self.confirmEnablingJITContinuation?.resume()
+            }
+        } message: {
+            Text("Please use your favourite way to enable jit for current LiveContainer.")
+        }
+        
         .alert("Error", isPresented: $errorShow) {
             Button("OK", action: {
             })
         } message: {
             Text(errorInfo)
         }
-
         
+    }
+    
+    func handleURLSchemeLaunch() async {
+        if self.appInfo.relativeBundlePath == bundleIDToLaunchModel.bundleIdToLaunch {
+            await runApp()
+        }
     }
     
     func runApp() async {
@@ -324,7 +381,12 @@ struct LCAppBanner : View {
             return
         } else {
             UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
-            LCUtils.launchToGuestApp()
+            if appInfo.isJITNeeded() {
+                await self.jitLaunch()
+            } else {
+                LCUtils.launchToGuestApp()
+            }
+
         }
         self.isAppRunning = false
         
@@ -524,7 +586,34 @@ struct LCAppBanner : View {
         }
         
     }
-        
+    
+    func toggleJITNeeded() async {
+        if appInfo.isJITNeeded() {
+            appInfo.setIsJITNeeded(false)
+            uiIsJITNeeded = false
+        } else {
+            appInfo.setIsJITNeeded(true)
+            uiIsJITNeeded = true
+        }
+    }
+    
+    func jitLaunch() async {
+        LCUtils.askForJIT()
 
+        await withCheckedContinuation { c in
+            self.confirmEnablingJITContinuation = c
+            enablingJITShow = true
+        }
+        if confirmEnablingJIT {
+            LCUtils.launchToGuestApp()
+        } else {
+            UserDefaults.standard.removeObject(forKey: "selected")
+        }
+    }
+    
+    func copyLaunchUrl() {
+        UIPasteboard.general.string = "livecontainer://livecontainer-launch?bundle-name=\(appInfo.relativeBundlePath!)"
+    }
+    
     
 }

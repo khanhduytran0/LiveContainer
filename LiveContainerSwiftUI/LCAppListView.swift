@@ -37,7 +37,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
     @State var installOptionContinuation : CheckedContinuation<Void, Never>? = nil
     
     @State var webViewOpened = false
-    @State var webViewURL : URL = URL(string: "https://www.google.com")!
+    @State var webViewURL : URL = URL(string: "about:blank")!
     @State private var webViewUrlInputOpened = false
     @State private var webViewUrlInputContent = ""
     @State private var webViewUrlInputContinuation : CheckedContinuation<Void, Never>? = nil

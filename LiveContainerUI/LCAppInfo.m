@@ -141,7 +141,7 @@
         @"PayloadDisplayName": self.displayName,
         @"PayloadIdentifier": self.bundleIdentifier,
         @"PayloadType": @"com.apple.webClip.managed",
-        @"PayloadUUID": self.dataUUID,
+        @"PayloadUUID": NSUUID.UUID.UUIDString,
         @"PayloadVersion": @(1),
         @"Precomposed": @NO,
         @"toPayloadOrganization": @"LiveContainer",
@@ -262,5 +262,18 @@
     [_info writeToFile:self._signStatus.infoPath atomically:YES];
     self._signStatus = nil;
     return;
+}
+
+- (bool)isJITNeeded {
+    if(_info[@"isJITNeeded"] != nil) {
+        return [_info[@"isJITNeeded"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setIsJITNeeded:(bool)isJITNeeded {
+    _info[@"isJITNeeded"] = [NSNumber numberWithBool:isJITNeeded];
+    [self save];
+    
 }
 @end

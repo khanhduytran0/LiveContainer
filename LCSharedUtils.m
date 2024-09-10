@@ -57,6 +57,22 @@ extern NSString *lcAppUrlScheme;
     return NO;
 }
 
++ (BOOL)askForJIT {
+    NSString *urlScheme;
+    NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
+    if (!access(tsPath.UTF8String, F_OK)) {
+        urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
+    } else {
+        urlScheme = @"sidestore://sidejit-enable?bid=%@";
+    }
+    NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
+    if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
+        [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:nil];
+        return YES;
+    }
+    return NO;
+}
+
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url {
     NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
     if(![components.host isEqualToString:@"livecontainer-launch"]) return NO;
@@ -176,7 +192,7 @@ extern NSString *lcAppUrlScheme;
         
         [fm moveItemAtPath:fromPlistPath toPath:toPlistPath error:&error1];
         if(error1) {
-            NSLog(@"[NMSL] error1 = %@", error1.description);
+            NSLog(@"[LC] error1 = %@", error1.description);
         }
         
     }

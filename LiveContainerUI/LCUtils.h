@@ -23,6 +23,7 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
 + (BOOL)deleteKeychainItem:(NSString *)key ofStore:(NSString *)store;
 + (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store;
 
++ (BOOL)askForJIT;
 + (BOOL)launchToGuestApp;
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url;
 

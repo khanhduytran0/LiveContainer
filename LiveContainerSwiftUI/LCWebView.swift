@@ -1,6 +1,5 @@
 //
 //  SwiftUIView.swift
-//  nmsl
 //
 //  Created by s s on 2024/8/23.
 //
@@ -131,7 +130,7 @@ struct LCWebView: View {
             
             let encodedUrl = Data(url.absoluteString.utf8).base64EncodedString()
             if let urlToOpen = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(bundleId)&open-url=\(encodedUrl)"), UIApplication.shared.canOpenURL(urlToOpen) {
-                NSLog("[NMSL] urlToOpen = \(urlToOpen.absoluteString)")
+                NSLog("[LC] urlToOpen = \(urlToOpen.absoluteString)")
                 UIApplication.shared.open(urlToOpen)
                 isPresent = false
                 return

@@ -19,4 +19,8 @@
     [LCObjcBridge openWebPageWithUrlStr:urlStr];
 }
 
++ (void)launchAppWithBundleId:(NSString*  _Nonnull)bundleId {
+    [LCObjcBridge launchAppWithBundleId:bundleId];
+}
+
 @end

@@ -3,6 +3,7 @@
 @interface LCSharedUtils : NSObject
 + (NSString *)appGroupID;
 + (NSString *)certificatePassword;
++ (BOOL)askForJIT;
 + (BOOL)launchToGuestApp;
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url;
 + (void)setWebPageUrlForNextLaunch:(NSString*)urlString;
