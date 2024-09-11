@@ -8,7 +8,7 @@ def remove_tags(text):
     text = re.sub('<[^<]+?>', '', text)  # Remove HTML tags
     text = re.sub(r'#{1,6}\s?', '', text)  # Remove markdown header tags
     return text
-    
+
 def fetch_latest_release(repo_url):
     api_url = f"https://api.github.com/repos/{repo_url}/releases"
     headers = {
@@ -62,15 +62,14 @@ def update_json_file(json_file, latest_release):
     description = re.sub(r'\*{2}', '', description)
     description = re.sub(r'-', '•', description)
     description = re.sub(r'`', '"', description)
-    
-    # Suchen nach der entsprechenden .ipa-Datei im Release-Assets
+
     assets = latest_release.get("assets", [])
     download_url = None
     size = None
     for asset in assets:
         if asset["name"] == f"com.kdt.livecontainer_{version}.ipa":
             download_url = asset["browser_download_url"]
-            size = asset["size"]  # Dateigröße direkt aus den Asset-Daten entnehmen
+            size = asset["size"]
             break
 
     if download_url is None or size is None:
