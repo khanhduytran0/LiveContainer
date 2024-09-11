@@ -53,8 +53,19 @@ def update_json_file(json_file, latest_release):
 
     description = latest_release["body"]
 
-    download_url = f"https://github.com/khanhduytran0/LiveContainer/releases/download/{version}/com.kdt.livecontainer_{version}.ipa"
-    size = get_file_size(download_url) if download_url else None
+    # Suchen nach der entsprechenden .ipa-Datei im Release-Assets
+    assets = latest_release.get("assets", [])
+    download_url = None
+    size = None
+    for asset in assets:
+        if asset["name"] == f"com.kdt.livecontainer_{version}.ipa":
+            download_url = asset["browser_download_url"]
+            size = asset["size"]  # Dateigröße direkt aus den Asset-Daten entnehmen
+            break
+
+    if download_url is None or size is None:
+        print("Error: IPA file not found in release assets.")
+        return
 
     version_entry = {
         "version": version,
@@ -106,6 +117,7 @@ def update_json_file(json_file, latest_release):
     except IOError as e:
         print(f"Error writing to JSON file: {e}")
         raise
+
 
 def main():
     repo_url = "khanhduytran0/LiveContainer"
