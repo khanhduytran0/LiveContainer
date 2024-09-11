@@ -4,6 +4,11 @@ import requests
 import os
 from datetime import datetime
 
+def remove_tags(text):
+    text = re.sub('<[^<]+?>', '', text)  # Remove HTML tags
+    text = re.sub(r'#{1,6}\s?', '', text)  # Remove markdown header tags
+    return text
+    
 def fetch_latest_release(repo_url):
     api_url = f"https://api.github.com/repos/{repo_url}/releases"
     headers = {
@@ -52,7 +57,11 @@ def update_json_file(json_file, latest_release):
     version_date = date_obj.strftime("%Y-%m-%d")
 
     description = latest_release["body"]
-
+    description = remove_tags(description)
+    description = re.sub(r'\*{2}', '', description)
+    description = re.sub(r'-', '•', description)
+    description = re.sub(r'`', '"', description)
+    
     # Suchen nach der entsprechenden .ipa-Datei im Release-Assets
     assets = latest_release.get("assets", [])
     download_url = None
