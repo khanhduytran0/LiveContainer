@@ -22,7 +22,7 @@
       "iconURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/Resources/AppIcon76x76.png",
       "tintColor": "#0784FC",
       "category": "utilities",
-      "size": 0,
+      "size": 194586,
       "screenshotURLs": [
         "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/screenshots/1.png"
       ],
@@ -76,7 +76,7 @@
           "date": "2024-08-15",
           "localizedDescription": "## Feature: AltStore support\r\n(untested)\r\n\r\n## Bug fixes\r\n- JIT-less setup may fail to find the signing certificate. This is worked around by re-adding the glob keychain group entitlement. (not guaranteed to work, as I couldn\u2019t reproduce the issue in the first place)\r\n- Switches in settings not working. Apparently using the private Preference framework causing changes to be saved to the wrong preference file.\r\n- Some apps may get stuck on a black screen caused by an unknown deadlock. This is worked around by pre-initializing `UIScreen`.\r\n- Some apps may fail to create temporary files. This is fixed by redirecting guest app\u2019s temporary directory to that of LiveContainer using symlink instead of creating its own. (thanks @hugeBlack for hinting me the issue)",
           "downloadURL": "https://github.com/khanhduytran0/LiveContainer/releases/download/2.1.2/com.kdt.livecontainer_2.1.2.ipa",
-          "size": 0
+          "size": 194586
         }
       ]
     }
