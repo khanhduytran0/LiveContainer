@@ -18,11 +18,15 @@
 static int (*appMain)(int, char**);
 static const char *dyldImageName;
 NSUserDefaults *lcUserDefaults;
+NSUserDefaults *lcSharedDefaults;
 NSString* lcAppUrlScheme;
 
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
     return lcUserDefaults;
+}
++ (instancetype)lcSharedDefaults {
+    return lcSharedDefaults;
 }
 + (NSString *)lcAppUrlScheme {
     return lcAppUrlScheme;
@@ -367,6 +371,7 @@ int LiveContainerMain(int argc, char *argv[]) {
     NSLog(@"Ignore this: %@", UIScreen.mainScreen);
 
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
+    lcSharedDefaults = [[NSUserDefaults alloc] initWithSuiteName: [LCSharedUtils appGroupID]];
     lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
     
     // move preferences first then the entire folder

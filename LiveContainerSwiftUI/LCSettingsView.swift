@@ -15,6 +15,7 @@ struct LCSettingsView: View {
     @State var successInfo = ""
     
     @Binding var apps: [LCAppInfo]
+    @Binding var hiddenApps: [LCAppInfo]
     @Binding var appDataFolderNames: [String]
     
     @State private var confirmAppFolderRemovalShow = false
@@ -32,11 +33,14 @@ struct LCSettingsView: View {
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
     @State var injectToLCItelf = false
+    @State var strictHiding = false
     
     @State var sideJITServerAddress : String
     @State var deviceUDID: String
     
-    init(apps: Binding<[LCAppInfo]>, appDataFolderNames: Binding<[String]>) {
+    @EnvironmentObject private var sharedModel : SharedModel
+    
+    init(apps: Binding<[LCAppInfo]>, hiddenApps: Binding<[LCAppInfo]>, appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
         _isAltCertIgnored = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreALTCertificate"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
@@ -44,6 +48,7 @@ struct LCSettingsView: View {
         _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
         
         _apps = apps
+        _hiddenApps = hiddenApps
         _appDataFolderNames = appDataFolderNames
         
         if let configSideJITServerAddress = LCUtils.appGroupUserDefault.string(forKey: "LCSideJITServerAddress") {
@@ -57,6 +62,7 @@ struct LCSettingsView: View {
         } else {
             _deviceUDID = State(initialValue: "")
         }
+        _strictHiding = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding"))
 
     }
     
@@ -154,6 +160,16 @@ struct LCSettingsView: View {
                     Text("Place your tweaks into the global “Tweaks” folder and LiveContainer will pick them up.")
                 }
                 
+                if sharedModel.isHiddenAppUnlocked {
+                    Section {
+                        Toggle(isOn: $strictHiding) {
+                            Text("Strict Hiding Mode")
+                        }
+                    } footer: {
+                        Text("Enabling this mode will only allow hidden apps to be launched by triple clicking the installed app counter.")
+                    }
+                }
+                
                 Section {
                     Button {
                         Task { await moveDanglingFolders() }
@@ -236,6 +252,9 @@ struct LCSettingsView: View {
             .onChange(of: injectToLCItelf) { newValue in
                 saveItem(key: "LCLoadTweaksToSelf", val: newValue)
             }
+            .onChange(of: strictHiding) { newValue in
+                saveAppGroupItem(key: "LCStrictHiding", val: newValue)
+            }
             .onChange(of: deviceUDID) { newValue in
                 saveAppGroupItem(key: "LCDeviceUDID", val: newValue)
             }
@@ -297,6 +316,12 @@ struct LCSettingsView: View {
         
         var folderNameToAppDict : [String:LCAppInfo] = [:]
         for app in apps {
+            guard let folderName = app.getDataUUIDNoAssign() else {
+                continue
+            }
+            folderNameToAppDict[folderName] = app
+        }
+        for app in hiddenApps {
             guard let folderName = app.getDataUUIDNoAssign() else {
                 continue
             }
@@ -364,6 +389,19 @@ struct LCSettingsView: View {
             var appDataFoldersInUse : Set<String> = Set();
             var tweakFoldersInUse : Set<String> = Set();
             for app in apps {
+                if !app.isShared {
+                    continue
+                }
+                if let folder = app.getDataUUIDNoAssign() {
+                    appDataFoldersInUse.update(with: folder);
+                }
+                if let folder = app.tweakFolder() {
+                    tweakFoldersInUse.update(with: folder);
+                }
+
+            }
+            
+            for app in hiddenApps {
                 if !app.isShared {
                     continue
                 }

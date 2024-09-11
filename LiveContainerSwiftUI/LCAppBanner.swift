@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 
 protocol LCAppBannerDelegate {
     func removeApp(app: LCAppInfo)
+    func changeAppVisibility(app: LCAppInfo)
 }
 
 struct LCAppBanner : View {
@@ -19,6 +20,7 @@ struct LCAppBanner : View {
     
     @State var uiIsShared : Bool
     @State var uiIsJITNeeded : Bool
+    @State private var uiIsHidden : Bool
     
     @Binding var appDataFolders: [String]
     @Binding var tweakFolders: [String]
@@ -60,7 +62,7 @@ struct LCAppBanner : View {
     @State private var isAppRunning = false
     
     @State private var observer : NSKeyValueObservation?
-    @EnvironmentObject private var bundleIDToLaunchModel : BundleIDToLaunchModel
+    @EnvironmentObject private var sharedModel : SharedModel
     
     init(appInfo: LCAppInfo, delegate: LCAppBannerDelegate, appDataFolders: Binding<[String]>, tweakFolders: Binding<[String]>) {
         _appInfo = State(initialValue: appInfo)
@@ -74,6 +76,7 @@ struct LCAppBanner : View {
         
         _uiIsShared = State(initialValue: appInfo.isShared)
         _uiIsJITNeeded = State(initialValue: appInfo.isJITNeeded())
+        _uiIsHidden = State(initialValue: appInfo.isHidden())
     }
     
     var body: some View {
@@ -149,6 +152,35 @@ struct LCAppBanner : View {
         
         .contextMenu{
             Text(appInfo.relativeBundlePath)
+            Button {
+                Task { await toggleJITNeeded()}
+            } label: {
+                if uiIsJITNeeded {
+                    Label("Don't Need JIT", systemImage: "bolt.slash")
+                } else {
+                    Label("Mark as JIT Needed", systemImage: "bolt")
+                }
+
+            }
+            
+            Button {
+                copyLaunchUrl()
+            } label: {
+                Label("Copy Launch Url", systemImage: "link")
+            }
+            
+            if sharedModel.isHiddenAppUnlocked {
+                Button {
+                    Task { await toggleHidden()}
+                } label: {
+                    if uiIsHidden {
+                        Label("Unhide App", systemImage: "eye")
+                    } else {
+                        Label("Hide App", systemImage: "eye.slash")
+                    }
+
+                }
+            }
             if !uiIsShared {
                 Button(role: .destructive) {
                      Task{ await uninstall() }
@@ -159,22 +191,6 @@ struct LCAppBanner : View {
                     Task { await moveToAppGroup()}
                 } label: {
                     Label("Convert to Shared App", systemImage: "arrowshape.turn.up.left")
-                }
-                Button {
-                    Task { await toggleJITNeeded()}
-                } label: {
-                    if uiIsJITNeeded {
-                        Label("Don't Need JIT", systemImage: "bolt.slash")
-                    } else {
-                        Label("Mark as JIT Needed", systemImage: "bolt")
-                    }
-
-                }
-                
-                Button {
-                    copyLaunchUrl()
-                } label: {
-                    Label("Copy Launch Url", systemImage: "link")
                 }
                 
                 Menu(content: {
@@ -231,7 +247,7 @@ struct LCAppBanner : View {
                 setTweakFolder(folderName: newValue)
             }
         })
-        .onChange(of: bundleIDToLaunchModel.bundleIdToLaunch, perform: { newValue in
+        .onChange(of: sharedModel.bundleIdToLaunch, perform: { newValue in
             Task { await handleURLSchemeLaunch() }
         })
         
@@ -334,7 +350,7 @@ struct LCAppBanner : View {
     }
     
     func handleURLSchemeLaunch() async {
-        if self.appInfo.relativeBundlePath == bundleIDToLaunchModel.bundleIdToLaunch {
+        if self.appInfo.relativeBundlePath == sharedModel.bundleIdToLaunch {
             await runApp()
         }
     }
@@ -613,6 +629,17 @@ struct LCAppBanner : View {
     
     func copyLaunchUrl() {
         UIPasteboard.general.string = "livecontainer://livecontainer-launch?bundle-name=\(appInfo.relativeBundlePath!)"
+    }
+    
+    func toggleHidden() async {
+        if appInfo.isHidden() {
+            appInfo.setIsHidden(false)
+            uiIsHidden = false
+        } else {
+            appInfo.setIsHidden(true)
+            uiIsHidden = true
+        }
+        delegate.changeAppVisibility(app: appInfo)
     }
     
     

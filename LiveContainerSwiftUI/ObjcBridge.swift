@@ -11,18 +11,18 @@ import SwiftUI
 
 @objc public class LCObjcBridge: NSObject {
     public static var urlStrToOpen: String? = nil
-    public static var openUrlStrFunc: ((String) -> Void)?
+    public static var openUrlStrFunc: ((String) async -> Void)?
     
     @objc public static func openWebPage(urlStr: String) {
         if openUrlStrFunc == nil {
             urlStrToOpen = urlStr
         } else {
-            openUrlStrFunc!(urlStr)
+            Task { await openUrlStrFunc!(urlStr) }
         }
     }
     
     @objc public static func launchApp(bundleId: String) {
-        DataManager.shared.bundleIDToLaunchModel.bundleIdToLaunch = bundleId
+        DataManager.shared.model.bundleIdToLaunch = bundleId
     }
     
     @objc public static func getRootVC() -> UIViewController {

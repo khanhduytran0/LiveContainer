@@ -35,4 +35,6 @@
 @property SignTmpStatus* _signStatus;
 - (NSString*)patchExec;
 - (void) signCleanUpWithSuccessStatus:(BOOL)isSignSuccess;
+- (bool)isHidden;
+- (void)setIsHidden:(bool)isHidden;
 @end

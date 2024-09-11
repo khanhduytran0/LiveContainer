@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import LocalAuthentication
 
 struct LCPath {
     public static let docPath = {
@@ -47,13 +48,14 @@ struct LCPath {
     }
 }
 
-class BundleIDToLaunchModel: ObservableObject {
+class SharedModel: ObservableObject {
     @Published var bundleIdToLaunch: String = ""
+    @Published var isHiddenAppUnlocked = false
 }
 
 class DataManager {
     static let shared = DataManager()
-    let bundleIDToLaunchModel = BundleIDToLaunchModel()
+    let model = SharedModel()
 }
 
 
@@ -245,5 +247,64 @@ extension LCUtils {
         }
         
         return nil
+    }
+    
+    private static func authenticateUser(completion: @escaping (Bool, Error?) -> Void) {
+        // Create a context for authentication
+        let context = LAContext()
+        var error: NSError?
+
+        // Check if the device supports biometric authentication
+        if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
+            // Determine the reason for the authentication request
+            let reason = "Authentication Required."
+
+            // Evaluate the authentication policy
+            context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, evaluationError in
+                DispatchQueue.main.async {
+                    if success {
+                        // Authentication successful
+                        completion(true, nil)
+                    } else {
+                        if let evaluationError = evaluationError as? LAError, evaluationError.code == LAError.appCancel {
+                            completion(false, nil)
+                        } else {
+                            // Authentication failed
+                            completion(false, evaluationError)
+                        }
+
+                    }
+                }
+            }
+        } else {
+            // Biometric authentication is not available
+            DispatchQueue.main.async {
+                completion(false, error)
+            }
+        }
+    }
+    
+    public static func authenticateUser() async throws -> Bool {
+        if DataManager.shared.model.isHiddenAppUnlocked {
+            return true
+        }
+        
+        var success = false
+        var error : Error? = nil
+        await withCheckedContinuation { c in
+            LCUtils.authenticateUser { success1, error1 in
+                success = success1
+                error = error1
+                c.resume()
+            }
+        }
+        if let error = error {
+            throw error
+        }
+        if !success {
+            return false
+        }
+        DataManager.shared.model.isHiddenAppUnlocked = true
+        return true
     }
 }

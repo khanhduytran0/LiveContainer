@@ -276,4 +276,17 @@
     [self save];
     
 }
+
+- (bool)isHidden {
+    if(_info[@"isHidden"] != nil) {
+        return [_info[@"isHidden"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setIsHidden:(bool)isHidden {
+    _info[@"isHidden"] = [NSNumber numberWithBool:isHidden];
+    [self save];
+    
+}
 @end

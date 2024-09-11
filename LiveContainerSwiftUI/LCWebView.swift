@@ -18,6 +18,7 @@ struct LCWebView: View {
     @State private var pageTitle = ""
     
     @Binding var apps : [LCAppInfo]
+    @Binding var hiddenApps : [LCAppInfo]
     
     @State private var runAppAlertShow = false
     @State private var runAppAlertMsg = ""
@@ -28,11 +29,14 @@ struct LCWebView: View {
     @State private var errorShow = false
     @State private var errorInfo = ""
     
-    init(url: Binding<URL>, apps: Binding<[LCAppInfo]>, isPresent: Binding<Bool>) {
+    @EnvironmentObject private var sharedModel : SharedModel
+    
+    init(url: Binding<URL>, apps: Binding<[LCAppInfo]>, hiddenApps: Binding<[LCAppInfo]>, isPresent: Binding<Bool>) {
         self.webView = WebView()
         self._url = url
         self._apps = apps
         self._isPresent = isPresent
+        self._hiddenApps = hiddenApps
     }
     
     var body: some View {
@@ -145,21 +149,42 @@ struct LCWebView: View {
     
     public func onURLSchemeDetected(url: URL) async {
         var appToLaunch : LCAppInfo? = nil
-    appLoop: for app in apps {
-        if let schemes = app.urlSchemes() {
-            for scheme in schemes {
-                if let scheme = scheme as? String, scheme == url.scheme {
-                    appToLaunch = app
-                    break appLoop
+        var appListsToConsider = [apps]
+        if sharedModel.isHiddenAppUnlocked || !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
+            appListsToConsider.append(hiddenApps)
+        }
+        appLoop:
+        for appList in appListsToConsider {
+            for app in appList {
+                if let schemes = app.urlSchemes() {
+                    for scheme in schemes {
+                        if let scheme = scheme as? String, scheme == url.scheme {
+                            appToLaunch = app
+                            break appLoop
+                        }
+                    }
                 }
             }
         }
-    }
+    
         
         guard let appToLaunch = appToLaunch else {
             errorInfo = "Scheme \"\(url.scheme!)\" cannot be opened by any app installed in LiveContainer."
             errorShow = true
             return
+        }
+        
+        if appToLaunch.isHidden() && !sharedModel.isHiddenAppUnlocked {
+            
+            do {
+                if !(try await LCUtils.authenticateUser()) {
+                    return
+                }
+            } catch {
+                errorInfo = error.localizedDescription
+                errorShow = true
+                return
+            }
         }
         
         runAppAlertMsg = "This web page is trying to launch \"\(appToLaunch.displayName()!)\", continue?"
@@ -182,6 +207,11 @@ struct LCWebView: View {
         for app in apps {
             bundleIDToAppDict[app.bundleIdentifier()!] = app
         }
+        if !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") || sharedModel.isHiddenAppUnlocked {
+            for app in hiddenApps {
+                bundleIDToAppDict[app.bundleIdentifier()!] = app
+            }
+        }
         
         var appToLaunch: LCAppInfo? = nil
         for bundleID in bundleIDs {
@@ -192,6 +222,18 @@ struct LCWebView: View {
         }
         guard let appToLaunch = appToLaunch else {
             return
+        }
+        
+        if appToLaunch.isHidden() && !sharedModel.isHiddenAppUnlocked {
+            do {
+                if !(try await LCUtils.authenticateUser()) {
+                    return
+                }
+            } catch {
+                errorInfo = error.localizedDescription
+                errorShow = true
+                return
+            }
         }
         
         runAppAlertMsg = "This web page can be opened in \"\(appToLaunch.displayName()!)\" according to its Associated Domains, continue?"

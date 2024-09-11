@@ -10,6 +10,7 @@ import SwiftUI
 
 struct LCTabView: View {
     @State var apps: [LCAppInfo]
+    @State var hiddenApps: [LCAppInfo]
     @State var appDataFolderNames: [String]
     @State var tweakFolderNames: [String]
     
@@ -22,6 +23,7 @@ struct LCTabView: View {
         var tempTweakFolderNames : [String] = []
         
         var tempApps: [LCAppInfo] = []
+        var tempHiddenApps: [LCAppInfo] = []
 
         do {
             // load apps
@@ -34,7 +36,11 @@ struct LCTabView: View {
                 let newApp = LCAppInfo(bundlePath: "\(LCPath.bundlePath.path)/\(appDir)")!
                 newApp.relativeBundlePath = appDir
                 newApp.isShared = false
-                tempApps.append(newApp)
+                if newApp.isHidden() {
+                    tempHiddenApps.append(newApp)
+                } else {
+                    tempApps.append(newApp)
+                }
             }
             
             try fm.createDirectory(at: LCPath.lcGroupBundlePath, withIntermediateDirectories: true)
@@ -46,7 +52,11 @@ struct LCTabView: View {
                 let newApp = LCAppInfo(bundlePath: "\(LCPath.lcGroupBundlePath.path)/\(appDir)")!
                 newApp.relativeBundlePath = appDir
                 newApp.isShared = true
-                tempApps.append(newApp)
+                if newApp.isHidden() {
+                    tempHiddenApps.append(newApp)
+                } else {
+                    tempApps.append(newApp)
+                }
             }
             // load document folders
             try fm.createDirectory(at: LCPath.dataPath, withIntermediateDirectories: true)
@@ -75,11 +85,12 @@ struct LCTabView: View {
         _apps = State(initialValue: tempApps)
         _appDataFolderNames = State(initialValue: tempAppDataFolderNames)
         _tweakFolderNames = State(initialValue: tempTweakFolderNames)
+        _hiddenApps = State(initialValue: tempHiddenApps)
     }
     
     var body: some View {
         TabView {
-            LCAppListView(apps: $apps, appDataFolderNames: $appDataFolderNames, tweakFolderNames: $tweakFolderNames)
+            LCAppListView(apps: $apps, hiddenApps: $hiddenApps, appDataFolderNames: $appDataFolderNames, tweakFolderNames: $tweakFolderNames)
                 .tabItem {
                     Label("Apps", systemImage: "square.stack.3d.up.fill")
                 }
@@ -90,7 +101,7 @@ struct LCTabView: View {
                     }
             }
 
-            LCSettingsView(apps: $apps, appDataFolderNames: $appDataFolderNames)
+            LCSettingsView(apps: $apps, hiddenApps: $hiddenApps, appDataFolderNames: $appDataFolderNames)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
@@ -100,7 +111,7 @@ struct LCTabView: View {
         }.onAppear() {
             checkLastLaunchError()
         }
-        .environmentObject(DataManager.shared.bundleIDToLaunchModel)
+        .environmentObject(DataManager.shared.model)
     }
     
     func checkLastLaunchError() {
