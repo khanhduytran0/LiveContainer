@@ -60,7 +60,7 @@ def update_json_file(json_file, latest_release):
     description = description.replace("\r\n\r\n", "\r \n")
     description = remove_tags(description)
     description = re.sub(r'\*{2}', '', description)
-    description = re.sub(r'-', '•', description)
+    description = re.sub(r'(?<=\r|\n)-', '•', description)
     description = re.sub(r'`', '"', description)
 
     assets = latest_release.get("assets", [])
