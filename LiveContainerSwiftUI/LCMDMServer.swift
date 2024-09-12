@@ -28,7 +28,7 @@ struct LCMDMServer {
                 }
                 
             case .failed(let error):
-                NSLog("[NMSL] Server failed with error: \(error)")
+                NSLog("[LC] Server failed with error: \(error)")
                 if let continuation = continuation {
                     continuation.resume()
                 }
@@ -88,5 +88,9 @@ struct LCMDMServer {
         } else {
             return 0
         }
+    }
+    
+    func getState() -> NWListener.State {
+        return listener.state
     }
 }

@@ -305,7 +305,7 @@ extension LCUtils {
                         // Authentication successful
                         completion(true, nil)
                     } else {
-                        if let evaluationError = evaluationError as? LAError, evaluationError.code == LAError.appCancel {
+                        if let evaluationError = evaluationError as? LAError, evaluationError.code == LAError.userCancel || evaluationError.code == LAError.appCancel {
                             completion(false, nil)
                         } else {
                             // Authentication failed
@@ -343,7 +343,9 @@ extension LCUtils {
         if !success {
             return false
         }
-        DataManager.shared.model.isHiddenAppUnlocked = true
+        DispatchQueue.main.async {
+            DataManager.shared.model.isHiddenAppUnlocked = true
+        }
         return true
     }
 }

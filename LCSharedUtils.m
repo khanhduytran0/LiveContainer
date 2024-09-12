@@ -278,4 +278,22 @@ extern NSString *lcAppUrlScheme;
     
 }
 
++ (NSBundle*)findBundleWithBundleId:(NSString*)bundleId {
+    NSString *docPath = [NSString stringWithFormat:@"%s/Documents", getenv("LC_HOME_PATH")];
+    
+    NSURL *appGroupFolder = nil;
+    
+    NSString *bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", docPath, bundleId];
+    NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+    // not found locally, let's look for the app in shared folder
+    if (!appBundle) {
+        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
+        appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
+        
+        bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, bundleId];
+        appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+    }
+    return appBundle;
+}
+
 @end

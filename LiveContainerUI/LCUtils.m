@@ -226,7 +226,7 @@
 
 + (NSString *)appGroupID {
     static dispatch_once_t once;
-    static NSString *appGroupID;
+    static NSString *appGroupID = @"group.com.SideStore.SideStore";;
     dispatch_once(&once, ^{
         for (NSString *group in NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"]) {
             NSURL *path = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:group];

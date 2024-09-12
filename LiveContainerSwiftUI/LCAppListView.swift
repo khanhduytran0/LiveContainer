@@ -496,8 +496,12 @@ struct LCAppListView : View, LCAppBannerDelegate {
         if isFoundAppHidden && !sharedModel.isHiddenAppUnlocked {
             Task {
                 do {
-                    let _ = try await LCUtils.authenticateUser()
+                    let result = try await LCUtils.authenticateUser()
+                    if !result {
+                        sharedModel.bundleIdToLaunch = ""
+                    }
                 } catch {
+                    sharedModel.bundleIdToLaunch = ""
                     errorInfo = error.localizedDescription
                     errorShow = true
                 }
@@ -528,6 +532,8 @@ struct LCAppListView : View, LCAppBannerDelegate {
             do {
                 if LCMDMServer.instance == nil {
                     LCMDMServer.instance = try LCMDMServer()
+                }
+                if (LCMDMServer.instance!.getState() != .ready) {
                     await withCheckedContinuation { c in
                         LCMDMServer.instance!.start(c)
                     }

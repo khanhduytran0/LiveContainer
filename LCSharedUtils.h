@@ -13,4 +13,5 @@
 + (void)loadPreferencesFromPath:(NSString*) plistLocationFrom;
 + (void)moveSharedAppFolderBack;
 + (void)removeAppRunningByLC:(NSString*)LCScheme;
++ (NSBundle*)findBundleWithBundleId:(NSString*)bundleId;
 @end

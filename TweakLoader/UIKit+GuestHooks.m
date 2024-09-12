@@ -2,6 +2,7 @@
 #import "LCSharedUtils.h"
 #import "UIKitPrivate.h"
 #import "utils.h"
+#import <LocalAuthentication/LocalAuthentication.h>
 
 __attribute__((constructor))
 static void UIKitGuestHooksInit() {
@@ -9,13 +10,13 @@ static void UIKitGuestHooksInit() {
     swizzle(UIScene.class, @selector(scene:didReceiveActions:fromTransitionContext:), @selector(hook_scene:didReceiveActions:fromTransitionContext:));
 }
 
-void LCShowSwitchAppConfirmation(NSURL *url) {
+void LCShowSwitchAppConfirmation(NSURL *url, NSString* bundleId) {
     if ([NSUserDefaults.lcUserDefaults boolForKey:@"LCSwitchAppWithoutAsking"]) {
         [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
         return;
     }
 
-    NSString *message = [NSString stringWithFormat:@"%@\nAre you sure you want to switch app? Doing so will terminate this app.", url];
+    NSString *message = [NSString stringWithFormat:@"Are you sure you want to switch to %@? Doing so will terminate this app.", bundleId];
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
@@ -37,6 +38,22 @@ void LCShowSwitchAppConfirmation(NSURL *url) {
         window.windowScene = nil;
     }];
     [alert addAction:cancelAction];
+    window.rootViewController = [UIViewController new];
+    window.windowLevel = UIApplication.sharedApplication.windows.lastObject.windowLevel + 1;
+    window.windowScene = (id)UIApplication.sharedApplication.connectedScenes.anyObject;
+    [window makeKeyAndVisible];
+    [window.rootViewController presentViewController:alert animated:YES completion:nil];
+    objc_setAssociatedObject(alert, @"window", window, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+void LCShowAppNotFoundAlert(NSString* bundleId) {
+    NSString *message = [NSString stringWithFormat:@"App %@ not found.", bundleId];
+    UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+        window.windowScene = nil;
+    }];
+    [alert addAction:okAction];
     window.rootViewController = [UIViewController new];
     window.windowLevel = UIApplication.sharedApplication.windows.lastObject.windowLevel + 1;
     window.windowScene = (id)UIApplication.sharedApplication.connectedScenes.anyObject;
@@ -101,6 +118,32 @@ void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
 
 }
 
+void authenticateUser(void (^completion)(BOOL success, NSError *error)) {
+    LAContext *context = [[LAContext alloc] init];
+    NSError *error = nil;
+
+    if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&error]) {
+        NSString *reason = @"Authentication Required.";
+
+        // Evaluate the policy for both biometric and passcode authentication
+        [context evaluatePolicy:LAPolicyDeviceOwnerAuthentication
+                localizedReason:reason
+                          reply:^(BOOL success, NSError * _Nullable evaluationError) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (success) {
+                    completion(YES, nil);
+                } else {
+                    completion(NO, evaluationError);
+                }
+            });
+        }];
+    } else {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(NO, error);
+        });
+    }
+}
+
 void handleLiveContainerLaunch(NSURL* url) {
     // If it's not current app, then switch
     // check if there are other LCs is running this app
@@ -127,7 +170,28 @@ void handleLiveContainerLaunch(NSURL* url) {
             [UIApplication.sharedApplication openURL:[NSURL URLWithString:urlStr] options:@{} completionHandler:nil];
             return;
         }
-        LCShowSwitchAppConfirmation(url);
+        
+        NSBundle* bundle = [NSClassFromString(@"LCSharedUtils") findBundleWithBundleId: bundleName];
+        if(!bundle || ([bundle.infoDictionary[@"isHidden"] boolValue] && [NSUserDefaults.lcSharedDefaults boolForKey:@"LCStrictHiding"])) {
+            LCShowAppNotFoundAlert(bundleName);
+        } else if ([bundle.infoDictionary[@"isHidden"] boolValue]) {
+            // need authentication
+            authenticateUser(^(BOOL success, NSError *error) {
+                if (success) {
+                    LCShowSwitchAppConfirmation(url, bundleName);
+                } else {
+                    if ([error.domain isEqualToString:LAErrorDomain]) {
+                        if (error.code != LAErrorUserCancel) {
+                            NSLog(@"[LC] Authentication Error: %@", error.localizedDescription);
+                        }
+                    } else {
+                        NSLog(@"[LC] Authentication Error: %@", error.localizedDescription);
+                    }
+                }
+            });
+        } else {
+            LCShowSwitchAppConfirmation(url, bundleName);
+        }
     }
 }
 
