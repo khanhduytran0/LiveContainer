@@ -43,6 +43,9 @@ struct LCAppListView : View, LCAppBannerDelegate {
     @State private var webViewUrlInputContent = ""
     @State private var webViewUrlInputContinuation : CheckedContinuation<Void, Never>? = nil
     
+    @State var safariViewOpened = false
+    @State var safariViewURL = URL(string: "https://google.com")!
+    
     @EnvironmentObject private var sharedModel : SharedModel
  
     init(apps: Binding<[LCAppInfo]>, hiddenApps: Binding<[LCAppInfo]>, appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
@@ -205,6 +208,9 @@ struct LCAppListView : View, LCAppBannerDelegate {
         )
         .fullScreenCover(isPresented: $webViewOpened) {
             LCWebView(url: $webViewURL, apps: $apps, hiddenApps: $hiddenApps, isPresent: $webViewOpened)
+        }
+        .fullScreenCover(isPresented: $safariViewOpened) {
+            SafariView(url: $safariViewURL)
         }
 
     }
@@ -515,5 +521,25 @@ struct LCAppListView : View, LCAppBannerDelegate {
             errorShow = true
             return
         }
+    }
+    
+    func installMdm(data: Data) {
+        Task {
+            do {
+                if LCMDMServer.instance == nil {
+                    LCMDMServer.instance = try LCMDMServer()
+                    await withCheckedContinuation { c in
+                        LCMDMServer.instance!.start(c)
+                    }
+                    safariViewURL = URL(string:"http://127.0.0.1:\(LCMDMServer.instance!.getPort())")!
+                }
+                LCMDMServer.mdmData = data
+                safariViewOpened = true
+            } catch {
+                errorInfo = error.localizedDescription
+                errorShow = true
+            }
+        }
+
     }
 }

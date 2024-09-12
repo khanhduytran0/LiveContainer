@@ -116,15 +116,15 @@ struct LCSettingsView: View {
                     Text("If you see frequent re-sign, enable this option.")
                 }
                 
-//                Section{
-//                    Toggle(isOn: $frameShortIcon) {
-//                        Text("Frame Short Icon")
-//                    }
-//                } header: {
-//                    Text("Miscellaneous")
-//                } footer: {
-//                    Text("Frame shortcut icons with LiveContainer icon.")
-//                }
+                Section{
+                    Toggle(isOn: $frameShortIcon) {
+                        Text("Frame Short Icon")
+                    }
+                } header: {
+                    Text("Miscellaneous")
+                } footer: {
+                    Text("Frame shortcut icons with LiveContainer icon.")
+                }
                 Section {
                     HStack {
                         Text("Address")

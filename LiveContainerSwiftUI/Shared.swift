@@ -8,6 +8,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import LocalAuthentication
+import SafariServices
+import LinkPresentation
 
 struct LCPath {
     public static let docPath = {
@@ -68,6 +70,16 @@ extension UTType {
     static let dylib = UTType(filenameExtension: "dylib")!
     static let deb = UTType(filenameExtension: "deb")!
     static let lcFramework = UTType(filenameExtension: "framework", conformingTo: .package)!
+}
+
+struct SafariView: UIViewControllerRepresentable {
+    let url: Binding<URL>
+    func makeUIViewController(context: UIViewControllerRepresentableContext<Self>) -> SFSafariViewController {
+        return SFSafariViewController(url: url.wrappedValue)
+    }
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: UIViewControllerRepresentableContext<SafariView>) {
+        
+    }
 }
 
 // https://stackoverflow.com/questions/56726663/how-to-add-a-textfield-to-alert-in-swiftui
@@ -138,6 +150,63 @@ public struct TextFieldAlertModifier: ViewModifier {
     }
 
 }
+
+class ShareableImage: NSObject, UIActivityItemSource {
+    private let image: UIImage
+    private let title: String
+    private let subtitle: String?
+
+    init(image: UIImage, title: String, subtitle: String? = nil) {
+        self.image = image
+        self.title = title
+        self.subtitle = subtitle
+
+        super.init()
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        return title
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        return image
+    }
+
+    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
+        let metadata = LPLinkMetadata()
+
+        metadata.iconProvider = NSItemProvider(object: image)
+        metadata.title = title
+        if let subtitle = subtitle {
+            metadata.originalURL = URL(fileURLWithPath: subtitle)
+        }
+
+        return metadata
+    }
+}
+
+func showShareSheet(item: Any) {
+  let activityVC = UIActivityViewController(activityItems: [item], applicationActivities: nil)
+  UIApplication.shared.currentUIWindow()?.rootViewController?.present(activityVC, animated: true, completion: nil)
+}
+
+// utility extension to easily get the window
+public extension UIApplication {
+    func currentUIWindow() -> UIWindow? {
+        let connectedScenes = UIApplication.shared.connectedScenes
+            .filter { $0.activationState == .foregroundActive }
+            .compactMap { $0 as? UIWindowScene }
+        
+        let window = connectedScenes.first?
+            .windows
+            .first { $0.isKeyWindow }
+
+        return window
+        
+    }
+}
+
+
 
 struct SiteAssociationDetailItem : Codable {
     var appID: String?

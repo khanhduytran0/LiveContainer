@@ -145,7 +145,7 @@
         @"PayloadVersion": @(1),
         @"Precomposed": @NO,
         @"toPayloadOrganization": @"LiveContainer",
-        @"URL": [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", [LCUtils appUrlScheme], self.bundlePath.lastPathComponent]
+        @"URL": [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@", self.bundlePath.lastPathComponent]
     };
     return @{
         @"ConsentText": @{

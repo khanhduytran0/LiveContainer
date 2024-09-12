@@ -12,6 +12,7 @@ import UniformTypeIdentifiers
 protocol LCAppBannerDelegate {
     func removeApp(app: LCAppInfo)
     func changeAppVisibility(app: LCAppInfo)
+    func installMdm(data: Data)
 }
 
 struct LCAppBanner : View {
@@ -163,11 +164,29 @@ struct LCAppBanner : View {
 
             }
             
-            Button {
-                copyLaunchUrl()
+            Menu {
+                Button {
+                    openSafariViewToCreateAppClip()
+                } label: {
+                    Label("Create App Clip", systemImage: "appclip")
+                }
+                Button {
+                    copyLaunchUrl()
+                } label: {
+                    Label("Copy Launch Url", systemImage: "link")
+                }
+                Button {
+                    showShareSheet(item: ShareableImage(image: appInfo.icon()!, title: appInfo.displayName()))
+                } label: {
+                    Label("Save App Icon", systemImage: "square.and.arrow.down")
+                }
+
+
             } label: {
-                Label("Copy Launch Url", systemImage: "link")
+                Label("Add to Home Screen", systemImage: "plus.app")
             }
+            
+
             
             if sharedModel.isHiddenAppUnlocked {
                 Button {
@@ -181,6 +200,8 @@ struct LCAppBanner : View {
 
                 }
             }
+
+            
             if !uiIsShared {
                 Button(role: .destructive) {
                      Task{ await uninstall() }
@@ -629,6 +650,17 @@ struct LCAppBanner : View {
     
     func copyLaunchUrl() {
         UIPasteboard.general.string = "livecontainer://livecontainer-launch?bundle-name=\(appInfo.relativeBundlePath!)"
+    }
+    
+    func openSafariViewToCreateAppClip() {
+        do {
+            let data = try PropertyListSerialization.data(fromPropertyList: appInfo.generateWebClipConfig()!, format: .xml, options: 0)
+            delegate.installMdm(data: data)
+        } catch  {
+            errorShow = true
+            errorInfo = error.localizedDescription
+        }
+
     }
     
     func toggleHidden() async {
