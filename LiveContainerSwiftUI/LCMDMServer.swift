@@ -23,11 +23,10 @@ struct LCMDMServer {
         listener.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                if let port = listener.port {
-                    if let continuation = continuation {
-                        continuation.resume()
-                    }
+                if let continuation = continuation {
+                    continuation.resume()
                 }
+                
             case .failed(let error):
                 NSLog("[NMSL] Server failed with error: \(error)")
                 if let continuation = continuation {

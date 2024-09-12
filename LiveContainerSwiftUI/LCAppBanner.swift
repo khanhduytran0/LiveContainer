@@ -55,6 +55,9 @@ struct LCAppBanner : View {
     @State private var confirmEnablingJIT = false
     @State private var confirmEnablingJITContinuation : CheckedContinuation<Void, Never>? = nil
     
+    @State private var saveIconExporterShow = false
+    @State private var saveIconFile : ImageDocument?
+    
     @State private var errorShow = false
     @State private var errorInfo = ""
     
@@ -150,7 +153,14 @@ struct LCAppBanner : View {
         .frame(height: 88)
         .background(RoundedRectangle(cornerSize: CGSize(width:22, height: 22)).fill(Color("AppBannerBG")))
         
-        
+        .fileExporter(
+            isPresented: $saveIconExporterShow,
+            document: saveIconFile,
+            contentType: .image,
+            defaultFilename: "\(appInfo.displayName()!) Icon.png",
+            onCompletion: { result in
+            
+        })
         .contextMenu{
             Text(appInfo.relativeBundlePath)
             Button {
@@ -176,7 +186,7 @@ struct LCAppBanner : View {
                     Label("Copy Launch Url", systemImage: "link")
                 }
                 Button {
-                    showShareSheet(item: ShareableImage(image: appInfo.icon()!, title: appInfo.displayName()))
+                    saveIcon()
                 } label: {
                     Label("Save App Icon", systemImage: "square.and.arrow.down")
                 }
@@ -379,7 +389,7 @@ struct LCAppBanner : View {
     func runApp() async {
         if let runningLC = LCUtils.getAppRunningLCScheme(bundleId: self.appInfo.relativeBundlePath) {
             let openURL = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(self.appInfo.relativeBundlePath!)")!
-            if await UIApplication.shared.canOpenURL(openURL) {
+            if UIApplication.shared.canOpenURL(openURL) {
                 await UIApplication.shared.open(openURL)
                 return
             }
@@ -409,7 +419,9 @@ struct LCAppBanner : View {
             }
             self.isSingingInProgress = true
             self.observer = signProgress.observe(\.fractionCompleted) { p, v in
-                self.signProgress = signProgress.fractionCompleted
+                DispatchQueue.main.async {
+                    self.signProgress = signProgress.fractionCompleted
+                }
             }
         } else if patchInfo != nil {
             errorInfo = patchInfo!
@@ -674,5 +686,10 @@ struct LCAppBanner : View {
         delegate.changeAppVisibility(app: appInfo)
     }
     
+    func saveIcon() {
+        let img = appInfo.icon()!
+        self.saveIconFile = ImageDocument(uiImage: img)
+        self.saveIconExporterShow = true
+    }
     
 }

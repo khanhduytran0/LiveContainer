@@ -9,7 +9,6 @@ import SwiftUI
 import UniformTypeIdentifiers
 import LocalAuthentication
 import SafariServices
-import LinkPresentation
 
 struct LCPath {
     public static let docPath = {
@@ -151,58 +150,29 @@ public struct TextFieldAlertModifier: ViewModifier {
 
 }
 
-class ShareableImage: NSObject, UIActivityItemSource {
-    private let image: UIImage
-    private let title: String
-    private let subtitle: String?
-
-    init(image: UIImage, title: String, subtitle: String? = nil) {
-        self.image = image
-        self.title = title
-        self.subtitle = subtitle
-
-        super.init()
+struct ImageDocument: FileDocument {
+    var data: Data
+    
+    static var readableContentTypes: [UTType] {
+        [UTType.image] // Specify that the document supports image files
     }
-
-    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        return title
+    
+    // Initialize with data
+    init(uiImage: UIImage) {
+        self.data = uiImage.pngData()!
     }
-
-    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
-        return image
-    }
-
-    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
-        let metadata = LPLinkMetadata()
-
-        metadata.iconProvider = NSItemProvider(object: image)
-        metadata.title = title
-        if let subtitle = subtitle {
-            metadata.originalURL = URL(fileURLWithPath: subtitle)
+    
+    // Function to read the data from the file
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
         }
-
-        return metadata
+        self.data = data
     }
-}
-
-func showShareSheet(item: Any) {
-  let activityVC = UIActivityViewController(activityItems: [item], applicationActivities: nil)
-  UIApplication.shared.currentUIWindow()?.rootViewController?.present(activityVC, animated: true, completion: nil)
-}
-
-// utility extension to easily get the window
-public extension UIApplication {
-    func currentUIWindow() -> UIWindow? {
-        let connectedScenes = UIApplication.shared.connectedScenes
-            .filter { $0.activationState == .foregroundActive }
-            .compactMap { $0 as? UIWindowScene }
-        
-        let window = connectedScenes.first?
-            .windows
-            .first { $0.isKeyWindow }
-
-        return window
-        
+    
+    // Write data to the file
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        return FileWrapper(regularFileWithContents: data)
     }
 }
 
