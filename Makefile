@@ -24,6 +24,7 @@ include $(THEOS_MAKE_PATH)/aggregate.mk
 
 # Make the executable name longer so we have space to overwrite it with the guest app's name
 before-package::
+	@/Applications/Xcode.app/Contents/Developer/usr/bin/actool LiveContainerSwiftUI/Assets.xcassets --compile $(THEOS_STAGING_DIR)/Applications/LiveContainer.app --platform iphoneos  --minimum-deployment-target 14.0
 	@cp $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/JITLessSetup
 	@ldid -Sentitlements_setup.xml $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/JITLessSetup
 	@mv $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou
