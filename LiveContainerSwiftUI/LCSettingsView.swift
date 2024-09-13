@@ -171,16 +171,30 @@ struct LCSettingsView: View {
                 }
                 
                 Section {
-                    Button {
-                        Task { await moveDanglingFolders() }
-                    } label: {
-                        Text("Move Dangling Folders Out of App Group")
+                    if LCUtils.multiLCStatus != 2 {
+                        Button {
+                            moveAppGroupFolderFromPrivateToAppGroup()
+                        } label: {
+                            Text("Move Private App Group to Shared Documents Folder")
+                        }
+                        Button {
+                            moveAppGroupFolderFromAppGroupToPrivate()
+                        } label: {
+                            Text("Move Shared App Group Files to Private Documents Folder")
+                        }
+
+                        Button {
+                            Task { await moveDanglingFolders() }
+                        } label: {
+                            Text("Move Dangling Folders Out of App Group")
+                        }
+                        Button(role:.destructive) {
+                            Task { await cleanUpUnusedFolders() }
+                        } label: {
+                            Text("Clean Unused Data Folders")
+                        }
                     }
-                    Button(role:.destructive) {
-                        Task { await cleanUpUnusedFolders() }
-                    } label: {
-                        Text("Clean Unused Data Folders")
-                    }
+
                     Button(role:.destructive) {
                         Task { await removeKeyChain() }
                     } label: {
@@ -197,11 +211,13 @@ struct LCSettingsView: View {
                     .listRowInsets(EdgeInsets())
             }
             .navigationBarTitle("Settings")
-            .alert(isPresented: $errorShow){
-                Alert(title: Text("Error"), message: Text(errorInfo))
+            .alert("Error", isPresented: $errorShow){
+            } message: {
+                Text(errorInfo)
             }
-            .alert(isPresented: $successShow){
-                Alert(title: Text("Success"), message: Text(successInfo))
+            .alert("Success", isPresented: $successShow){
+            } message: {
+                Text(successInfo)
             }
             .alert("Data Folder Clean Up", isPresented: $confirmAppFolderRemovalShow) {
                 if folderRemoveCount > 0 {
@@ -441,5 +457,62 @@ struct LCSettingsView: View {
             errorShow = true
         }
     }
-
+    
+    func moveAppGroupFolderFromAppGroupToPrivate() {
+        let fm = FileManager()
+        do {
+            if !fm.fileExists(atPath: LCPath.appGroupPath.path) {
+                try fm.createDirectory(atPath: LCPath.appGroupPath.path, withIntermediateDirectories: true)
+            }
+            if !fm.fileExists(atPath: LCPath.lcGroupAppGroupPath.path) {
+                try fm.createDirectory(atPath: LCPath.lcGroupAppGroupPath.path, withIntermediateDirectories: true)
+            }
+            
+            let privateFolderContents = try fm.contentsOfDirectory(at: LCPath.appGroupPath, includingPropertiesForKeys: nil)
+            let sharedFolderContents = try fm.contentsOfDirectory(at: LCPath.lcGroupAppGroupPath, includingPropertiesForKeys: nil)
+            if privateFolderContents.count > 0 {
+                errorInfo = "There are files in the private app group folder. Clean it up and try again."
+                errorShow = true
+                return
+            }
+            for file in sharedFolderContents {
+                try fm.moveItem(at: file, to: LCPath.appGroupPath.appendingPathComponent(file.lastPathComponent))
+            }
+            successInfo = "Move success."
+            successShow = true
+            
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
+    }
+    
+    func moveAppGroupFolderFromPrivateToAppGroup() {
+        let fm = FileManager()
+        do {
+            if !fm.fileExists(atPath: LCPath.appGroupPath.path) {
+                try fm.createDirectory(atPath: LCPath.appGroupPath.path, withIntermediateDirectories: true)
+            }
+            if !fm.fileExists(atPath: LCPath.lcGroupAppGroupPath.path) {
+                try fm.createDirectory(atPath: LCPath.lcGroupAppGroupPath.path, withIntermediateDirectories: true)
+            }
+            
+            let privateFolderContents = try fm.contentsOfDirectory(at: LCPath.appGroupPath, includingPropertiesForKeys: nil)
+            let sharedFolderContents = try fm.contentsOfDirectory(at: LCPath.lcGroupAppGroupPath, includingPropertiesForKeys: nil)
+            if sharedFolderContents.count > 0 {
+                errorInfo = "There are files in the shared app group folder. Move it out first and try again."
+                errorShow = true
+                return
+            }
+            for file in privateFolderContents {
+                try fm.moveItem(at: file, to: LCPath.lcGroupAppGroupPath.appendingPathComponent(file.lastPathComponent))
+            }
+            successInfo = "Move success."
+            successShow = true
+            
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
+    }
 }

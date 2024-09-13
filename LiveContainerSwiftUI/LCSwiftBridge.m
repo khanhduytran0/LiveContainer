@@ -24,3 +24,11 @@
 }
 
 @end
+
+// make SFSafariView happy and open data: URLs
+@implementation NSURL(hack)
+- (BOOL)safari_isHTTPFamilyURL {
+    // Screw it, Apple
+    return YES;
+}
+@end

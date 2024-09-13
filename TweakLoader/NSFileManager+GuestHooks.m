@@ -14,8 +14,9 @@ static void NSFMGuestHooksInit() {
     if([groupIdentifier isEqualToString:[NSClassFromString(@"LCSharedUtils") appGroupID]]) {
         return [self hook_containerURLForSecurityApplicationGroupIdentifier: groupIdentifier];
     }
+    NSURL *appGroupPath = [self hook_containerURLForSecurityApplicationGroupIdentifier:[NSClassFromString(@"LCSharedUtils") appGroupID]];
     
-    NSURL *result = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%s/Documents/Data/AppGroup/%@", getenv("LC_HOME_PATH"), groupIdentifier]];
+    NSURL *result = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%@/LiveContainer/Data/AppGroup/%@", appGroupPath.path, groupIdentifier]];
     [NSFileManager.defaultManager createDirectoryAtURL:result withIntermediateDirectories:YES attributes:nil error:nil];
     return result;
 }

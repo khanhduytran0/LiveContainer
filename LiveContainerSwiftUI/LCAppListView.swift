@@ -412,7 +412,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
         // patch it
         let patchResult = finalNewApp?.patchExec()
         if patchResult != nil && patchResult != "SignNeeded" {
-            throw patchResult!;
+            throw patchResult!
         }
         if patchResult == "SignNeeded" {
             // sign it
@@ -420,6 +420,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
             var success = false
             await withCheckedContinuation { c in
                 let signProgress = LCUtils.signAppBundle(outputFolder) { success1, error1 in
+                    finalNewApp?.signCleanUp(withSuccessStatus: success1)
                     error = error1
                     success = success1
                     c.resume()
@@ -428,10 +429,8 @@ struct LCAppListView : View, LCAppBannerDelegate {
             }
             
             if let error = error {
-                finalNewApp?.signCleanUp(withSuccessStatus: false)
                 throw error
             }
-            finalNewApp?.signCleanUp(withSuccessStatus: success)
             if !success {
                 throw "Unknow error occurred"
             }
@@ -442,8 +441,10 @@ struct LCAppListView : View, LCAppBannerDelegate {
         if let appToReplace = appToReplace {
             finalNewApp?.setDataUUID(appToReplace.getDataUUIDNoAssign())
         }
-        self.apps.append(finalNewApp!)
-        self.installprogressVisible = false
+        DispatchQueue.main.async {
+            self.apps.append(finalNewApp!)
+            self.installprogressVisible = false
+        }
     }
     
     func removeApp(app: LCAppInfo) {
@@ -528,24 +529,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
     }
     
     func installMdm(data: Data) {
-        Task {
-            do {
-                if LCMDMServer.instance == nil {
-                    LCMDMServer.instance = try LCMDMServer()
-                }
-                if (LCMDMServer.instance!.getState() != .ready) {
-                    await withCheckedContinuation { c in
-                        LCMDMServer.instance!.start(c)
-                    }
-                    safariViewURL = URL(string:"http://127.0.0.1:\(LCMDMServer.instance!.getPort())")!
-                }
-                LCMDMServer.mdmData = data
-                safariViewOpened = true
-            } catch {
-                errorInfo = error.localizedDescription
-                errorShow = true
-            }
-        }
-
+        safariViewURL = URL(string:"data:application/x-apple-aspen-config;base64,\(data.base64EncodedString())")!
+        safariViewOpened = true
     }
 }

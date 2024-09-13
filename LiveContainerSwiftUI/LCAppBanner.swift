@@ -225,6 +225,17 @@ struct LCAppBanner : View {
                 }
                 
                 Menu(content: {
+                    Picker(selection: $uiPickerTweakFolder , label: Text("")) {
+                        Label("None", systemImage: "nosign").tag(Optional<String>(nil))
+                        ForEach(tweakFolders, id:\.self) { folderName in
+                            Text(folderName).tag(Optional(folderName))
+                        }
+                    }
+                }, label: {
+                    Label("Change Tweak Folder", systemImage: "gear")
+                })
+                
+                Menu(content: {
                     Button {
                         Task{ await createFolder() }
                     } label: {
@@ -248,17 +259,14 @@ struct LCAppBanner : View {
                 }, label: {
                     Label("Change Data Folder", systemImage: "folder.badge.questionmark")
                 })
-                
-                Menu(content: {
-                    Picker(selection: $uiPickerTweakFolder , label: Text("")) {
-                        Label("None", systemImage: "nosign").tag(Optional<String>(nil))
-                        ForEach(tweakFolders, id:\.self) { folderName in
-                            Text(folderName).tag(Optional(folderName))
-                        }
+                if uiDataFolder != nil {
+                    Button {
+                        openDataFolder()
+                    } label: {
+                        Label("Open Data Folder", systemImage: "folder")
                     }
-                }, label: {
-                    Label("Change Tweak Folder", systemImage: "gear")
-                })
+                }
+                
             } else if LCUtils.multiLCStatus != 2 {
                 Button {
                     Task { await movePrivateDoc() }
@@ -506,6 +514,11 @@ struct LCAppBanner : View {
         self.appDataFolders[i] = self.renameFolderContent
         self.setDataFolder(folderName: self.renameFolderContent)
         
+    }
+    
+    func openDataFolder() {
+        let url = URL(string:"shareddocuments://\(LCPath.docPath.path)/Data/Application/\(appInfo.dataUUID()!)")
+        UIApplication.shared.open(url!)
     }
     
     func setTweakFolder(folderName: String?) {

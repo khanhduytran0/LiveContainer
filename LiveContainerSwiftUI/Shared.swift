@@ -17,6 +17,7 @@ struct LCPath {
     }()
     public static let bundlePath = docPath.appendingPathComponent("Applications")
     public static let dataPath = docPath.appendingPathComponent("Data/Application")
+    public static let appGroupPath = docPath.appendingPathComponent("Data/AppGroup")
     public static let tweakPath = docPath.appendingPathComponent("Tweaks")
     
     public static let lcGroupDocPath = {
@@ -33,6 +34,7 @@ struct LCPath {
     }()
     public static let lcGroupBundlePath = lcGroupDocPath.appendingPathComponent("Applications")
     public static let lcGroupDataPath = lcGroupDocPath.appendingPathComponent("Data/Application")
+    public static let lcGroupAppGroupPath = lcGroupDocPath.appendingPathComponent("Data/AppGroup")
     public static let lcGroupTweakPath = lcGroupDocPath.appendingPathComponent("Tweaks")
     
     public static func ensureAppGroupPaths() throws {
