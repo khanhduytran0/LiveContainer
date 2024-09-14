@@ -1,9 +1,9 @@
 name: Update AltStore Source
 
 on:
-  schedule:
-    - cron: '0 0 * * *'  # Run daily at midnight UTC
-  workflow_dispatch:  # Allow manual trigger
+  release:
+    types: [published]
+  workflow_dispatch:
 
 jobs:
   update-source:
