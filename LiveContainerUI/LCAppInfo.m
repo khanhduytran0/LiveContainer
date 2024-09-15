@@ -5,12 +5,9 @@
 #import "LCAppInfo.h"
 #import "LCUtils.h"
 
-@implementation SignTmpStatus
-@end
-
 @implementation LCAppInfo
 - (instancetype)initWithBundlePath:(NSString*)bundlePath {
-	 self = [super init];
+    self = [super init];
     self.isShared = false;
 	 if(self) {
         _bundlePath = bundlePath;
@@ -167,23 +164,26 @@
     [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
 }
 
-- (void)preprocessBundleBeforeSiging:(NSURL *)bundleURL {
-    // Remove faulty file
-    [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"LiveContainer"] error:nil];
-    // Remove PlugIns folder
-    [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
-    // Remove code signature from all library files
-    [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
-    
+- (void)preprocessBundleBeforeSiging:(NSURL *)bundleURL completion:(dispatch_block_t)completion {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // Remove faulty file
+        [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"LiveContainer"] error:nil];
+        // Remove PlugIns folder
+        [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
+        // Remove code signature from all library files
+        [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
+        dispatch_async(dispatch_get_main_queue(), completion);
+    });
 }
 
 // return "SignNeeded" if sign is needed, other wise return an error
-- (NSString*)patchExec {
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* errorInfo))progressHandler forceSign:(BOOL)forceSign {
     NSString *appPath = self.bundlePath;
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
     if (!info) {
-        return @"Info.plist not found";
+        completetionHandler(@"Info.plist not found");
+        return;
     }
     
     // Update patch
@@ -194,14 +194,16 @@
             LCPatchExecSlice(path, header);
         });
         if (error) {
-            return error;
+            completetionHandler(error);
+            return;
         }
         info[@"LCPatchRevision"] = @(currentPatchRev);
         [info writeToFile:infoPath atomically:YES];
     }
 
     if (!LCUtils.certificatePassword) {
-        return nil;
+        completetionHandler(nil);
+        return;
     }
 
     int signRevision = 1;
@@ -213,55 +215,65 @@
         CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
         signID = *(uint64_t *)digest + signRevision;
     } else {
-        return @"Failed to find ALTCertificate.p12. Please refresh your store and try again.";
+        completetionHandler(@"Failed to find ALTCertificate.p12. Please refresh your store and try again.");
+        return;
     }
     
     // Sign app if JIT-less is set up
-    if ([info[@"LCJITLessSignID"] unsignedLongValue] != signID) {
+    if ([info[@"LCJITLessSignID"] unsignedLongValue] != signID || forceSign) {
         NSURL *appPathURL = [NSURL fileURLWithPath:appPath];
-        [self preprocessBundleBeforeSiging:appPathURL];
-        // We need to temporarily fake bundle ID and main executable to sign properly
-        NSString *tmpExecPath = [appPath stringByAppendingPathComponent:@"LiveContainer.tmp"];
-        if (!info[@"LCBundleIdentifier"]) {
-            // Don't let main executable get entitlements
-            [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
+        [self preprocessBundleBeforeSiging:appPathURL completion:^{
+            // We need to temporarily fake bundle ID and main executable to sign properly
+            NSString *tmpExecPath = [appPath stringByAppendingPathComponent:@"LiveContainer.tmp"];
+            if (!info[@"LCBundleIdentifier"]) {
+                // Don't let main executable get entitlements
+                [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
 
-            info[@"LCBundleExecutable"] = info[@"CFBundleExecutable"];
-            info[@"LCBundleIdentifier"] = info[@"CFBundleIdentifier"];
-            info[@"CFBundleExecutable"] = tmpExecPath.lastPathComponent;
-            info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
-            [info writeToFile:infoPath atomically:YES];
-        }
-        info[@"CFBundleExecutable"] = info[@"LCBundleExecutable"];
-        info[@"CFBundleIdentifier"] = info[@"LCBundleIdentifier"];
-        [info removeObjectForKey:@"LCBundleExecutable"];
-        [info removeObjectForKey:@"LCBundleIdentifier"];
-        self._signStatus = [[SignTmpStatus alloc] init];
-        self._signStatus.newSignId = signID;
-        self._signStatus.tmpExecPath = tmpExecPath;
-        self._signStatus.infoPath = infoPath;
-        
-        return @"SignNeeded";
+                info[@"LCBundleExecutable"] = info[@"CFBundleExecutable"];
+                info[@"LCBundleIdentifier"] = info[@"CFBundleIdentifier"];
+                info[@"CFBundleExecutable"] = tmpExecPath.lastPathComponent;
+                info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+                [info writeToFile:infoPath atomically:YES];
+            }
+            info[@"CFBundleExecutable"] = info[@"LCBundleExecutable"];
+            info[@"CFBundleIdentifier"] = info[@"LCBundleIdentifier"];
+            [info removeObjectForKey:@"LCBundleExecutable"];
+            [info removeObjectForKey:@"LCBundleIdentifier"];
 
-    }
-    return nil;
-}
+            __block NSProgress *progress = [LCUtils signAppBundle:appPathURL
+            completionHandler:^(BOOL success, NSError *_Nullable error) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (!error) {
+                        info[@"LCJITLessSignID"] = @(signID);
+                    }
+                    
+                    // Remove fake main executable
+                    [NSFileManager.defaultManager removeItemAtPath:tmpExecPath error:nil];
+                    
+                    // Save sign ID and restore bundle ID
+                    [info writeToFile:infoPath atomically:YES];
+                    
+                    
+                    if(error) {
+                        completetionHandler(error.localizedDescription);
+                        return;
+                    } else {
+                        completetionHandler(nil);
+                        return;
+                    }
 
-- (void) signCleanUpWithSuccessStatus:(BOOL)isSignSuccess {
-    if(self._signStatus == nil) {
+                });
+            }];
+            if (progress) {
+                progressHandler(progress);
+            }
+        }];
+
+    } else {
+        // no need to sign again
+        completetionHandler(nil);
         return;
     }
-    if (isSignSuccess) {
-        _info[@"LCJITLessSignID"] = @(self._signStatus.newSignId);
-    }
-    
-    // Remove fake main executable
-    [NSFileManager.defaultManager removeItemAtPath:self._signStatus.tmpExecPath error:nil];
-    
-    // Save sign ID and restore bundle ID
-    [_info writeToFile:self._signStatus.infoPath atomically:YES];
-    self._signStatus = nil;
-    return;
 }
 
 - (bool)isJITNeeded {

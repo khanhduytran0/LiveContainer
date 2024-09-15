@@ -19,6 +19,7 @@ static int (*appMain)(int, char**);
 static const char *dyldImageName;
 NSUserDefaults *lcUserDefaults;
 NSUserDefaults *lcSharedDefaults;
+NSString *lcAppGroupPath;
 NSString* lcAppUrlScheme;
 
 @implementation NSUserDefaults(LiveContainer)
@@ -27,6 +28,9 @@ NSString* lcAppUrlScheme;
 }
 + (instancetype)lcSharedDefaults {
     return lcSharedDefaults;
+}
++ (NSString *)lcAppGroupPath {
+    return lcAppGroupPath;
 }
 + (NSString *)lcAppUrlScheme {
     return lcAppUrlScheme;
@@ -373,7 +377,7 @@ int LiveContainerMain(int argc, char *argv[]) {
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     lcSharedDefaults = [[NSUserDefaults alloc] initWithSuiteName: [LCSharedUtils appGroupID]];
     lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
-    
+    lcAppGroupPath = [[NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[NSClassFromString(@"LCSharedUtils") appGroupID]] path];
     // move preferences first then the entire folder
     
 

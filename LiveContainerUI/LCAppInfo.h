@@ -1,13 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-@interface SignTmpStatus : NSObject
-@property NSUInteger newSignId;
-@property NSString *tmpExecPath;
-@property NSString *infoPath;
-
-@end
-
 @interface LCAppInfo : NSObject {
    NSMutableDictionary* _info;
    NSString* _bundlePath;
@@ -32,9 +25,7 @@
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
 - (NSDictionary *)generateWebClipConfig;
 - (void)save;
-@property SignTmpStatus* _signStatus;
-- (NSString*)patchExec;
-- (void) signCleanUpWithSuccessStatus:(BOOL)isSignSuccess;
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* errorInfo))progressHandler  forceSign:(BOOL)forceSign;
 - (bool)isHidden;
 - (void)setIsHidden:(bool)isHidden;
 @end

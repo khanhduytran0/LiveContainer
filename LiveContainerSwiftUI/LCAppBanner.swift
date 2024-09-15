@@ -163,15 +163,15 @@ struct LCAppBanner : View {
         })
         .contextMenu{
             Text(appInfo.relativeBundlePath)
-            Button {
-                Task { await toggleJITNeeded()}
-            } label: {
-                if uiIsJITNeeded {
-                    Label("Don't Need JIT", systemImage: "bolt.slash")
-                } else {
-                    Label("Mark as JIT Needed", systemImage: "bolt")
+            
+            if !uiIsShared {
+                if uiDataFolder != nil {
+                    Button {
+                        openDataFolder()
+                    } label: {
+                        Label("Open Data Folder", systemImage: "folder")
+                    }
                 }
-
             }
             
             Menu {
@@ -196,6 +196,16 @@ struct LCAppBanner : View {
                 Label("Add to Home Screen", systemImage: "plus.app")
             }
             
+            Button {
+                Task { await toggleJITNeeded()}
+            } label: {
+                if uiIsJITNeeded {
+                    Label("Don't Need JIT", systemImage: "bolt.slash")
+                } else {
+                    Label("Mark as JIT Needed", systemImage: "bolt")
+                }
+
+            }
 
             
             if sharedModel.isHiddenAppUnlocked {
@@ -210,14 +220,15 @@ struct LCAppBanner : View {
 
                 }
             }
+            
+            Button {
+                 Task{ await forceResign() }
+            } label: {
+                Label("Force Sign", systemImage: "signature")
+            }
 
             
             if !uiIsShared {
-                Button(role: .destructive) {
-                     Task{ await uninstall() }
-                } label: {
-                    Label("Uninstall", systemImage: "trash")
-                }
                 Button {
                     Task { await moveToAppGroup()}
                 } label: {
@@ -259,12 +270,11 @@ struct LCAppBanner : View {
                 }, label: {
                     Label("Change Data Folder", systemImage: "folder.badge.questionmark")
                 })
-                if uiDataFolder != nil {
-                    Button {
-                        openDataFolder()
-                    } label: {
-                        Label("Open Data Folder", systemImage: "folder")
-                    }
+                
+                Button(role: .destructive) {
+                     Task{ await uninstall() }
+                } label: {
+                    Label("Uninstall", systemImage: "trash")
                 }
                 
             } else if LCUtils.multiLCStatus != 2 {
@@ -404,49 +414,69 @@ struct LCAppBanner : View {
         }
         isAppRunning = true
 
-        let patchInfo = appInfo.patchExec()
-        if patchInfo == "SignNeeded" {
-            let bundlePath = URL(fileURLWithPath: appInfo.bundlePath())
-            let signProgress = LCUtils.signAppBundle(bundlePath) { success, error in
-                self.appInfo.signCleanUp(withSuccessStatus: success)
-                self.isSingingInProgress = false
-                if success {
-                    self.isSingingInProgress = false
-                    UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
-                    LCUtils.launchToGuestApp()
-                } else {
-                    errorInfo = error != nil ? error!.localizedDescription : "Signing failed with unknown error"
-                    errorShow = true
+        var signError : String? = nil
+        await withCheckedContinuation({ c in
+            appInfo.patchExecAndSignIfNeed(completionHandler: { error in
+                signError = error;
+                c.resume()
+            }, progressHandler: { signProgress in
+                guard let signProgress else {
+                    return
                 }
-            }
-            guard let signProgress = signProgress else {
-                errorInfo = "Failed to initiate signing!"
-                errorShow = true
-                self.isAppRunning = false
-                return
-            }
-            self.isSingingInProgress = true
-            self.observer = signProgress.observe(\.fractionCompleted) { p, v in
-                DispatchQueue.main.async {
-                    self.signProgress = signProgress.fractionCompleted
+                self.isSingingInProgress = true
+                self.observer = signProgress.observe(\.fractionCompleted) { p, v in
+                    DispatchQueue.main.async {
+                        self.signProgress = signProgress.fractionCompleted
+                    }
                 }
-            }
-        } else if patchInfo != nil {
-            errorInfo = patchInfo!
+            }, forceSign: false)
+        })
+        self.isSingingInProgress = false
+        if let signError {
+            errorInfo = signError
             errorShow = true
             self.isAppRunning = false
             return
-        } else {
-            UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
-            if appInfo.isJITNeeded() {
-                await self.jitLaunch()
-            } else {
-                LCUtils.launchToGuestApp()
-            }
-
         }
+        
+        UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
+        if appInfo.isJITNeeded() {
+            await self.jitLaunch()
+        } else {
+            LCUtils.launchToGuestApp()
+        }
+
         self.isAppRunning = false
         
+    }
+    
+    func forceResign() async {
+        self.isAppRunning = true
+        var signError : String? = nil
+        await withCheckedContinuation({ c in
+            appInfo.patchExecAndSignIfNeed(completionHandler: { error in
+                signError = error;
+                c.resume()
+            }, progressHandler: { signProgress in
+                guard let signProgress else {
+                    return
+                }
+                self.isSingingInProgress = true
+                self.observer = signProgress.observe(\.fractionCompleted) { p, v in
+                    DispatchQueue.main.async {
+                        self.signProgress = signProgress.fractionCompleted
+                    }
+                }
+            }, forceSign: true)
+        })
+        self.isSingingInProgress = false
+        if let signError {
+            errorInfo = signError
+            errorShow = true
+            self.isAppRunning = false
+            return
+        }
+        self.isAppRunning = false
     }
     
     func setDataFolder(folderName: String?) {

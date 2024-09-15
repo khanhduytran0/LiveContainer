@@ -8,4 +8,5 @@ void swizzle(Class class, SEL originalAction, SEL swizzledAction);
 + (instancetype)lcSharedDefaults;
 + (instancetype)lcUserDefaults;
 + (NSString *)lcAppUrlScheme;
++ (NSString *)lcAppGroupPath;
 @end

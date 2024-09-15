@@ -410,39 +410,30 @@ struct LCAppListView : View, LCAppBannerDelegate {
         finalNewApp?.relativeBundlePath = appRelativePath
         
         // patch it
-        let patchResult = finalNewApp?.patchExec()
-        if patchResult != nil && patchResult != "SignNeeded" {
-            throw patchResult!
+        guard let finalNewApp else {
+            errorInfo = "Failed to Initialize AppInfo!"
+            errorShow = true
+            return
         }
-        if patchResult == "SignNeeded" {
-            // sign it
-            var error : Error? = nil
-            var success = false
-            await withCheckedContinuation { c in
-                let signProgress = LCUtils.signAppBundle(outputFolder) { success1, error1 in
-                    finalNewApp?.signCleanUp(withSuccessStatus: success1)
-                    error = error1
-                    success = success1
-                    c.resume()
-                }
+        var signError : String? = nil
+        await withCheckedContinuation({ c in
+            finalNewApp.patchExecAndSignIfNeed(completionHandler: { error in
+                signError = error
+                c.resume()
+            }, progressHandler: { signProgress in
                 installProgress.addChild(signProgress!, withPendingUnitCount: 20)
-            }
-            
-            if let error = error {
-                throw error
-            }
-            if !success {
-                throw "Unknow error occurred"
-            }
-
-            
+            }, forceSign: false)
+        })
+        
+        if let signError {
+            throw signError
         }
         // set data folder to the folder of the chosen app
         if let appToReplace = appToReplace {
-            finalNewApp?.setDataUUID(appToReplace.getDataUUIDNoAssign())
+            finalNewApp.setDataUUID(appToReplace.getDataUUIDNoAssign())
         }
         DispatchQueue.main.async {
-            self.apps.append(finalNewApp!)
+            self.apps.append(finalNewApp)
             self.installprogressVisible = false
         }
     }
