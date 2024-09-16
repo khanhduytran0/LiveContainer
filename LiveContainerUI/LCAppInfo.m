@@ -301,4 +301,17 @@
     [self save];
     
 }
+
+- (bool)doSymlinkInbox {
+    if(_info[@"doSymlinkInbox"] != nil) {
+        return [_info[@"doSymlinkInbox"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDoSymlinkInbox:(bool)doSymlinkInbox {
+    _info[@"doSymlinkInbox"] = [NSNumber numberWithBool:doSymlinkInbox];
+    [self save];
+    
+}
 @end

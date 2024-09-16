@@ -14,7 +14,11 @@ static void NSFMGuestHooksInit() {
 
 - (instancetype)hook_initForOpeningContentTypes:(NSArray<UTType *> *)contentTypes asCopy:(BOOL)asCopy {
     NSArray<UTType *> * contentTypesNew = @[UTTypeItem, UTTypeFolder];
-    return [self hook_initForOpeningContentTypes:contentTypesNew asCopy:YES];
+    if([NSBundle.mainBundle.infoDictionary[@"doSymlinkInbox"] boolValue]) {
+        return [self hook_initForOpeningContentTypes:contentTypesNew asCopy:YES];
+    } else {
+        return [self hook_initForOpeningContentTypes:contentTypesNew asCopy:asCopy];
+    }
 }
 
 @end

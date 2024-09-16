@@ -36,7 +36,7 @@ struct LCTabView: View {
                 let newApp = LCAppInfo(bundlePath: "\(LCPath.bundlePath.path)/\(appDir)")!
                 newApp.relativeBundlePath = appDir
                 newApp.isShared = false
-                if newApp.isHidden() {
+                if newApp.isHidden {
                     tempHiddenApps.append(newApp)
                 } else {
                     tempApps.append(newApp)
@@ -52,7 +52,7 @@ struct LCTabView: View {
                 let newApp = LCAppInfo(bundlePath: "\(LCPath.lcGroupBundlePath.path)/\(appDir)")!
                 newApp.relativeBundlePath = appDir
                 newApp.isShared = true
-                if newApp.isHidden() {
+                if newApp.isHidden {
                     tempHiddenApps.append(newApp)
                 } else {
                     tempApps.append(newApp)
@@ -106,9 +106,16 @@ struct LCTabView: View {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
         }
-        .alert(isPresented: $errorShow){
-            Alert(title: Text("Error"), message: Text(errorInfo))
-        }.onAppear() {
+        .alert("Error", isPresented: $errorShow){
+            Button("OK", action: {
+            })
+            Button("Copy", action: {
+                copyError()
+            })
+        } message: {
+            Text(errorInfo)
+        }
+        .onAppear() {
             checkLastLaunchError()
         }
         .environmentObject(DataManager.shared.model)
@@ -121,5 +128,9 @@ struct LCTabView: View {
         UserDefaults.standard.removeObject(forKey: "error")
         errorInfo = errorStr
         errorShow = true
+    }
+    
+    func copyError() {
+        UIPasteboard.general.string = errorInfo
     }
 }

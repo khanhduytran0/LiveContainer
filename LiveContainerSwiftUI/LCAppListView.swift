@@ -277,7 +277,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 return
             }
             
-            if appToLaunch.isHidden() && !sharedModel.isHiddenAppUnlocked {
+            if appToLaunch.isHidden && !sharedModel.isHiddenAppUnlocked {
                 do {
                     if !(try await LCUtils.authenticateUser()) {
                         return
@@ -448,7 +448,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
     
     func changeAppVisibility(app: LCAppInfo) {
         DispatchQueue.main.async {
-            if app.isHidden() {
+            if app.isHidden {
                 self.apps.removeAll { now in
                     return app == now
                 }

@@ -22,6 +22,7 @@ struct LCAppBanner : View {
     @State var uiIsShared : Bool
     @State var uiIsJITNeeded : Bool
     @State private var uiIsHidden : Bool
+    @State private var uiDoSymlinkInbox : Bool
     
     @Binding var appDataFolders: [String]
     @Binding var tweakFolders: [String]
@@ -79,8 +80,9 @@ struct LCAppBanner : View {
         _uiPickerTweakFolder = _uiTweakFolder
         
         _uiIsShared = State(initialValue: appInfo.isShared)
-        _uiIsJITNeeded = State(initialValue: appInfo.isJITNeeded())
-        _uiIsHidden = State(initialValue: appInfo.isHidden())
+        _uiIsJITNeeded = State(initialValue: appInfo.isJITNeeded)
+        _uiIsHidden = State(initialValue: appInfo.isHidden)
+        _uiDoSymlinkInbox = State(initialValue: appInfo.doSymlinkInbox)
     }
     
     var body: some View {
@@ -225,6 +227,16 @@ struct LCAppBanner : View {
                  Task{ await forceResign() }
             } label: {
                 Label("Force Sign", systemImage: "signature")
+            }
+            Button {
+                 Task{ await toggleSimlinkInbox() }
+            } label: {
+                if uiDoSymlinkInbox {
+                    Label("Don't Fix File Picker", systemImage: "tray.fill")
+                } else {
+                    Label("Fix File Picker", systemImage: "tray")
+                }
+
             }
 
             
@@ -440,7 +452,7 @@ struct LCAppBanner : View {
         }
         
         UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
-        if appInfo.isJITNeeded() {
+        if appInfo.isJITNeeded {
             await self.jitLaunch()
         } else {
             LCUtils.launchToGuestApp()
@@ -680,11 +692,11 @@ struct LCAppBanner : View {
     }
     
     func toggleJITNeeded() async {
-        if appInfo.isJITNeeded() {
-            appInfo.setIsJITNeeded(false)
+        if appInfo.isJITNeeded {
+            appInfo.isJITNeeded = false
             uiIsJITNeeded = false
         } else {
-            appInfo.setIsJITNeeded(true)
+            appInfo.isJITNeeded = true
             uiIsJITNeeded = true
         }
     }
@@ -719,11 +731,11 @@ struct LCAppBanner : View {
     }
     
     func toggleHidden() async {
-        if appInfo.isHidden() {
-            appInfo.setIsHidden(false)
+        if appInfo.isHidden {
+            appInfo.isHidden = false
             uiIsHidden = false
         } else {
-            appInfo.setIsHidden(true)
+            appInfo.isHidden = true
             uiIsHidden = true
         }
         delegate.changeAppVisibility(app: appInfo)
@@ -733,6 +745,16 @@ struct LCAppBanner : View {
         let img = appInfo.icon()!
         self.saveIconFile = ImageDocument(uiImage: img)
         self.saveIconExporterShow = true
+    }
+    
+    func toggleSimlinkInbox() async {
+        if appInfo.doSymlinkInbox {
+            appInfo.doSymlinkInbox = false
+            uiDoSymlinkInbox = false
+        } else {
+            appInfo.doSymlinkInbox = true
+            uiDoSymlinkInbox = true
+        }
     }
     
 }
