@@ -10,6 +10,7 @@
 @property bool isJITNeeded;
 @property bool isHidden;
 @property bool doSymlinkInbox;
+@property bool bypassAssertBarrierOnQueue;
 
 - (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;

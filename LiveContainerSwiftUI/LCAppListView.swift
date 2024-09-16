@@ -46,6 +46,9 @@ struct LCAppListView : View, LCAppBannerDelegate {
     @State var safariViewOpened = false
     @State var safariViewURL = URL(string: "https://google.com")!
     
+    @State private var navigateTo : AnyView?
+    @State private var isNavigationActive = false
+    
     @EnvironmentObject private var sharedModel : SharedModel
  
     init(apps: Binding<[LCAppInfo]>, hiddenApps: Binding<[LCAppInfo]>, appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
@@ -60,6 +63,14 @@ struct LCAppListView : View, LCAppBannerDelegate {
     var body: some View {
         NavigationView {
             ScrollView {
+                
+                NavigationLink(
+                    destination: navigateTo,
+                    isActive: $isNavigationActive,
+                    label: {
+                        EmptyView()
+                })
+                
                 GeometryReader { g in
                     ProgressView(value: uiInstallProgressPercentage)
                         .labelsHidden()
@@ -522,5 +533,15 @@ struct LCAppListView : View, LCAppBannerDelegate {
     func installMdm(data: Data) {
         safariViewURL = URL(string:"data:application/x-apple-aspen-config;base64,\(data.base64EncodedString())")!
         safariViewOpened = true
+    }
+    
+    func openNavigationView(view: AnyView) {
+        navigateTo = view
+        isNavigationActive = true
+    }
+    
+    func closeNavigationView() {
+        isNavigationActive = false
+        navigateTo = nil
     }
 }

@@ -104,6 +104,10 @@
 - (UIImage*)icon {
     UIImage* icon = [UIImage imageNamed:[_info valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
     if(!icon) {
+        icon = [UIImage imageNamed:[_info valueForKeyPath:@"CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+    }
+    
+    if(!icon) {
         icon = [UIImage imageNamed:@"DefaultIcon"];
     }
     return icon;
@@ -311,6 +315,19 @@
 }
 - (void)setDoSymlinkInbox:(bool)doSymlinkInbox {
     _info[@"doSymlinkInbox"] = [NSNumber numberWithBool:doSymlinkInbox];
+    [self save];
+    
+}
+
+- (bool)bypassAssertBarrierOnQueue {
+    if(_info[@"bypassAssertBarrierOnQueue"] != nil) {
+        return [_info[@"bypassAssertBarrierOnQueue"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setBypassAssertBarrierOnQueue:(bool)enabled {
+    _info[@"bypassAssertBarrierOnQueue"] = [NSNumber numberWithBool:enabled];
     [self save];
     
 }
