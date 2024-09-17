@@ -22,22 +22,16 @@ static void NSFMGuestHooksInit() {
 
 - (instancetype)hook_initForOpeningContentTypes:(NSArray<UTType *> *)contentTypes asCopy:(BOOL)asCopy {
     
-    // if app is going to choose any unrecognized file type, then we replace it with @[UTTypeItem, UTTypeFolder];
-    NSArray<UTType *> * contentTypesNew = contentTypes;
-    for(UTType* type in contentTypes) {
-        if(!type) {
-            contentTypesNew = @[UTTypeItem, UTTypeFolder];
-            break;
-        }
-    }
-    
     // prevent crash when selecting only folder
     BOOL shouldMultiselect = NO;
-    
     if (fixFilePicker && [contentTypes count] == 1 && contentTypes[0] == UTTypeFolder) {
-        contentTypesNew = @[UTTypeItem, UTTypeFolder];
         shouldMultiselect = YES;
     }
+    
+    // if app is going to choose any unrecognized file type, then we replace it with @[UTTypeItem, UTTypeFolder];
+    NSArray<UTType *> * contentTypesNew = @[UTTypeItem, UTTypeFolder];
+    
+
     
     if(fixFilePicker) {
         UIDocumentPickerViewController* ans = [self hook_initForOpeningContentTypes:contentTypesNew asCopy:YES];
