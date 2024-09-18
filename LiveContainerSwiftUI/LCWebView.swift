@@ -69,7 +69,7 @@ struct LCWebView: View {
                 Button(action: {
                     isPresent = false
                 }, label: {
-                    Text("Done")
+                    Text("lc.common.done".loc)
                 })
                 
             }
@@ -101,20 +101,20 @@ struct LCWebView: View {
             }
 
         }
-        .alert("Run App", isPresented: $runAppAlertShow) {
-            Button("Run", action: {
+        .alert("lc.webView.runApp".loc, isPresented: $runAppAlertShow) {
+            Button("lc.appBanner.run".loc, action: {
                 self.doRunApp = true
                 self.doRunAppContinuation?.resume()
             })
-            Button("Cancel", role: .cancel, action: {
+            Button("lc.common.cancel".loc, role: .cancel, action: {
                 self.doRunApp = false
                 self.doRunAppContinuation?.resume()
             })
         } message: {
             Text(runAppAlertMsg)
         }
-        .alert("Error", isPresented: $errorShow) {
-            Button("OK", action: {
+        .alert("lc.common.error".loc, isPresented: $errorShow) {
+            Button("lc.common.ok".loc, action: {
             })
         } message: {
             Text(errorInfo)
@@ -169,7 +169,7 @@ struct LCWebView: View {
     
         
         guard let appToLaunch = appToLaunch else {
-            errorInfo = "Scheme \"\(url.scheme!)\" cannot be opened by any app installed in LiveContainer."
+            errorInfo = "lc.appList.schemeCannotOpenError %@".localizeWithFormat(url.scheme!)
             errorShow = true
             return
         }
@@ -187,7 +187,7 @@ struct LCWebView: View {
             }
         }
         
-        runAppAlertMsg = "This web page is trying to launch \"\(appToLaunch.displayName()!)\", continue?"
+        runAppAlertMsg = "lc.webView.pageLaunch %@".localizeWithFormat(appToLaunch.displayName()!)
         
         await withCheckedContinuation { c in
             self.doRunAppContinuation = c
@@ -236,7 +236,7 @@ struct LCWebView: View {
             }
         }
         
-        runAppAlertMsg = "This web page can be opened in \"\(appToLaunch.displayName()!)\" according to its Associated Domains, continue?"
+        runAppAlertMsg = "lc.webView.pageCanBeOpenIn %@".localizeWithFormat(appToLaunch.displayName()!)
         runAppAlertShow = true
         await withCheckedContinuation { c in
             self.doRunAppContinuation = c

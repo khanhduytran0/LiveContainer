@@ -73,7 +73,7 @@ struct LCAppBanner : View, LCAppSettingDelegate {
                     HStack {
                         Text(appInfo.displayName()).font(.system(size: 16)).bold()
                         if model.uiIsShared {
-                            Text("SHARED").font(.system(size: 8)).bold().padding(2)
+                            Text("lc.appBanner.shared".loc).font(.system(size: 8)).bold().padding(2)
                                 .frame(width: 50, height:16)
                                 .background(
                                     Capsule().fill(Color("BadgeColor"))
@@ -89,7 +89,7 @@ struct LCAppBanner : View, LCAppSettingDelegate {
                     }
 
                     Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(Color("FontColor"))
-                    Text(model.uiDataFolder == nil ? "Data folder not created yet" : model.uiDataFolder!).font(.system(size: 8)).foregroundColor(Color("FontColor"))
+                    Text(LocalizedStringKey(model.uiDataFolder == nil ? "lc.appBanner.noDataFolder".loc : model.uiDataFolder!)).font(.system(size: 8)).foregroundColor(Color("FontColor"))
                 })
             }
             Spacer()
@@ -97,7 +97,7 @@ struct LCAppBanner : View, LCAppSettingDelegate {
                 Task{ await runApp() }
             } label: {
                 if !isSingingInProgress {
-                    Text("Run").bold().foregroundColor(.white)
+                    Text("lc.appBanner.run".loc).bold().foregroundColor(.white)
                 } else {
                     ProgressView().progressViewStyle(.circular)
                 }
@@ -150,7 +150,7 @@ struct LCAppBanner : View, LCAppSettingDelegate {
                         Button {
                             openDataFolder()
                         } label: {
-                            Label("Open Data Folder", systemImage: "folder")
+                            Label("lc.appBanner.openDataFolder".loc, systemImage: "folder")
                         }
                     }
                 }
@@ -159,28 +159,28 @@ struct LCAppBanner : View, LCAppSettingDelegate {
                     Button {
                         openSafariViewToCreateAppClip()
                     } label: {
-                        Label("Create App Clip", systemImage: "appclip")
+                        Label("lc.appBanner.createAppClip".loc, systemImage: "appclip")
                     }
                     Button {
                         copyLaunchUrl()
                     } label: {
-                        Label("Copy Launch Url", systemImage: "link")
+                        Label("lc.appBanner.copyLaunchUrl".loc, systemImage: "link")
                     }
                     Button {
                         saveIcon()
                     } label: {
-                        Label("Save App Icon", systemImage: "square.and.arrow.down")
+                        Label("lc.appBanner.saveAppIcon".loc, systemImage: "square.and.arrow.down")
                     }
 
 
                 } label: {
-                    Label("Add to Home Screen", systemImage: "plus.app")
+                    Label("lc.appBanner.addToHomeScreen".loc, systemImage: "plus.app")
                 }
                 
                 Button {
                     openSettings()
                 } label: {
-                    Label("Settings", systemImage: "gear")
+                    Label("lc.tabView.settings".loc, systemImage: "gear")
                 }
 
                 
@@ -188,7 +188,7 @@ struct LCAppBanner : View, LCAppSettingDelegate {
                     Button(role: .destructive) {
                          Task{ await uninstall() }
                     } label: {
-                        Label("Uninstall", systemImage: "trash")
+                        Label("lc.appBanner.uninstall".loc, systemImage: "trash")
                     }
                     
                 }
@@ -208,51 +208,51 @@ struct LCAppBanner : View, LCAppSettingDelegate {
             Task { await handleURLSchemeLaunch() }
         }
         
-        .alert("Confirm Uninstallation", isPresented: $confirmAppRemovalShow) {
+        .alert("lc.appBanner.confirmUninstallTitle".loc, isPresented: $confirmAppRemovalShow) {
             Button(role: .destructive) {
                 self.confirmAppRemoval = true
                 self.appRemovalContinuation?.resume()
             } label: {
-                Text("Uninstall")
+                Text("lc.appBanner.uninstall".loc)
             }
-            Button("Cancel", role: .cancel) {
+            Button("lc.common.cancel".loc, role: .cancel) {
                 self.confirmAppRemoval = false
                 self.appRemovalContinuation?.resume()
             }
         } message: {
-            Text("Are you sure you want to uninstall \(appInfo.displayName()!)?")
+            Text("lc.appBanner.confirmUninstallMsg %@".localizeWithFormat(appInfo.displayName()!))
         }
-        .alert("Delete Data Folder", isPresented: $confirmAppFolderRemovalShow) {
+        .alert("lc.appBanner.deleteDataTitle".loc, isPresented: $confirmAppFolderRemovalShow) {
             Button(role: .destructive) {
                 self.confirmAppFolderRemoval = true
                 self.appFolderRemovalContinuation?.resume()
             } label: {
-                Text("Delete")
+                Text("lc.common.delete".loc)
             }
-            Button("Cancel", role: .cancel) {
+            Button("lc.common.cancel".loc, role: .cancel) {
                 self.confirmAppFolderRemoval = false
                 self.appFolderRemovalContinuation?.resume()
             }
         } message: {
-            Text("Do you also want to delete data folder of \(appInfo.displayName()!)? You can keep it for future use.")
+            Text("lc.appBanner.deleteDataMsg \(appInfo.displayName()!)")
         }
-        .alert("Waiting for JIT", isPresented: $enablingJITShow) {
+        .alert("lc.appBanner.waitForJitTitle".loc, isPresented: $enablingJITShow) {
             Button {
                 self.confirmEnablingJIT = true
                 self.confirmEnablingJITContinuation?.resume()
             } label: {
-                Text("Launch Now")
+                Text("lc.appBanner.jitLaunchNow".loc)
             }
-            Button("Cancel", role: .cancel) {
+            Button("lc.common.cancel", role: .cancel) {
                 self.confirmEnablingJIT = false
                 self.confirmEnablingJITContinuation?.resume()
             }
         } message: {
-            Text("Please use your favourite way to enable jit for current LiveContainer.")
+            Text("lc.appBanner.waitForJitMsg".loc)
         }
         
-        .alert("Error", isPresented: $errorShow) {
-            Button("OK", action: {
+        .alert("lc.common.error".loc, isPresented: $errorShow) {
+            Button("lc.common.ok".loc, action: {
             })
         } message: {
             Text(errorInfo)

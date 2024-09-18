@@ -64,7 +64,34 @@ class DataManager {
 
 extension String: LocalizedError {
     public var errorDescription: String? { return self }
+        
+    private static var enBundle : Bundle? {
+        let language = "en"
+        let path = Bundle.main.path(forResource:language, ofType: "lproj")
+        let bundle = Bundle(path: path!)
+        return bundle
+    }
+    
+    var loc: String {
+        let message = NSLocalizedString(self, comment: "")
+        if message != self {
+            return message
+        }
+
+        if let forcedString = String.enBundle?.localizedString(forKey: self, value: nil, table: nil){
+            return forcedString
+        }else {
+            return self
+        }
+    }
+    
+    func localizeWithFormat(_ arguments: CVarArg...) -> String{
+        String.localizedStringWithFormat(self.loc, arguments)
+    }
+    
 }
+
+
 
 extension UTType {
     static let ipa = UTType(filenameExtension: "ipa")!
@@ -134,11 +161,11 @@ public struct TextFieldAlertModifier: ViewModifier {
             $0.text = self.text.wrappedValue
             $0.clearButtonMode = .always
         }
-        controller.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+        controller.addAction(UIAlertAction(title: "lc.common.cancel".loc, style: .cancel) { _ in
             self.actionCancel(nil)
             shutdown()
         })
-        controller.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+        controller.addAction(UIAlertAction(title: "lc.common.ok".loc, style: .default) { _ in
             self.action(controller.textFields?.first?.text)
             shutdown()
         })
@@ -260,7 +287,7 @@ extension LCUtils {
                 c.resume()
             }
             guard let progress = progress else {
-                ans = "Failed to initiate bundle signing."
+                ans = "lc.utils.initSigningError".loc
                 c.resume()
                 return
             }
@@ -298,7 +325,7 @@ extension LCUtils {
         // Check if the device supports biometric authentication
         if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
             // Determine the reason for the authentication request
-            let reason = "Authentication Required."
+            let reason = "lc.utils.requireAuthentication".loc
 
             // Evaluate the authentication policy
             context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, evaluationError in

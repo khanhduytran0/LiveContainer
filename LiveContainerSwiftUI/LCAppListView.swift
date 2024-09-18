@@ -99,7 +99,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 .animation(.easeInOut, value: apps)
                 
                 if !sharedModel.isHiddenAppUnlocked {
-                    Text(apps.count > 0 ? "\(apps.count) Apps in Total" : "Press the Plus Button to Install Apps.").foregroundStyle(.gray)
+                    Text(apps.count > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(apps.count) : "lc.appList.installTip".loc).foregroundStyle(.gray)
                         .onTapGesture(count: 3) {
                             Task { await authenticateUser() }
                         }
@@ -109,7 +109,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 if sharedModel.isHiddenAppUnlocked {
                     LazyVStack {
                         HStack {
-                            Text("Hidden Apps")
+                            Text("lc.appList.hiddenApps".loc)
                                 .font(.system(.title2).bold())
                                 .border(Color.black)
                             Spacer()
@@ -123,14 +123,14 @@ struct LCAppListView : View, LCAppBannerDelegate {
                     .animation(.easeInOut, value: apps)
                     
                     if hiddenApps.count == 0 {
-                        Text("Long Press on a App to Make it Hidden.")
+                        Text("lc.appList.hideAppTip".loc)
                             .foregroundStyle(.gray)
                     }
-                    Text(apps.count + hiddenApps.count > 0 ? "\(apps.count + hiddenApps.count) Apps in Total" : "Press the Plus Button to Install Apps.").foregroundStyle(.gray)
+                    Text(apps.count + hiddenApps.count > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(apps.count + hiddenApps.count) : "lc.appList.installTip".loc).foregroundStyle(.gray)
                 }
                 
                 if LCUtils.multiLCStatus == 2 {
-                    Text("Manage apps in the primary LiveContainer").foregroundStyle(.gray).padding()
+                    Text("lc.appList.manageInPrimaryTip".loc).foregroundStyle(.gray).padding()
                 }
 
             }
@@ -146,12 +146,12 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 onLaunchBundleIdChange()
             }
             
-            .navigationTitle("My Apps")
+            .navigationTitle("lc.appList.myApps".loc)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if LCUtils.multiLCStatus != 2 {
                         if !installprogressVisible {
-                            Button("Add", systemImage: "plus", action: {
+                            Button("Add".loc, systemImage: "plus", action: {
                                 if choosingIPA {
                                     choosingIPA = false
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
@@ -169,7 +169,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Open Link", systemImage: "link", action: {
+                    Button("lc.appList.openLink".loc, systemImage: "link", action: {
                         Task { await onOpenWebViewTapped() }
                     })
                 }
@@ -179,18 +179,18 @@ struct LCAppListView : View, LCAppBannerDelegate {
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .alert(isPresented: $errorShow){
-            Alert(title: Text("Error"), message: Text(errorInfo))
+            Alert(title: Text("lc.common.error".loc), message: Text(errorInfo))
         }
         .fileImporter(isPresented: $choosingIPA, allowedContentTypes: [.ipa]) { result in
             Task { await startInstallApp(result) }
         }
-        .alert("Installation", isPresented: $installReplaceComfirmVisible) {
+        .alert("lc.appList.installation".loc, isPresented: $installReplaceComfirmVisible) {
             ForEach(installOptions, id: \.self) { installOption in
                 Button(role: installOption.isReplace ? .destructive : nil, action: {
                     self.installOptionChosen = installOption
                     self.installOptionContinuation?.resume()
                 }, label: {
-                    Text(installOption.isReplace ? installOption.nameOfFolderToInstall : "Install as new")
+                    Text(installOption.isReplace ? installOption.nameOfFolderToInstall : "lc.appList.installAsNew".loc)
                 })
             
             }
@@ -198,14 +198,14 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 self.installOptionChosen = nil
                 self.installOptionContinuation?.resume()
             }, label: {
-                Text("Abort Installation")
+                Text("lc.appList.abortInstallation".loc)
             })
         } message: {
-            Text("There is an existing application with the same bundle identifier. Replace one or install as new.")
+            Text("lc.appList.installReplaceTip".loc)
         }
         .textFieldAlert(
             isPresented: $webViewUrlInputOpened,
-            title: "Enter Url or Url Scheme",
+            title:  "lc.appList.enterUrlTip".loc,
             text: $webViewUrlInputContent,
             placeholder: "scheme://",
             action: { newText in
@@ -252,7 +252,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
     
     func openWebView(urlString: String) async {
         guard var urlToOpen = URLComponents(string: urlString), urlToOpen.url != nil else {
-            errorInfo = "The input url is invalid. Please check and try again"
+            errorInfo = "lc.appList.urlInvalidError".loc
             errorShow = true
             webViewUrlInputContent = ""
             return
@@ -283,7 +283,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
 
 
             guard let appToLaunch = appToLaunch else {
-                errorInfo = "Scheme \"\(urlToOpen.scheme!)\" cannot be opened by any app installed in LiveContainer."
+                errorInfo = "lc.appList.schemeCannotOpenError %@".localizeWithFormat(urlToOpen.scheme!)
                 errorShow = true
                 return
             }
@@ -337,7 +337,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
     
     func installIpaFile(_ url:URL) async throws {
         if(!url.startAccessingSecurityScopedResource()) {
-            throw "Failed to access IPA";
+            throw "lc.appList.ipaAccessError".loc;
         }
         let fm = FileManager()
         
@@ -368,13 +368,13 @@ struct LCAppListView : View, LCAppBannerDelegate {
             }
         }
         guard let appBundleName = appBundleName else {
-            throw "App bundle not found"
+            throw "lc.appList.bundleNotFondError".loc
         }
 
         let appFolderPath = payloadPath.appendingPathComponent(appBundleName)
         
         guard let newAppInfo = LCAppInfo(bundlePath: appFolderPath.path) else {
-            throw "Failed to read app's Info.plist."
+            throw "lc.appList.infoPlistCannotReadError".loc
         }
 
         var appRelativePath = "\(newAppInfo.bundleIdentifier()!).app"
@@ -422,7 +422,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
         
         // patch it
         guard let finalNewApp else {
-            errorInfo = "Failed to Initialize AppInfo!"
+            errorInfo = "lc.appList.appInfoInitError".loc
             errorShow = true
             return
         }
@@ -513,7 +513,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
         }
         
         if !appFound {
-            errorInfo = "App not Found"
+            errorInfo = "lc.appList.appNotFoundError".loc
             errorShow = true
         }
     }

@@ -92,24 +92,24 @@ struct LCTabView: View {
         TabView {
             LCAppListView(apps: $apps, hiddenApps: $hiddenApps, appDataFolderNames: $appDataFolderNames, tweakFolderNames: $tweakFolderNames)
                 .tabItem {
-                    Label("Apps", systemImage: "square.stack.3d.up.fill")
+                    Label("lc.tabView.apps".loc, systemImage: "square.stack.3d.up.fill")
                 }
             if LCUtils.multiLCStatus != 2 {
                 LCTweaksView(tweakFolders: $tweakFolderNames)
                     .tabItem{
-                        Label("Tweaks", systemImage: "wrench.and.screwdriver")
+                        Label("lc.tabView.tweaks".loc, systemImage: "wrench.and.screwdriver")
                     }
             }
 
             LCSettingsView(apps: $apps, hiddenApps: $hiddenApps, appDataFolderNames: $appDataFolderNames)
                 .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
+                    Label("lc.tabView.settings".loc, systemImage: "gearshape.fill")
                 }
         }
-        .alert("Error", isPresented: $errorShow){
-            Button("OK", action: {
+        .alert("lc.common.error".loc, isPresented: $errorShow){
+            Button("lc.common.ok".loc, action: {
             })
-            Button("Copy", action: {
+            Button("lc.common.copy".loc, action: {
                 copyError()
             })
         } message: {

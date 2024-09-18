@@ -75,15 +75,15 @@ struct LCSettingsView: View {
                             setupJitLess()
                         } label: {
                             if isJitLessEnabled {
-                                Text("Renew JIT-less certificate")
+                                Text("lc.settings.renewJitLess".loc)
                             } else {
-                                Text("Setup JIT-less certificate")
+                                Text("lc.settings.setupJitLess".loc)
                             }
                         }
                     } header: {
-                        Text("JIT-Less")
+                        Text("lc.settings.jitLess".loc)
                     } footer: {
-                        Text("JIT-less allows you to use LiveContainer without having to enable JIT. Requires AltStore or SideStore.")
+                        Text("lc.settings.jitLessDesc".loc)
                     }
                 }
 
@@ -92,48 +92,39 @@ struct LCSettingsView: View {
                         installAnotherLC()
                     } label: {
                         if LCUtils.multiLCStatus == 0 {
-                            Text("Install another LiveContainer")
+                            Text("lc.settings.multiLCInstall".loc)
                         } else if LCUtils.multiLCStatus == 1 {
-                            Text("Reinstall another LiveContainer")
+                            Text("lc.settings.multiLCReinstall".loc)
                         } else if LCUtils.multiLCStatus == 2 {
-                            Text("This is the second LiveContainer")
+                            Text("lc.settings.multiLCIsSecond".loc)
                         }
 
                     }
                     .disabled(LCUtils.multiLCStatus == 2)
                 } header: {
-                    Text("Multiple LiveContainers")
+                    Text("lc.settings.multiLC".loc)
                 } footer: {
-                    Text("By installing multiple LiveContainers, and converting apps to Shared Apps, you can open one app between all LiveContainers with most of its data and settings.")
+                    Text("lc.settings.multiLCDesc".loc)
                 }
                 
                 
                 Section {
                     Toggle(isOn: $isAltCertIgnored) {
-                        Text("Ignore ALTCertificate.p12")
+                        Text("lc.settings.ignoreAltCert".loc)
                     }
                 } footer: {
-                    Text("If you see frequent re-sign, enable this option.")
+                    Text("lc.settings.ignoreAltCertDesc".loc)
                 }
                 
-                Section{
-                    Toggle(isOn: $frameShortIcon) {
-                        Text("Frame Short Icon")
-                    }
-                } header: {
-                    Text("Miscellaneous")
-                } footer: {
-                    Text("Frame shortcut icons with LiveContainer icon.")
-                }
                 Section {
                     HStack {
-                        Text("Address")
+                        Text("lc.settings.JitAddress".loc)
                         Spacer()
                         TextField("http://x.x.x.x:8080", text: $sideJITServerAddress)
                             .multilineTextAlignment(.trailing)
                     }
                     HStack {
-                        Text("UDID")
+                        Text("lc.settings.JitUDID".loc)
                         Spacer()
                         TextField("", text: $deviceUDID)
                             .multilineTextAlignment(.trailing)
@@ -141,32 +132,42 @@ struct LCSettingsView: View {
                 } header: {
                     Text("JIT")
                 } footer: {
-                    Text("Set up your SideJITServer/JITStreamer server. Local Network permission is required.")
+                    Text("lc.settings.JitDesc".loc)
+                }
+                
+                Section{
+                    Toggle(isOn: $frameShortIcon) {
+                        Text("lc.settings.FrameIcon".loc)
+                    }
+                } header: {
+                    Text("lc.common.miscellaneous".loc)
+                } footer: {
+                    Text("lc.settings.FrameIconDesc".loc)
                 }
                 
                 Section {
                     Toggle(isOn: $silentSwitchApp) {
-                        Text("Switch App Without Asking")
+                        Text("lc.settings.silentSwitchApp".loc)
                     }
                 } footer: {
-                    Text("By default, LiveContainer asks you before switching app. Enable this to switch app immediately. Any unsaved data will be lost.")
+                    Text("lc.settings.silentSwitchAppDesc".loc)
                 }
                 
                 Section {
                     Toggle(isOn: $injectToLCItelf) {
-                        Text("Load Tweaks to LiveContainer Itself")
+                        Text("lc.settings.injectLCItself".loc)
                     }
                 } footer: {
-                    Text("Place your tweaks into the global “Tweaks” folder and LiveContainer will pick them up.")
+                    Text("lc.settings.injectLCItselfDesc".loc)
                 }
                 
                 if sharedModel.isHiddenAppUnlocked {
                     Section {
                         Toggle(isOn: $strictHiding) {
-                            Text("Strict Hiding Mode")
+                            Text("lc.settings.strictHiding".loc)
                         }
                     } footer: {
-                        Text("Enabling this mode will only allow hidden apps to be launched by triple clicking the installed app counter.")
+                        Text("lc.settings.strictHidingDesc".loc)
                     }
                 }
                 
@@ -175,31 +176,50 @@ struct LCSettingsView: View {
                         Button {
                             moveAppGroupFolderFromPrivateToAppGroup()
                         } label: {
-                            Text("Move Private App Group to Shared Documents Folder")
+                            Text("lc.settings.appGroupPrivateToShare".loc)
                         }
                         Button {
                             moveAppGroupFolderFromAppGroupToPrivate()
                         } label: {
-                            Text("Move Shared App Group Files to Private Documents Folder")
+                            Text("lc.settings.appGroupShareToPrivate".loc)
                         }
 
                         Button {
                             Task { await moveDanglingFolders() }
                         } label: {
-                            Text("Move Dangling Folders Out of App Group")
+                            Text("lc.settings.moveDanglingFolderOut".loc)
                         }
                         Button(role:.destructive) {
                             Task { await cleanUpUnusedFolders() }
                         } label: {
-                            Text("Clean Unused Data Folders")
+                            Text("lc.settings.cleanDataFolder".loc)
                         }
                     }
 
                     Button(role:.destructive) {
                         Task { await removeKeyChain() }
                     } label: {
-                        Text("Clean Up Keychain")
+                        Text("lc.settings.cleanKeychain".loc)
                     }
+                }
+                
+                Section {
+                    HStack {
+                        Image("GitHub")
+                        Button("khanhduytran0/LiveContainer") {
+                            openGitHub()
+                        }
+                    }
+                    HStack {
+                        Image("Twitter")
+                        Button("@TranKha50277352") {
+                            openTwitter()
+                        }
+                    }
+                } header: {
+                    Text("lc.settings.about".loc)
+                } footer: {
+                    Text("lc.settings.warning".loc)
                 }
                 
                 VStack{
@@ -210,51 +230,51 @@ struct LCSettingsView: View {
                     .background(Color(UIColor.systemGroupedBackground))
                     .listRowInsets(EdgeInsets())
             }
-            .navigationBarTitle("Settings")
-            .alert("Error", isPresented: $errorShow){
+            .navigationBarTitle("lc.tabView.settings".loc)
+            .alert("lc.common.error".loc, isPresented: $errorShow){
             } message: {
                 Text(errorInfo)
             }
-            .alert("Success", isPresented: $successShow){
+            .alert("lc.common.success".loc, isPresented: $successShow){
             } message: {
                 Text(successInfo)
             }
-            .alert("Data Folder Clean Up", isPresented: $confirmAppFolderRemovalShow) {
+            .alert("lc.settings.cleanDataFolder".loc, isPresented: $confirmAppFolderRemovalShow) {
                 if folderRemoveCount > 0 {
                     Button(role: .destructive) {
                         self.confirmAppFolderRemoval = true
                         self.appFolderRemovalContinuation?.resume()
                     } label: {
-                        Text("Delete")
+                        Text("lc.common.delete".loc)
                     }
                 }
 
-                Button("Cancel", role: .cancel) {
+                Button("lc.common.cancel".loc, role: .cancel) {
                     self.confirmAppFolderRemoval = false
                     self.appFolderRemovalContinuation?.resume()
                 }
             } message: {
                 if folderRemoveCount > 0 {
-                    Text("Do you want to delete \(folderRemoveCount) unused data folder(s)?")
+                    Text("lc.settings.cleanDataFolderConfirm".localizeWithFormat(folderRemoveCount))
                 } else {
-                    Text("No data folder to remove. All data folders are in use.")
+                    Text("lc.settings.noDataFolderToClean".loc)
                 }
 
             }
-            .alert("Keychain Clean Up", isPresented: $confirmKeyChainRemovalShow) {
+            .alert("lc.settings.cleanKeychain".loc, isPresented: $confirmKeyChainRemovalShow) {
                 Button(role: .destructive) {
                     self.confirmKeyChainRemoval = true
                     self.confirmKeyChainContinuation?.resume()
                 } label: {
-                    Text("Delete")
+                    Text("lc.common.delete".loc)
                 }
 
-                Button("Cancel", role: .cancel) {
+                Button("lc.common.cancel".loc, role: .cancel) {
                     self.confirmKeyChainRemoval = false
                     self.confirmKeyChainContinuation?.resume()
                 }
             } message: {
-                Text("If some app's account can not be synced between LiveContainers, it's may because it is still stored in current LiveContainer's private keychain. Cleaning up keychain may solve this issue, but it may sign you out of some of your accounts. Continue?")
+                Text("lc.settings.cleanKeychainDesc".loc)
             }
             .onChange(of: isAltCertIgnored) { newValue in
                 saveItem(key: "LCIgnoreALTCertificate", val: newValue)
@@ -292,7 +312,7 @@ struct LCSettingsView: View {
     
     func setupJitLess() {
         if !LCUtils.isAppGroupAltStoreLike() {
-            errorInfo = "Unsupported installation method. Please use AltStore or SideStore to setup this feature."
+            errorInfo = "lc.settings.unsupportedInstallMethod".loc
             errorShow = true
             return;
         }
@@ -309,7 +329,7 @@ struct LCSettingsView: View {
     
     func installAnotherLC() {
         if !LCUtils.isAppGroupAltStoreLike() {
-            errorInfo = "Unsupported installation method. Please use AltStore or SideStore to setup this feature."
+            errorInfo = "lc.settings.unsupportedInstallMethod".loc
             errorShow = true
             return;
         }
@@ -449,7 +469,7 @@ struct LCSettingsView: View {
                 try fm.moveItem(at: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolderInUse), to: LCPath.tweakPath.appendingPathComponent(tweakFolderInUse))
                 movedTweakFolderCount += 1
             }
-            successInfo = "Moved \(movedDataFolderCount) data folder(s) and \(movedTweakFolderCount) tweak folders."
+            successInfo = "lc.settings.moveDanglingFolderComplete %lld %lld".localizeWithFormat(movedDataFolderCount,movedTweakFolderCount)
             successShow = true
             
         } catch {
@@ -471,14 +491,14 @@ struct LCSettingsView: View {
             let privateFolderContents = try fm.contentsOfDirectory(at: LCPath.appGroupPath, includingPropertiesForKeys: nil)
             let sharedFolderContents = try fm.contentsOfDirectory(at: LCPath.lcGroupAppGroupPath, includingPropertiesForKeys: nil)
             if privateFolderContents.count > 0 {
-                errorInfo = "There are files in the private app group folder. Clean it up and try again."
+                errorInfo = "lc.settings.appGroupExistPrivate".loc
                 errorShow = true
                 return
             }
             for file in sharedFolderContents {
                 try fm.moveItem(at: file, to: LCPath.appGroupPath.appendingPathComponent(file.lastPathComponent))
             }
-            successInfo = "Move success."
+            successInfo = "lc.settings.appGroup.moveSuccess".loc
             successShow = true
             
         } catch {
@@ -500,19 +520,27 @@ struct LCSettingsView: View {
             let privateFolderContents = try fm.contentsOfDirectory(at: LCPath.appGroupPath, includingPropertiesForKeys: nil)
             let sharedFolderContents = try fm.contentsOfDirectory(at: LCPath.lcGroupAppGroupPath, includingPropertiesForKeys: nil)
             if sharedFolderContents.count > 0 {
-                errorInfo = "There are files in the shared app group folder. Move it out first and try again."
+                errorInfo = "lc.settings.appGroupExist Shared".loc
                 errorShow = true
                 return
             }
             for file in privateFolderContents {
                 try fm.moveItem(at: file, to: LCPath.lcGroupAppGroupPath.appendingPathComponent(file.lastPathComponent))
             }
-            successInfo = "Move success."
+            successInfo = "lc.settings.appGroup.moveSuccess".loc
             successShow = true
             
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
         }
+    }
+    
+    func openGitHub() {
+        UIApplication.shared.open(URL(string: "https://github.com/khanhduytran0/LiveContainer")!)
+    }
+    
+    func openTwitter() {
+        UIApplication.shared.open(URL(string: "https://twitter.com/TranKha50277352")!)
     }
 }

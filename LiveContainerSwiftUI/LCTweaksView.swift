@@ -87,13 +87,13 @@ struct LCTweakFolderView : View {
                         Button {
                             Task { await renameTweakItem(tweakItem: tweakItem)}
                         } label: {
-                            Label("Rename", systemImage: "pencil")
+                            Label("lc.common.rename".loc, systemImage: "pencil")
                         }
                         
                         Button(role: .destructive) {
                             deleteTweakItem(tweakItem: tweakItem)
                         } label: {
-                            Label("Delete", systemImage: "trash")
+                            Label("lc.common.delete".loc, systemImage: "trash")
                         }
                     }
 
@@ -104,11 +104,11 @@ struct LCTweakFolderView : View {
             Section {
                 VStack{
                     if isRoot {
-                        Text("This is the global folder. All tweaks put here will be injected to all guest apps. Create a new folder if you use app-specific tweaks.")
+                        Text("lc.tweakView.globalFolderDesc".loc)
                             .foregroundStyle(.gray)
                             .font(.system(size: 12))
                     } else {
-                        Text("This is the app-specific folder. Set the tweak folder and the guest app will pick them up recursively.")
+                        Text("lc.tweakView.appFolderDesc".loc)
                             .foregroundStyle(.gray)
                             .font(.system(size: 12))
                     }
@@ -120,14 +120,14 @@ struct LCTweakFolderView : View {
             }
 
         }
-        .navigationTitle(baseUrl.lastPathComponent)
+        .navigationTitle(isRoot ? "lc.tabView.tweaks".loc : baseUrl.lastPathComponent)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if !isTweakSigning && LCUtils.certificatePassword() != nil {
                     Button {
                         Task { await signAllTweaks() }
                     } label: {
-                        Label("sign", systemImage: "signature")
+                        Label("sign".loc, systemImage: "signature")
                     }
                 }
 
@@ -145,13 +145,13 @@ struct LCTweakFolderView : View {
                                 choosingTweak = true
                             }
                         } label: {
-                            Label("Import Tweak", systemImage: "square.and.arrow.down")
+                            Label("lc.tweakView.importTweak".loc, systemImage: "square.and.arrow.down")
                         }
                         
                         Button {
                             Task { await createNewFolder() }
                         } label: {
-                            Label("New folder", systemImage: "folder.badge.plus")
+                            Label("lc.tweakView.newFolder".loc, systemImage: "folder.badge.plus")
                         }
                     } label: {
                         Label("add", systemImage: "plus")
@@ -162,15 +162,15 @@ struct LCTweakFolderView : View {
 
             }
         }
-        .alert("Error", isPresented: $errorShow) {
-            Button("OK", action: {
+        .alert("lc.common.error".loc, isPresented: $errorShow) {
+            Button("lc.common.ok".loc, action: {
             })
         } message: {
             Text(errorInfo)
         }
         .textFieldAlert(
             isPresented: $newFolderShow,
-            title: "Enter the name of new folder",
+            title: "lc.common.enterNewFolderName".loc,
             text: $newFolderContent,
             placeholder: "",
             action: { newText in
@@ -184,7 +184,7 @@ struct LCTweakFolderView : View {
         )
         .textFieldAlert(
             isPresented: $renameFileShow,
-            title: "Enter New Name",
+            title: "lc.common.enterNewName".loc,
             text: $renameFileContent,
             placeholder: "",
             action: { newText in
@@ -198,12 +198,6 @@ struct LCTweakFolderView : View {
         )
         .fileImporter(isPresented: $choosingTweak, allowedContentTypes: [.dylib, .lcFramework, .deb], allowsMultipleSelection: true) { result in
             Task { await startInstallTweak(result) }
-        }
-        .alert("Error", isPresented: $errorShow) {
-            Button("OK", action: {
-            })
-        } message: {
-            Text(errorInfo)
         }
     }
     
@@ -387,10 +381,10 @@ struct LCTweakFolderView : View {
             for fileUrl in urls {
                 // handle deb file
                 if(!fileUrl.startAccessingSecurityScopedResource()) {
-                    throw "Cannot open \(fileUrl.lastPathComponent), permission denied."
+                    throw "lc.tweakView.permissionDenied %@".localizeWithFormat(fileUrl.lastPathComponent)
                 }
                 if(!fileUrl.isFileURL) {
-                    throw "\(fileUrl.absoluteString), is not a file."
+                    throw "lc.tweakView.notFileError %@".localizeWithFormat(fileUrl.lastPathComponent)
                 }
                 let toPath = tmpDir.appendingPathComponent(fileUrl.lastPathComponent)
                 try fm.copyItem(at: fileUrl, to: toPath)

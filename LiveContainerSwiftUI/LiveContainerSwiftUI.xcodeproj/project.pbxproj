@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		170C3DF92C99A489007F86FB /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 170C3DF82C99A489007F86FB /* Localizable.xcstrings */; };
 		173564C92C76FE3500C6C918 /* LCAppListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564BC2C76FE3500C6C918 /* LCAppListView.swift */; };
 		173564CA2C76FE3500C6C918 /* LCTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564BD2C76FE3500C6C918 /* LCTabView.swift */; };
 		173564CC2C76FE3500C6C918 /* LCTweaksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564C02C76FE3500C6C918 /* LCTweaksView.swift */; };
@@ -22,6 +23,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		170C3DF82C99A489007F86FB /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		173564BC2C76FE3500C6C918 /* LCAppListView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCAppListView.swift; sourceTree = "<group>"; };
 		173564BD2C76FE3500C6C918 /* LCTabView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCTabView.swift; sourceTree = "<group>"; };
 		173564C02C76FE3500C6C918 /* LCTweaksView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCTweaksView.swift; sourceTree = "<group>"; };
@@ -67,6 +69,7 @@
 				178B4C3D2C77654400DD1F74 /* Shared.swift */,
 				173564C22C76FE3500C6C918 /* LCSwiftBridge.h */,
 				173564C42C76FE3500C6C918 /* LCSwiftBridge.m */,
+				170C3DF82C99A489007F86FB /* Localizable.xcstrings */,
 			);
 			name = LiveContainerSwiftUI;
 			sourceTree = "<group>";
@@ -129,44 +132,8 @@
 			knownRegions = (
 				en,
 				Base,
-				de,
-				he,
-				en_AU,
-				ar,
-				el,
-				ja,
-				uk,
-				es_419,
 				zh_CN,
-				es,
-				pt_BR,
-				da,
-				it,
-				sk,
-				pt_PT,
-				ms,
-				sv,
-				cs,
-				ko,
 				no,
-				hu,
-				zh_HK,
-				tr,
-				pl,
-				zh_TW,
-				en_GB,
-				vi,
-				ru,
-				fr_CA,
-				fr,
-				fi,
-				id,
-				nl,
-				th,
-				ro,
-				hr,
-				hi,
-				ca,
 			);
 			mainGroup = 17B9B8842C760678009D079E;
 			productRefGroup = 17B9B88E2C760678009D079E /* Products */;
@@ -183,6 +150,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				170C3DF92C99A489007F86FB /* Localizable.xcstrings in Resources */,
 				173564D32C76FE3500C6C918 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -263,7 +231,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -320,7 +288,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -337,7 +305,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"LiveContainerSwiftUI/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -371,7 +338,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"LiveContainerSwiftUI/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

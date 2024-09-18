@@ -85,7 +85,7 @@ struct LCAppSettingsView : View{
         Form {
             Section {
                 HStack {
-                    Text("Bundle Identifier")
+                    Text("lc.appSettings.bundleId".loc)
                     Spacer()
                     Text(appInfo.relativeBundlePath)
                         .foregroundColor(.gray)
@@ -96,13 +96,13 @@ struct LCAppSettingsView : View{
                         Button {
                             Task{ await createFolder() }
                         } label: {
-                            Label("New data folder", systemImage: "plus")
+                            Label("lc.appSettings.newDataFolder".loc, systemImage: "plus")
                         }
                         if model.uiDataFolder != nil {
                             Button {
                                 Task{ await renameDataFolder() }
                             } label: {
-                                Label("Rename data folder", systemImage: "pencil")
+                                Label("lc.appSettings.renameDataFolder".loc, systemImage: "pencil")
                             }
                         }
 
@@ -115,10 +115,10 @@ struct LCAppSettingsView : View{
                         }
                     } label: {
                         HStack {
-                            Text("Data Folder")
+                            Text("lc.appSettings.dataFolder".loc)
                                 .foregroundColor(.primary)
                             Spacer()
-                            Text(model.uiDataFolder == nil ? "Not created yet" : model.uiDataFolder!)
+                            Text(model.uiDataFolder == nil ? "lc.appSettings.noDataFolder".loc : model.uiDataFolder!)
                                 .multilineTextAlignment(.trailing)
                         }
                     }
@@ -130,14 +130,14 @@ struct LCAppSettingsView : View{
                     
                     Menu {
                         Picker(selection: $uiPickerTweakFolder , label: Text("")) {
-                            Label("None", systemImage: "nosign").tag(Optional<String>(nil))
+                            Label("lc.common.none".loc, systemImage: "nosign").tag(Optional<String>(nil))
                             ForEach(tweakFolders, id:\.self) { folderName in
                                 Text(folderName).tag(Optional(folderName))
                             }
                         }
                     } label: {
                         HStack {
-                            Text("Tweak Folder")
+                            Text("lc.appSettings.tweakFolder".loc)
                                 .foregroundColor(.primary)
                             Spacer()
                             Text(model.uiTweakFolder == nil ? "None" : model.uiTweakFolder!)
@@ -153,103 +153,103 @@ struct LCAppSettingsView : View{
                     
                 } else {
                     HStack {
-                        Text("Data Folder")
+                        Text("lc.appSettings.dataFolder".loc)
                             .foregroundColor(.primary)
                         Spacer()
-                        Text(model.uiDataFolder == nil ? "Data folder not created yet" : model.uiDataFolder!)
+                        Text(model.uiDataFolder == nil ? "lc.appSettings.noDataFolder".loc : model.uiDataFolder!)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.trailing)
                     }
                     HStack {
-                        Text("Tweak Folder")
+                        Text("lc.appSettings.tweakFolder".loc)
                             .foregroundColor(.primary)
                         Spacer()
-                        Text(model.uiTweakFolder == nil ? "None" : model.uiTweakFolder!)
+                        Text(model.uiTweakFolder == nil ? "lc.common.none".loc : model.uiTweakFolder!)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.trailing)
                     }
                 }
                 
                 if !model.uiIsShared {
-                    Button("Convert to Shared App") {
+                    Button("lc.appSettings.toSharedApp".loc) {
                         Task { await moveToAppGroup()}
                     }
                     
                 } else if LCUtils.multiLCStatus != 2 {
-                    Button("Convert to Private App") {
+                    Button("lc.appSettings.toPrivateApp".loc) {
                         Task { await movePrivateDoc() }
                     }
                 }
             } header: {
-                Text("Data")
+                Text("lc.common.data".loc)
             }
             
             
             Section {
                 Toggle(isOn: $model.uiIsJITNeeded) {
-                    Text("Launch with JIT")
+                    Text("lc.appSettings.launchWithJit".loc)
                 }
                 .onChange(of: model.uiIsJITNeeded, perform: { newValue in
                     Task { await setJITNeeded(newValue) }
                 })
             } footer: {
-                Text("LiveContainer will try to acquire JIT permission before launching the app.")
+                Text("lc.appSettings.launchWithJitDesc".loc)
             }
             
             if sharedModel.isHiddenAppUnlocked {
                 Section {
                     Toggle(isOn: $model.uiIsHidden) {
-                        Text("Hide App")
+                        Text("lc.appSettings.hideApp".loc)
                     }
                     .onChange(of: model.uiIsHidden, perform: { newValue in
                         Task { await toggleHidden() }
                     })
                 } footer: {
-                    Text("To completely hide apps, enable Strict Hiding mode in settings.")
+                    Text("lc.appSettings.hideAppDesc".loc)
                 }
 
             }
             
             Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
-                    Text("Fix File Picker")
+                    Text("lc.appSettings.fixFilePicker".loc)
                 }
                 .onChange(of: model.uiDoSymlinkInbox, perform: { newValue in
                     Task { await setSimlinkInbox(newValue) }
                 })
             } header: {
-                Text("Fixes")
+                Text("lc.appSettings.fixes".loc)
             } footer: {
-                Text("Fix file picker not responding when hitting 'open' by forcing this app to copy selected files to its inbox. You may view imported files in the 'Inbox' folder in app's data folder.")
+                Text("lc.appSettings.fixFilePickerDesc".loc)
             }
             
             Section {
                 Toggle(isOn: $model.uiBypassAssertBarrierOnQueue) {
-                    Text("Bypass AssertBarrierOnQueue")
+                    Text("lc.appSettings.bypassAssert".loc)
                 }
                 .onChange(of: model.uiBypassAssertBarrierOnQueue, perform: { newValue in
                     Task { await setBypassAssertBarrierOnQueue(newValue) }
                 })
             
             } footer: {
-                Text("Might prevent some games from crashing, but may cause them to be unstable.")
+                Text("lc.appSettings.bypassAssertDesc".loc)
             }
             
             
             Section {
-                Button("Force Sign") {
+                Button("lc.appSettings.forceSign".loc) {
                     Task { await forceResign() }
                 }
                 .disabled(model.isAppRunning)
             } footer: {
-                Text("Try to sign again if this app failed to launch with error like 'Invalid Signature'. It this still don't work, renew JIT-Less certificate.")
+                Text("lc.appSettings.forceSignDesc".loc)
             }
 
         }
         .navigationTitle(appInfo.displayName())
         
-        .alert("Error", isPresented: $errorShow) {
-            Button("OK", action: {
+        .alert("lc.common.error".loc, isPresented: $errorShow) {
+            Button("lc.common.ok".loc, action: {
             })
         } message: {
             Text(errorInfo)
@@ -257,7 +257,7 @@ struct LCAppSettingsView : View{
         
         .textFieldAlert(
             isPresented: $renameFolderShow,
-            title: "Enter the name of new folder",
+            title: "lc.common.enterNewFolderName".loc,
             text: $renameFolderContent,
             placeholder: "",
             action: { newText in
@@ -269,33 +269,33 @@ struct LCAppSettingsView : View{
                 renameFolerContinuation?.resume()
             }
         )
-        .alert("Move to App Group", isPresented: $confirmMoveToAppGroupShow) {
+        .alert("lc.appSettings.toSharedApp".loc, isPresented: $confirmMoveToAppGroupShow) {
             Button {
                 self.confirmMoveToAppGroup = true
                 self.confirmMoveToAppGroupContinuation?.resume()
             } label: {
-                Text("Move")
+                Text("lc.common.move".loc)
             }
-            Button("Cancel", role: .cancel) {
+            Button("lc.common.cancel".loc, role: .cancel) {
                 self.confirmMoveToAppGroup = false
                 self.confirmMoveToAppGroupContinuation?.resume()
             }
         } message: {
-            Text("Moving this app to App Group allows other LiveContainers to run this app with all its data and tweak preserved. If you want to access its data and tweak again from the file app, move it back.")
+            Text("lc.appSettings.toSharedAppDesc".loc)
         }
-        .alert("Move to Private Document Folder", isPresented: $confirmMoveToPrivateDocShow) {
+        .alert("lc.appSettings.toPrivateApp".loc, isPresented: $confirmMoveToPrivateDocShow) {
             Button {
                 self.confirmMoveToPrivateDoc = true
                 self.confirmMoveToPrivateDocContinuation?.resume()
             } label: {
-                Text("Move")
+                Text("lc.common.move".loc)
             }
-            Button("Cancel", role: .cancel) {
+            Button("lc.common.cancel".loc, role: .cancel) {
                 self.confirmMoveToPrivateDoc = false
                 self.confirmMoveToPrivateDocContinuation?.resume()
             }
         } message: {
-            Text("Moving this app to Private Document Folder allows you to access its data and tweaks in the Files app, but it can not be run by other LiveContainers.")
+            Text("lc.appSettings.toPrivateAppDesc".loc)
         }
     }
     
@@ -412,7 +412,7 @@ struct LCAppSettingsView : View{
     func movePrivateDoc() async {
         let runningLC = LCUtils.getAppRunningLCScheme(bundleId: appInfo.relativeBundlePath!)
         if runningLC != nil {
-            errorInfo = "Data of this app is currently in \(runningLC!). Open \(runningLC!) and launch it to 'My Apps' screen and try again."
+            errorInfo = "lc.appSettings.appOpenInOtherLc %@ %@".localizeWithFormat(runningLC!, runningLC!)
             errorShow = true
             return
         }
