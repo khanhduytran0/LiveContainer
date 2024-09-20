@@ -14,18 +14,14 @@ struct LCSettingsView: View {
     @State var successShow = false
     @State var successInfo = ""
     
-    @Binding var apps: [LCAppInfo]
-    @Binding var hiddenApps: [LCAppInfo]
+    @Binding var apps: [LCAppModel]
+    @Binding var hiddenApps: [LCAppModel]
     @Binding var appDataFolderNames: [String]
     
-    @State private var confirmAppFolderRemovalShow = false
-    @State private var confirmAppFolderRemoval = false
-    @State private var appFolderRemovalContinuation : CheckedContinuation<Void, Never>? = nil
+    @StateObject private var appFolderRemovalAlert = YesNoHelper()
     @State private var folderRemoveCount = 0
     
-    @State private var confirmKeyChainRemovalShow = false
-    @State private var confirmKeyChainRemoval = false
-    @State private var confirmKeyChainContinuation : CheckedContinuation<Void, Never>? = nil
+    @StateObject private var keyChainRemovalAlert = YesNoHelper()
     
     @State var isJitLessEnabled = false
     
@@ -40,7 +36,7 @@ struct LCSettingsView: View {
     
     @EnvironmentObject private var sharedModel : SharedModel
     
-    init(apps: Binding<[LCAppInfo]>, hiddenApps: Binding<[LCAppInfo]>, appDataFolderNames: Binding<[String]>) {
+    init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
         _isAltCertIgnored = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreALTCertificate"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
@@ -239,19 +235,17 @@ struct LCSettingsView: View {
             } message: {
                 Text(successInfo)
             }
-            .alert("lc.settings.cleanDataFolder".loc, isPresented: $confirmAppFolderRemovalShow) {
+            .alert("lc.settings.cleanDataFolder".loc, isPresented: $appFolderRemovalAlert.show) {
                 if folderRemoveCount > 0 {
                     Button(role: .destructive) {
-                        self.confirmAppFolderRemoval = true
-                        self.appFolderRemovalContinuation?.resume()
+                        appFolderRemovalAlert.close(result: true)
                     } label: {
                         Text("lc.common.delete".loc)
                     }
                 }
 
                 Button("lc.common.cancel".loc, role: .cancel) {
-                    self.confirmAppFolderRemoval = false
-                    self.appFolderRemovalContinuation?.resume()
+                    appFolderRemovalAlert.close(result: false)
                 }
             } message: {
                 if folderRemoveCount > 0 {
@@ -261,17 +255,15 @@ struct LCSettingsView: View {
                 }
 
             }
-            .alert("lc.settings.cleanKeychain".loc, isPresented: $confirmKeyChainRemovalShow) {
+            .alert("lc.settings.cleanKeychain".loc, isPresented: $keyChainRemovalAlert.show) {
                 Button(role: .destructive) {
-                    self.confirmKeyChainRemoval = true
-                    self.confirmKeyChainContinuation?.resume()
+                    keyChainRemovalAlert.close(result: true)
                 } label: {
                     Text("lc.common.delete".loc)
                 }
 
                 Button("lc.common.cancel".loc, role: .cancel) {
-                    self.confirmKeyChainRemoval = false
-                    self.confirmKeyChainContinuation?.resume()
+                    keyChainRemovalAlert.close(result: false)
                 }
             } message: {
                 Text("lc.settings.cleanKeychainDesc".loc)
@@ -350,15 +342,15 @@ struct LCSettingsView: View {
     
     func cleanUpUnusedFolders() async {
         
-        var folderNameToAppDict : [String:LCAppInfo] = [:]
+        var folderNameToAppDict : [String:LCAppModel] = [:]
         for app in apps {
-            guard let folderName = app.getDataUUIDNoAssign() else {
+            guard let folderName = app.appInfo.getDataUUIDNoAssign() else {
                 continue
             }
             folderNameToAppDict[folderName] = app
         }
         for app in hiddenApps {
-            guard let folderName = app.getDataUUIDNoAssign() else {
+            guard let folderName = app.appInfo.getDataUUIDNoAssign() else {
                 continue
             }
             folderNameToAppDict[folderName] = app
@@ -371,13 +363,8 @@ struct LCSettingsView: View {
             }
         }
         folderRemoveCount = foldersToDelete.count
-        await withCheckedContinuation { c in
-            self.appFolderRemovalContinuation = c
-            DispatchQueue.main.async {
-                confirmAppFolderRemovalShow = true
-            }
-        }
-        if !confirmAppFolderRemoval {
+        
+        guard let result = await appFolderRemovalAlert.open(), result else {
             return
         }
         do {
@@ -396,13 +383,7 @@ struct LCSettingsView: View {
     }
     
     func removeKeyChain() async {
-        await withCheckedContinuation { c in
-            self.confirmKeyChainContinuation = c
-            DispatchQueue.main.async {
-                confirmKeyChainRemovalShow = true
-            }
-        }
-        if !confirmKeyChainRemoval {
+        guard let result = await keyChainRemovalAlert.open(), result else {
             return
         }
         
@@ -425,26 +406,26 @@ struct LCSettingsView: View {
             var appDataFoldersInUse : Set<String> = Set();
             var tweakFoldersInUse : Set<String> = Set();
             for app in apps {
-                if !app.isShared {
+                if !app.appInfo.isShared {
                     continue
                 }
-                if let folder = app.getDataUUIDNoAssign() {
+                if let folder = app.appInfo.getDataUUIDNoAssign() {
                     appDataFoldersInUse.update(with: folder);
                 }
-                if let folder = app.tweakFolder() {
+                if let folder = app.appInfo.tweakFolder() {
                     tweakFoldersInUse.update(with: folder);
                 }
 
             }
             
             for app in hiddenApps {
-                if !app.isShared {
+                if !app.appInfo.isShared {
                     continue
                 }
-                if let folder = app.getDataUUIDNoAssign() {
+                if let folder = app.appInfo.getDataUUIDNoAssign() {
                     appDataFoldersInUse.update(with: folder);
                 }
-                if let folder = app.tweakFolder() {
+                if let folder = app.appInfo.tweakFolder() {
                     tweakFoldersInUse.update(with: folder);
                 }
 

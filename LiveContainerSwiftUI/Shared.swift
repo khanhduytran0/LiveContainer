@@ -52,7 +52,6 @@ struct LCPath {
 }
 
 class SharedModel: ObservableObject {
-    @Published var bundleIdToLaunch: String = ""
     @Published var isHiddenAppUnlocked = false
 }
 
@@ -61,6 +60,42 @@ class DataManager {
     let model = SharedModel()
 }
 
+class AlertHelper<T> : ObservableObject {
+    @Published var show = false
+    private var result : T?
+    private var c : CheckedContinuation<Void, Never>? = nil
+    
+    func open() async -> T? {
+        await withCheckedContinuation { c in
+            self.c = c
+            DispatchQueue.main.async {
+                self.show = true
+            }
+        }
+        return self.result
+    }
+    
+    func close(result: T?) {
+        self.result = result
+        c?.resume()
+    }
+}
+
+typealias YesNoHelper = AlertHelper<Bool>
+
+class InputHelper : AlertHelper<String> {
+    @Published var initVal = ""
+    
+    func open(initVal: String) async -> String? {
+        self.initVal = initVal
+        return await super.open()
+    }
+    
+    override func open() async -> String? {
+        self.initVal = ""
+        return await super.open()
+    }
+}
 
 extension String: LocalizedError {
     public var errorDescription: String? { return self }

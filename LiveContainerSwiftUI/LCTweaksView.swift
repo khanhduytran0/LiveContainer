@@ -25,13 +25,9 @@ struct LCTweakFolderView : View {
     @State private var errorShow = false
     @State private var errorInfo = ""
     
-    @State private var newFolderShow = false
-    @State private var newFolderContent = ""
-    @State private var newFolerContinuation : CheckedContinuation<Void, Never>? = nil
+    @StateObject private var newFolderInput = InputHelper()
     
-    @State private var renameFileShow = false
-    @State private var renameFileContent = ""
-    @State private var renameFileContinuation : CheckedContinuation<Void, Never>? = nil
+    @StateObject private var renameFileInput = InputHelper()
     
     @State private var choosingTweak = false
     
@@ -169,31 +165,27 @@ struct LCTweakFolderView : View {
             Text(errorInfo)
         }
         .textFieldAlert(
-            isPresented: $newFolderShow,
+            isPresented: $newFolderInput.show,
             title: "lc.common.enterNewFolderName".loc,
-            text: $newFolderContent,
+            text: $newFolderInput.initVal,
             placeholder: "",
             action: { newText in
-                self.newFolderContent = newText!
-                newFolerContinuation?.resume()
+                newFolderInput.close(result: newText)
             },
             actionCancel: {_ in
-                self.newFolderContent = ""
-                newFolerContinuation?.resume()
+                newFolderInput.close(result: "")
             }
         )
         .textFieldAlert(
-            isPresented: $renameFileShow,
+            isPresented: $renameFileInput.show,
             title: "lc.common.enterNewName".loc,
-            text: $renameFileContent,
+            text: $renameFileInput.initVal,
             placeholder: "",
             action: { newText in
-                self.renameFileContent = newText!
-                renameFileContinuation?.resume()
+                renameFileInput.close(result: newText)
             },
             actionCancel: {_ in
-                self.renameFileContent = ""
-                renameFileContinuation?.resume()
+                renameFileInput.close(result: "")
             }
         )
         .fileImporter(isPresented: $choosingTweak, allowedContentTypes: [.dylib, .lcFramework, .deb], allowsMultipleSelection: true) { result in
@@ -253,14 +245,7 @@ struct LCTweakFolderView : View {
     }
     
     func renameTweakItem(tweakItem: LCTweakItem) async {
-        self.renameFileContent = tweakItem.fileUrl.lastPathComponent
-        
-        await withCheckedContinuation { c in
-            self.renameFileContinuation = c
-            self.renameFileShow = true
-        }
-        
-        if self.renameFileContent == "" {
+        guard let newName = await renameFileInput.open(initVal: tweakItem.fileUrl.lastPathComponent), newName != "" else {
             return
         }
         
@@ -270,7 +255,7 @@ struct LCTweakFolderView : View {
         guard let indexToRename = indexToRename else {
             return
         }
-        let newUrl = self.baseUrl.appendingPathComponent(self.renameFileContent)
+        let newUrl = self.baseUrl.appendingPathComponent(newName)
         
         let fm = FileManager()
         do {
@@ -290,7 +275,7 @@ struct LCTweakFolderView : View {
                 return
             }
             tweakFolders.remove(at: indexToRename2)
-            tweakFolders.insert(self.renameFileContent, at: indexToRename2)
+            tweakFolders.insert(newName, at: indexToRename2)
             
         }
     }
@@ -341,18 +326,11 @@ struct LCTweakFolderView : View {
     }
     
     func createNewFolder() async {
-        self.newFolderContent = ""
-        
-        await withCheckedContinuation { c in
-            self.newFolerContinuation = c
-            self.newFolderShow = true
-        }
-        
-        if self.newFolderContent == "" {
+        guard let newName = await renameFileInput.open(), newName != "" else {
             return
         }
         let fm = FileManager()
-        let dest = baseUrl.appendingPathComponent(self.newFolderContent)
+        let dest = baseUrl.appendingPathComponent(newName)
         do {
             try fm.createDirectory(at: dest, withIntermediateDirectories: false)
         } catch {
@@ -362,7 +340,7 @@ struct LCTweakFolderView : View {
         }
         tweakItems.append(LCTweakItem(fileUrl: dest, isFolder: true, isFramework: false, isTweak: false))
         if isRoot {
-            tweakFolders.append(self.newFolderContent)
+            tweakFolders.append(newName)
         }
     }
     

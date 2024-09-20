@@ -10,34 +10,23 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 protocol LCAppBannerDelegate {
-    func removeApp(app: LCAppInfo)
-    func changeAppVisibility(app: LCAppInfo)
+    func removeApp(app: LCAppModel)
     func installMdm(data: Data)
     func openNavigationView(view: AnyView)
-    func closeNavigationView()
 }
 
-struct LCAppBanner : View, LCAppSettingDelegate {
+struct LCAppBanner : View {
     @State var appInfo: LCAppInfo
     var delegate: LCAppBannerDelegate
     
-    @StateObject var model : LCAppModel
+    @ObservedObject var model : LCAppModel
     
     @Binding var appDataFolders: [String]
     @Binding var tweakFolders: [String]
     
-    
-    @State private var confirmAppRemovalShow = false
-    @State private var confirmAppFolderRemovalShow = false
-    
-    @State private var confirmAppRemoval = false
-    @State private var confirmAppFolderRemoval = false
-    @State private var appRemovalContinuation : CheckedContinuation<Void, Never>? = nil
-    @State private var appFolderRemovalContinuation : CheckedContinuation<Void, Never>? = nil
-    
-    @State private var enablingJITShow = false
-    @State private var confirmEnablingJIT = false
-    @State private var confirmEnablingJITContinuation : CheckedContinuation<Void, Never>? = nil
+    @StateObject private var appRemovalAlert = YesNoHelper()
+    @StateObject private var appFolderRemovalAlert = YesNoHelper()
+    @StateObject private var jitAlert = YesNoHelper()
     
     @State private var saveIconExporterShow = false
     @State private var saveIconFile : ImageDocument?
@@ -45,19 +34,15 @@ struct LCAppBanner : View, LCAppSettingDelegate {
     @State private var errorShow = false
     @State private var errorInfo = ""
     
-    @State private var isSingingInProgress = false
-    @State private var signProgress = 0.0
-    
-    @State private var observer : NSKeyValueObservation?
     @EnvironmentObject private var sharedModel : SharedModel
     
-    init(appInfo: LCAppInfo, delegate: LCAppBannerDelegate, appDataFolders: Binding<[String]>, tweakFolders: Binding<[String]>) {
-        _appInfo = State(initialValue: appInfo)
+    init(appModel: LCAppModel, delegate: LCAppBannerDelegate, appDataFolders: Binding<[String]>, tweakFolders: Binding<[String]>) {
+        _appInfo = State(initialValue: appModel.appInfo)
         _appDataFolders = appDataFolders
         _tweakFolders = tweakFolders
         self.delegate = delegate
         
-        _model = StateObject(wrappedValue: LCAppModel(appInfo: appInfo))
+        _model = ObservedObject(wrappedValue: appModel)
     }
     
     var body: some View {
@@ -96,7 +81,7 @@ struct LCAppBanner : View, LCAppSettingDelegate {
             Button {
                 Task{ await runApp() }
             } label: {
-                if !isSingingInProgress {
+                if !model.isSigningInProgress {
                     Text("lc.appBanner.run".loc).bold().foregroundColor(.white)
                 } else {
                     ProgressView().progressViewStyle(.circular)
@@ -108,7 +93,7 @@ struct LCAppBanner : View, LCAppSettingDelegate {
             .frame(height: 32)
             .fixedSize()
             .background(GeometryReader { g in
-                if !isSingingInProgress {
+                if !model.isSigningInProgress {
                     Capsule().fill(Color("FontColor"))
                 } else {
                     let w = g.size.width
@@ -118,7 +103,7 @@ struct LCAppBanner : View, LCAppSettingDelegate {
                     Circle()
                         .fill(Color("FontColor"))
                         .frame(width: w * 2, height: w * 2)
-                        .offset(x: (signProgress - 2) * w, y: h/2-w)
+                        .offset(x: (model.signProgress - 2) * w, y: h/2-w)
                 }
 
             })
@@ -129,6 +114,9 @@ struct LCAppBanner : View, LCAppSettingDelegate {
         .padding()
         .frame(height: 88)
         .background(RoundedRectangle(cornerSize: CGSize(width:22, height: 22)).fill(Color("AppBannerBG")))
+        .onAppear() {
+            handleOnAppear()
+        }
         
         .fileExporter(
             isPresented: $saveIconExporterShow,
@@ -199,53 +187,39 @@ struct LCAppBanner : View, LCAppSettingDelegate {
 
 
         }
-
-        .onChange(of: sharedModel.bundleIdToLaunch, perform: { newValue in
-            Task { await handleURLSchemeLaunch() }
-        })
         
-        .onAppear() {
-            Task { await handleURLSchemeLaunch() }
-        }
-        
-        .alert("lc.appBanner.confirmUninstallTitle".loc, isPresented: $confirmAppRemovalShow) {
+        .alert("lc.appBanner.confirmUninstallTitle".loc, isPresented: $appRemovalAlert.show) {
             Button(role: .destructive) {
-                self.confirmAppRemoval = true
-                self.appRemovalContinuation?.resume()
+                appRemovalAlert.close(result: true)
             } label: {
                 Text("lc.appBanner.uninstall".loc)
             }
             Button("lc.common.cancel".loc, role: .cancel) {
-                self.confirmAppRemoval = false
-                self.appRemovalContinuation?.resume()
+                appRemovalAlert.close(result: false)
             }
         } message: {
             Text("lc.appBanner.confirmUninstallMsg %@".localizeWithFormat(appInfo.displayName()!))
         }
-        .alert("lc.appBanner.deleteDataTitle".loc, isPresented: $confirmAppFolderRemovalShow) {
+        .alert("lc.appBanner.deleteDataTitle".loc, isPresented: $appFolderRemovalAlert.show) {
             Button(role: .destructive) {
-                self.confirmAppFolderRemoval = true
-                self.appFolderRemovalContinuation?.resume()
+                appFolderRemovalAlert.close(result: true)
             } label: {
                 Text("lc.common.delete".loc)
             }
             Button("lc.common.cancel".loc, role: .cancel) {
-                self.confirmAppFolderRemoval = false
-                self.appFolderRemovalContinuation?.resume()
+                appFolderRemovalAlert.close(result: false)
             }
         } message: {
             Text("lc.appBanner.deleteDataMsg \(appInfo.displayName()!)")
         }
-        .alert("lc.appBanner.waitForJitTitle".loc, isPresented: $enablingJITShow) {
+        .alert("lc.appBanner.waitForJitTitle".loc, isPresented: $jitAlert.show) {
             Button {
-                self.confirmEnablingJIT = true
-                self.confirmEnablingJITContinuation?.resume()
+                jitAlert.close(result: true)
             } label: {
                 Text("lc.appBanner.jitLaunchNow".loc)
             }
             Button("lc.common.cancel", role: .cancel) {
-                self.confirmEnablingJIT = false
-                self.confirmEnablingJITContinuation?.resume()
+                jitAlert.close(result: false)
             }
         } message: {
             Text("lc.appBanner.waitForJitMsg".loc)
@@ -260,95 +234,23 @@ struct LCAppBanner : View, LCAppSettingDelegate {
         
     }
     
-    func handleURLSchemeLaunch() async {
-        if self.appInfo.relativeBundlePath == sharedModel.bundleIdToLaunch {
-            await runApp()
-        }
+    func handleOnAppear() {
+        model.jitAlert = jitAlert
     }
     
     func runApp() async {
-        if let runningLC = LCUtils.getAppRunningLCScheme(bundleId: self.appInfo.relativeBundlePath) {
-            let openURL = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(self.appInfo.relativeBundlePath!)")!
-            if UIApplication.shared.canOpenURL(openURL) {
-                await UIApplication.shared.open(openURL)
-                return
-            }
-        }
-        model.isAppRunning = true
-
-        var signError : String? = nil
-        await withCheckedContinuation({ c in
-            appInfo.patchExecAndSignIfNeed(completionHandler: { error in
-                signError = error;
-                c.resume()
-            }, progressHandler: { signProgress in
-                guard let signProgress else {
-                    return
-                }
-                self.isSingingInProgress = true
-                self.observer = signProgress.observe(\.fractionCompleted) { p, v in
-                    DispatchQueue.main.async {
-                        self.signProgress = signProgress.fractionCompleted
-                    }
-                }
-            }, forceSign: false)
-        })
-        self.isSingingInProgress = false
-        if let signError {
-            errorInfo = signError
+        do {
+            try await model.runApp()
+        } catch {
+            errorInfo = errorInfo
             errorShow = true
-            model.isAppRunning = false
-            return
         }
-        
-        UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
-        if appInfo.isJITNeeded {
-            await self.jitLaunch()
-        } else {
-            LCUtils.launchToGuestApp()
-        }
-
-        model.isAppRunning = false
-        
     }
+
     
     func openSettings() {
-        delegate.openNavigationView(view: AnyView(LCAppSettingsView(model: model, appDataFolders: $appDataFolders, tweakFolders: $tweakFolders, delegate: self)))
+        delegate.openNavigationView(view: AnyView(LCAppSettingsView(model: model, appDataFolders: $appDataFolders, tweakFolders: $tweakFolders)))
     }
-    
-    func forceResign() async {
-        if model.isAppRunning {
-            return
-        }
-        
-        model.isAppRunning = true
-        var signError : String? = nil
-        await withCheckedContinuation({ c in
-            appInfo.patchExecAndSignIfNeed(completionHandler: { error in
-                signError = error;
-                c.resume()
-            }, progressHandler: { signProgress in
-                guard let signProgress else {
-                    return
-                }
-                self.isSingingInProgress = true
-                self.observer = signProgress.observe(\.fractionCompleted) { p, v in
-                    DispatchQueue.main.async {
-                        self.signProgress = signProgress.fractionCompleted
-                    }
-                }
-            }, forceSign: true)
-        })
-        self.isSingingInProgress = false
-        if let signError {
-            errorInfo = signError
-            errorShow = true
-            model.isAppRunning = false
-            return
-        }
-        model.isAppRunning = false
-    }
-    
     
     
     func openDataFolder() {
@@ -360,29 +262,22 @@ struct LCAppBanner : View, LCAppSettingDelegate {
     
     func uninstall() async {
         do {
-            await withCheckedContinuation { c in
-                self.appRemovalContinuation = c
-                self.confirmAppRemovalShow = true;
-            }
-            
-            if !self.confirmAppRemoval {
+            if let result = await appRemovalAlert.open(), !result {
                 return
             }
-            if self.appInfo.getDataUUIDNoAssign() != nil {
-                self.confirmAppFolderRemovalShow = true;
-                await withCheckedContinuation { c in
-                    self.appFolderRemovalContinuation = c
-                    self.confirmAppFolderRemovalShow = true;
-                }
-            } else {
-                self.confirmAppFolderRemoval = false;
-            }
             
+            var doRemoveAppFolder = false
+            if self.appInfo.getDataUUIDNoAssign() != nil {
+                if let result = await appFolderRemovalAlert.open() {
+                    doRemoveAppFolder = result
+                }
+                
+            }
             
             let fm = FileManager()
             try fm.removeItem(atPath: self.appInfo.bundlePath()!)
-            self.delegate.removeApp(app: self.appInfo)
-            if self.confirmAppFolderRemoval {
+            self.delegate.removeApp(app: self.model)
+            if doRemoveAppFolder {
                 let dataUUID = appInfo.dataUUID()!
                 let dataFolderPath = LCPath.dataPath.appendingPathComponent(dataUUID)
                 try fm.removeItem(at: dataFolderPath)
@@ -399,20 +294,7 @@ struct LCAppBanner : View, LCAppSettingDelegate {
             errorShow = true
         }
     }
-    
-    func jitLaunch() async {
-        LCUtils.askForJIT()
 
-        await withCheckedContinuation { c in
-            self.confirmEnablingJITContinuation = c
-            enablingJITShow = true
-        }
-        if confirmEnablingJIT {
-            LCUtils.launchToGuestApp()
-        } else {
-            UserDefaults.standard.removeObject(forKey: "selected")
-        }
-    }
     
     func copyLaunchUrl() {
         UIPasteboard.general.string = "livecontainer://livecontainer-launch?bundle-name=\(appInfo.relativeBundlePath!)"
@@ -427,18 +309,6 @@ struct LCAppBanner : View, LCAppSettingDelegate {
             errorInfo = error.localizedDescription
         }
 
-    }
-    
-    func toggleHidden() async {
-        delegate.closeNavigationView()
-        if appInfo.isHidden {
-            appInfo.isHidden = false
-            model.uiIsHidden = false
-        } else {
-            appInfo.isHidden = true
-            model.uiIsHidden = true
-        }
-        delegate.changeAppVisibility(app: appInfo)
     }
     
     func saveIcon() {

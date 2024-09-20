@@ -24,11 +24,11 @@ extern NSString *lcAppUrlScheme;
 }
 
 + (NSString *)certificatePassword {
-    NSString* ans = [lcUserDefaults objectForKey:@"LCCertificatePassword"];
+    NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
     if(ans) {
         return ans;
     } else {
-        return [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
+        return [lcUserDefaults objectForKey:@"LCCertificatePassword"];
     }
 }
 
@@ -65,6 +65,7 @@ extern NSString *lcAppUrlScheme;
         NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
         if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
             [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:nil];
+            [LCSharedUtils launchToGuestApp];
             return YES;
         }
     } else {

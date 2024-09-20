@@ -11,12 +11,14 @@ import UniformTypeIdentifiers
 struct AppReplaceOption : Hashable {
     var isReplace: Bool
     var nameOfFolderToInstall: String
-    var appToReplace: LCAppInfo?
+    var appToReplace: LCAppModel?
 }
 
-struct LCAppListView : View, LCAppBannerDelegate {
-    @Binding var apps: [LCAppInfo]
-    @Binding var hiddenApps: [LCAppInfo]
+struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
+    
+    @Binding var apps: [LCAppModel]
+    @Binding var hiddenApps: [LCAppModel]
+    
     @Binding var appDataFolderNames: [String]
     @Binding var tweakFolderNames: [String]
     
@@ -32,16 +34,12 @@ struct LCAppListView : View, LCAppBannerDelegate {
     @State var uiInstallProgressPercentage = 0.0
     @State var installObserver : NSKeyValueObservation?
     
-    @State var installReplaceComfirmVisible = false
     @State var installOptions: [AppReplaceOption]
-    @State var installOptionChosen: AppReplaceOption?
-    @State var installOptionContinuation : CheckedContinuation<Void, Never>? = nil
+    @StateObject var installReplaceAlert = AlertHelper<AppReplaceOption>()
     
     @State var webViewOpened = false
     @State var webViewURL : URL = URL(string: "about:blank")!
-    @State private var webViewUrlInputOpened = false
-    @State private var webViewUrlInputContent = ""
-    @State private var webViewUrlInputContinuation : CheckedContinuation<Void, Never>? = nil
+    @StateObject private var webViewUrlInput = InputHelper()
     
     @State var safariViewOpened = false
     @State var safariViewURL = URL(string: "https://google.com")!
@@ -51,13 +49,13 @@ struct LCAppListView : View, LCAppBannerDelegate {
     
     @EnvironmentObject private var sharedModel : SharedModel
  
-    init(apps: Binding<[LCAppInfo]>, hiddenApps: Binding<[LCAppInfo]>, appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
+    init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
         _installOptions = State(initialValue: [])
-        _installOptionChosen = State(initialValue: nil)
         _apps = apps
         _hiddenApps = hiddenApps
         _appDataFolderNames = appDataFolderNames
         _tweakFolderNames = tweakFolderNames
+        
     }
     
     var body: some View {
@@ -90,7 +88,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 .zIndex(.infinity)
                 LazyVStack {
                     ForEach(apps, id: \.self) { app in
-                        LCAppBanner(appInfo: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
+                        LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
                     }
                     .transition(.scale)
                     
@@ -115,7 +113,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                             Spacer()
                         }
                         ForEach(hiddenApps, id: \.self) { app in
-                            LCAppBanner(appInfo: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
+                            LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
                         }
                         .transition(.scale)
                     }
@@ -137,13 +135,8 @@ struct LCAppListView : View, LCAppBannerDelegate {
             .coordinateSpace(name: "scroll")
             .onAppear {
                 if !didAppear {
-                    didAppear = true
-                    Task { await checkIfAppDelegateNeedOpenWebPage() }
-                    onLaunchBundleIdChange()
+                    onAppear()
                 }
-            }
-            .onChange(of: sharedModel.bundleIdToLaunch) { newValue in
-                onLaunchBundleIdChange()
             }
             
             .navigationTitle("lc.appList.myApps".loc)
@@ -184,19 +177,17 @@ struct LCAppListView : View, LCAppBannerDelegate {
         .fileImporter(isPresented: $choosingIPA, allowedContentTypes: [.ipa]) { result in
             Task { await startInstallApp(result) }
         }
-        .alert("lc.appList.installation".loc, isPresented: $installReplaceComfirmVisible) {
+        .alert("lc.appList.installation".loc, isPresented: $installReplaceAlert.show) {
             ForEach(installOptions, id: \.self) { installOption in
                 Button(role: installOption.isReplace ? .destructive : nil, action: {
-                    self.installOptionChosen = installOption
-                    self.installOptionContinuation?.resume()
+                    installReplaceAlert.close(result: installOption)
                 }, label: {
                     Text(installOption.isReplace ? installOption.nameOfFolderToInstall : "lc.appList.installAsNew".loc)
                 })
             
             }
             Button(role: .cancel, action: {
-                self.installOptionChosen = nil
-                self.installOptionContinuation?.resume()
+                installReplaceAlert.close(result: nil)
             }, label: {
                 Text("lc.appList.abortInstallation".loc)
             })
@@ -204,17 +195,15 @@ struct LCAppListView : View, LCAppBannerDelegate {
             Text("lc.appList.installReplaceTip".loc)
         }
         .textFieldAlert(
-            isPresented: $webViewUrlInputOpened,
+            isPresented: $webViewUrlInput.show,
             title:  "lc.appList.enterUrlTip".loc,
-            text: $webViewUrlInputContent,
+            text: $webViewUrlInput.initVal,
             placeholder: "scheme://",
             action: { newText in
-                self.webViewUrlInputContent = newText!
-                webViewUrlInputContinuation?.resume()
+                webViewUrlInput.close(result: newText)
             },
             actionCancel: {_ in
-                self.webViewUrlInputContent = ""
-                webViewUrlInputContinuation?.resume()
+                webViewUrlInput.close(result: nil)
             }
         )
         .fullScreenCover(isPresented: $webViewOpened) {
@@ -227,42 +216,37 @@ struct LCAppListView : View, LCAppBannerDelegate {
     }
     
     func onOpenWebViewTapped() async {
-        await withCheckedContinuation { c in
-            webViewUrlInputOpened = true
-            webViewUrlInputContinuation = c
+        guard let urlToOpen = await webViewUrlInput.open(), urlToOpen != "" else {
+            return
         }
-            if webViewUrlInputContent == "" {
-                return
-            }
-            await openWebView(urlString: webViewUrlInputContent)
-            webViewUrlInputContent = ""
+        await openWebView(urlString: urlToOpen)
         
     }
     
-    func checkIfAppDelegateNeedOpenWebPage() async {
-        LCObjcBridge.openUrlStrFunc = openWebView;
-        if LCObjcBridge.urlStrToOpen != nil {
-            await self.openWebView(urlString: LCObjcBridge.urlStrToOpen!)
-            LCObjcBridge.urlStrToOpen = nil
-        } else if let urlStr = UserDefaults.standard.string(forKey: "webPageToOpen") {
-            UserDefaults.standard.removeObject(forKey: "webPageToOpen")
-            await self.openWebView(urlString: urlStr)
+    func onAppear() {
+        for app in apps {
+            app.delegate = self
         }
+        for app in hiddenApps {
+            app.delegate = self
+        }
+        
+        LCObjcBridge.setLaunchAppFunc(handler: launchAppWithBundleId)
+        LCObjcBridge.setOpenUrlStrFunc(handler: openWebView)
     }
+    
     
     func openWebView(urlString: String) async {
         guard var urlToOpen = URLComponents(string: urlString), urlToOpen.url != nil else {
             errorInfo = "lc.appList.urlInvalidError".loc
             errorShow = true
-            webViewUrlInputContent = ""
             return
         }
-        webViewUrlInputContent = ""
         if urlToOpen.scheme == nil || urlToOpen.scheme! == "" {
             urlToOpen.scheme = "https"
         }
         if urlToOpen.scheme != "https" && urlToOpen.scheme != "http" {
-            var appToLaunch : LCAppInfo? = nil
+            var appToLaunch : LCAppModel? = nil
             var appListsToConsider = [apps]
             if sharedModel.isHiddenAppUnlocked || !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
                 appListsToConsider.append(hiddenApps)
@@ -270,7 +254,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
             appLoop:
             for appList in appListsToConsider {
                 for app in appList {
-                    if let schemes = app.urlSchemes() {
+                    if let schemes = app.appInfo.urlSchemes() {
                         for scheme in schemes {
                             if let scheme = scheme as? String, scheme == urlToOpen.scheme {
                                 appToLaunch = app
@@ -288,7 +272,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 return
             }
             
-            if appToLaunch.isHidden && !sharedModel.isHiddenAppUnlocked {
+            if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
                 do {
                     if !(try await LCUtils.authenticateUser()) {
                         return
@@ -300,7 +284,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
                 }
             }
             
-            UserDefaults.standard.setValue(appToLaunch.relativeBundlePath!, forKey: "selected")
+            UserDefaults.standard.setValue(appToLaunch.appInfo.relativeBundlePath!, forKey: "selected")
             UserDefaults.standard.setValue(urlToOpen.url!.absoluteString, forKey: "launchAppUrlScheme")
             LCUtils.launchToGuestApp()
             
@@ -379,10 +363,10 @@ struct LCAppListView : View, LCAppBannerDelegate {
 
         var appRelativePath = "\(newAppInfo.bundleIdentifier()!).app"
         var outputFolder = LCPath.bundlePath.appendingPathComponent(appRelativePath)
-        var appToReplace : LCAppInfo? = nil
+        var appToReplace : LCAppModel? = nil
         // Folder exist! show alert for user to choose which bundle to replace
         let sameBundleIdApp = self.apps.filter { app in
-            return app.bundleIdentifier()! == newAppInfo.bundleIdentifier()
+            return app.appInfo.bundleIdentifier()! == newAppInfo.bundleIdentifier()
         }
         if fm.fileExists(atPath: outputFolder.path) || sameBundleIdApp.count > 0 {
             appRelativePath = "\(newAppInfo.bundleIdentifier()!)_\(Int(CFAbsoluteTimeGetCurrent())).app"
@@ -390,17 +374,11 @@ struct LCAppListView : View, LCAppBannerDelegate {
             self.installOptions = [AppReplaceOption(isReplace: false, nameOfFolderToInstall: appRelativePath)]
             
             for app in sameBundleIdApp {
-                self.installOptions.append(AppReplaceOption(isReplace: true, nameOfFolderToInstall: app.relativeBundlePath, appToReplace: app))
+                self.installOptions.append(AppReplaceOption(isReplace: true, nameOfFolderToInstall: app.appInfo.relativeBundlePath, appToReplace: app))
             }
 
-            await withCheckedContinuation { c in
-                self.installOptionContinuation = c
-                self.installReplaceComfirmVisible = true
-            }
-            
-            
-            // user cancelled
-            guard let installOptionChosen = self.installOptionChosen else {
+            guard let installOptionChosen = await installReplaceAlert.open() else {
+                // user cancelled
                 self.installprogressVisible = false
                 try fm.removeItem(at: payloadPath)
                 return
@@ -411,7 +389,7 @@ struct LCAppListView : View, LCAppBannerDelegate {
             if installOptionChosen.isReplace {
                 try fm.removeItem(at: outputFolder)
                 self.apps.removeAll { appNow in
-                    return appNow.relativeBundlePath == installOptionChosen.nameOfFolderToInstall
+                    return appNow.appInfo.relativeBundlePath == installOptionChosen.nameOfFolderToInstall
                 }
             }
         }
@@ -441,25 +419,28 @@ struct LCAppListView : View, LCAppBannerDelegate {
         }
         // set data folder to the folder of the chosen app
         if let appToReplace = appToReplace {
-            finalNewApp.setDataUUID(appToReplace.getDataUUIDNoAssign())
+            finalNewApp.setDataUUID(appToReplace.appInfo.getDataUUIDNoAssign())
         }
         DispatchQueue.main.async {
-            self.apps.append(finalNewApp)
+            self.apps.append(LCAppModel(appInfo: finalNewApp))
             self.installprogressVisible = false
         }
     }
     
-    func removeApp(app: LCAppInfo) {
+    func removeApp(app: LCAppModel) {
         DispatchQueue.main.async {
             self.apps.removeAll { now in
+                return app == now
+            }
+            self.hiddenApps.removeAll { now in
                 return app == now
             }
         }
     }
     
-    func changeAppVisibility(app: LCAppInfo) {
+    func changeAppVisibility(app: LCAppModel) {
         DispatchQueue.main.async {
-            if app.isHidden {
+            if app.appInfo.isHidden {
                 self.apps.removeAll { now in
                     return app == now
                 }
@@ -474,22 +455,22 @@ struct LCAppListView : View, LCAppBannerDelegate {
     }
     
     
-    func onLaunchBundleIdChange() {
-        if sharedModel.bundleIdToLaunch == "" {
+    func launchAppWithBundleId(bundleId : String) async {
+        if bundleId == "" {
             return
         }
-        var appFound = false
+        var appFound : LCAppModel? = nil
         var isFoundAppHidden = false
         for app in apps {
-            if app.relativeBundlePath == sharedModel.bundleIdToLaunch {
-                appFound = true
+            if app.appInfo.relativeBundlePath == bundleId {
+                appFound = app
                 break
             }
         }
-        if !appFound && !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
+        if appFound == nil && !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
             for app in hiddenApps {
-                if app.relativeBundlePath == sharedModel.bundleIdToLaunch {
-                    appFound = true
+                if app.appInfo.relativeBundlePath == bundleId {
+                    appFound = app
                     isFoundAppHidden = true
                     break
                 }
@@ -497,25 +478,30 @@ struct LCAppListView : View, LCAppBannerDelegate {
         }
         
         if isFoundAppHidden && !sharedModel.isHiddenAppUnlocked {
-            Task {
-                do {
-                    let result = try await LCUtils.authenticateUser()
-                    if !result {
-                        sharedModel.bundleIdToLaunch = ""
-                    }
-                } catch {
-                    sharedModel.bundleIdToLaunch = ""
-                    errorInfo = error.localizedDescription
-                    errorShow = true
+            do {
+                let result = try await LCUtils.authenticateUser()
+                if !result {
+                    return
                 }
-                
+            } catch {
+                errorInfo = error.localizedDescription
+                errorShow = true
             }
         }
         
-        if !appFound {
+        guard let appFound else {
             errorInfo = "lc.appList.appNotFoundError".loc
             errorShow = true
+            return
         }
+
+        do {
+            try await appFound.runApp()
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
+        
     }
     
     func authenticateUser() async {

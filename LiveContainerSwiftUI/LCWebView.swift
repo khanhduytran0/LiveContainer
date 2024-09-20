@@ -17,21 +17,18 @@ struct LCWebView: View {
     @State private var uiLoadStatus = 0.0
     @State private var pageTitle = ""
     
-    @Binding var apps : [LCAppInfo]
-    @Binding var hiddenApps : [LCAppInfo]
+    @Binding var apps : [LCAppModel]
+    @Binding var hiddenApps : [LCAppModel]
     
-    @State private var runAppAlertShow = false
+    @State private var runAppAlert = YesNoHelper()
     @State private var runAppAlertMsg = ""
-    @State private var doRunApp = false
-    @State private var renameFolderContent = ""
-    @State private var doRunAppContinuation : CheckedContinuation<Void, Never>? = nil
     
     @State private var errorShow = false
     @State private var errorInfo = ""
     
     @EnvironmentObject private var sharedModel : SharedModel
     
-    init(url: Binding<URL>, apps: Binding<[LCAppInfo]>, hiddenApps: Binding<[LCAppInfo]>, isPresent: Binding<Bool>) {
+    init(url: Binding<URL>, apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, isPresent: Binding<Bool>) {
         self.webView = WebView()
         self._url = url
         self._apps = apps
@@ -101,14 +98,12 @@ struct LCWebView: View {
             }
 
         }
-        .alert("lc.webView.runApp".loc, isPresented: $runAppAlertShow) {
+        .alert("lc.webView.runApp".loc, isPresented: $runAppAlert.show) {
             Button("lc.appBanner.run".loc, action: {
-                self.doRunApp = true
-                self.doRunAppContinuation?.resume()
+                runAppAlert.close(result: true)
             })
             Button("lc.common.cancel".loc, role: .cancel, action: {
-                self.doRunApp = false
-                self.doRunAppContinuation?.resume()
+                runAppAlert.close(result: false)
             })
         } message: {
             Text(runAppAlertMsg)
@@ -148,7 +143,7 @@ struct LCWebView: View {
     }
     
     public func onURLSchemeDetected(url: URL) async {
-        var appToLaunch : LCAppInfo? = nil
+        var appToLaunch : LCAppModel? = nil
         var appListsToConsider = [apps]
         if sharedModel.isHiddenAppUnlocked || !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
             appListsToConsider.append(hiddenApps)
@@ -156,7 +151,7 @@ struct LCWebView: View {
         appLoop:
         for appList in appListsToConsider {
             for app in appList {
-                if let schemes = app.urlSchemes() {
+                if let schemes = app.appInfo.urlSchemes() {
                     for scheme in schemes {
                         if let scheme = scheme as? String, scheme == url.scheme {
                             appToLaunch = app
@@ -174,7 +169,7 @@ struct LCWebView: View {
             return
         }
         
-        if appToLaunch.isHidden && !sharedModel.isHiddenAppUnlocked {
+        if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
             
             do {
                 if !(try await LCUtils.authenticateUser()) {
@@ -187,33 +182,28 @@ struct LCWebView: View {
             }
         }
         
-        runAppAlertMsg = "lc.webView.pageLaunch %@".localizeWithFormat(appToLaunch.displayName()!)
+        runAppAlertMsg = "lc.webView.pageLaunch %@".localizeWithFormat(appToLaunch.appInfo.displayName()!)
         
-        await withCheckedContinuation { c in
-            self.doRunAppContinuation = c
-            runAppAlertShow = true
-        }
-        
-        if !doRunApp {
+        if let doRunApp = await runAppAlert.open(), !doRunApp {
             return
         }
         
-        launchToApp(bundleId: appToLaunch.relativeBundlePath!, url: url)
+        launchToApp(bundleId: appToLaunch.appInfo.relativeBundlePath!, url: url)
         
     }
     
     public func onUniversalLinkDetected(url: URL, bundleIDs: [String]) async {
-        var bundleIDToAppDict: [String: LCAppInfo] = [:]
+        var bundleIDToAppDict: [String: LCAppModel] = [:]
         for app in apps {
-            bundleIDToAppDict[app.bundleIdentifier()!] = app
+            bundleIDToAppDict[app.appInfo.bundleIdentifier()!] = app
         }
         if !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") || sharedModel.isHiddenAppUnlocked {
             for app in hiddenApps {
-                bundleIDToAppDict[app.bundleIdentifier()!] = app
+                bundleIDToAppDict[app.appInfo.bundleIdentifier()!] = app
             }
         }
         
-        var appToLaunch: LCAppInfo? = nil
+        var appToLaunch: LCAppModel? = nil
         for bundleID in bundleIDs {
             if let app = bundleIDToAppDict[bundleID] {
                 appToLaunch = app
@@ -224,7 +214,7 @@ struct LCWebView: View {
             return
         }
         
-        if appToLaunch.isHidden && !sharedModel.isHiddenAppUnlocked {
+        if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
             do {
                 if !(try await LCUtils.authenticateUser()) {
                     return
@@ -236,16 +226,11 @@ struct LCWebView: View {
             }
         }
         
-        runAppAlertMsg = "lc.webView.pageCanBeOpenIn %@".localizeWithFormat(appToLaunch.displayName()!)
-        runAppAlertShow = true
-        await withCheckedContinuation { c in
-            self.doRunAppContinuation = c
-            runAppAlertShow = true
-        }
-        if !doRunApp {
+        runAppAlertMsg = "lc.webView.pageCanBeOpenIn %@".localizeWithFormat(appToLaunch.appInfo.displayName()!)
+        if let doRunApp = await runAppAlert.open(), !doRunApp {
             return
         }
-        launchToApp(bundleId: appToLaunch.relativeBundlePath!, url: url)
+        launchToApp(bundleId: appToLaunch.appInfo.relativeBundlePath!, url: url)
     }
 }
 

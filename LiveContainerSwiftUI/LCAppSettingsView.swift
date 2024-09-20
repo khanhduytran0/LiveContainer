@@ -8,38 +8,6 @@
 import Foundation
 import SwiftUI
 
-protocol LCAppSettingDelegate {
-    func forceResign() async
-    func toggleHidden() async
-}
-
-class LCAppModel: ObservableObject {
-    @Published var appInfo : LCAppInfo
-    
-    @Published var isAppRunning = false
-    
-    @Published var uiIsJITNeeded : Bool
-    @Published var uiIsHidden : Bool
-    @Published var uiIsShared : Bool
-    @Published var uiDataFolder : String?
-    @Published var uiTweakFolder : String?
-    @Published var uiDoSymlinkInbox : Bool
-    @Published var uiBypassAssertBarrierOnQueue : Bool
-    
-    init(appInfo : LCAppInfo) {
-        self.appInfo = appInfo
-        
-        self.uiIsJITNeeded = appInfo.isJITNeeded
-        self.uiIsHidden = appInfo.isHidden
-        self.uiIsShared = appInfo.isShared
-        self.uiDataFolder = appInfo.getDataUUIDNoAssign()
-        self.uiTweakFolder = appInfo.tweakFolder()
-        self.uiDoSymlinkInbox = appInfo.doSymlinkInbox
-        self.uiBypassAssertBarrierOnQueue = appInfo.bypassAssertBarrierOnQueue
-    }
-}
-
-
 struct LCAppSettingsView : View{
     
     private var appInfo : LCAppInfo
@@ -53,30 +21,20 @@ struct LCAppSettingsView : View{
     @State private var uiPickerDataFolder : String?
     @State private var uiPickerTweakFolder : String?
     
-    @State private var renameFolderShow = false
-    @State private var renameFolderContent = ""
-    @State private var renameFolerContinuation : CheckedContinuation<Void, Never>? = nil
-    
-    @State private var confirmMoveToAppGroupShow = false
-    @State private var confirmMoveToAppGroup = false
-    @State private var confirmMoveToAppGroupContinuation : CheckedContinuation<Void, Never>? = nil
-    
-    @State private var confirmMoveToPrivateDocShow = false
-    @State private var confirmMoveToPrivateDoc = false
-    @State private var confirmMoveToPrivateDocContinuation : CheckedContinuation<Void, Never>? = nil
+    @StateObject private var renameFolderInput = InputHelper()
+    @StateObject private var moveToAppGroupAlert = YesNoHelper()
+    @StateObject private var moveToPrivateDocAlert = YesNoHelper()
     
     @State private var errorShow = false
     @State private var errorInfo = ""
     
-    private let delegate : LCAppSettingDelegate
     @EnvironmentObject private var sharedModel : SharedModel
     
-    init(model: LCAppModel, appDataFolders: Binding<[String]>, tweakFolders: Binding<[String]>, delegate: LCAppSettingDelegate) {
+    init(model: LCAppModel, appDataFolders: Binding<[String]>, tweakFolders: Binding<[String]>) {
         self.appInfo = model.appInfo
         self._model = ObservedObject(wrappedValue: model)
         _appDataFolders = appDataFolders
         _tweakFolders = tweakFolders
-        self.delegate = delegate
         self._uiPickerDataFolder = State(initialValue: model.uiDataFolder)
         self._uiPickerTweakFolder = State(initialValue: model.uiTweakFolder)
     }
@@ -256,43 +214,37 @@ struct LCAppSettingsView : View{
         }
         
         .textFieldAlert(
-            isPresented: $renameFolderShow,
+            isPresented: $renameFolderInput.show,
             title: "lc.common.enterNewFolderName".loc,
-            text: $renameFolderContent,
+            text: $renameFolderInput.initVal,
             placeholder: "",
             action: { newText in
-                self.renameFolderContent = newText!
-                renameFolerContinuation?.resume()
+                renameFolderInput.close(result: newText!)
             },
             actionCancel: {_ in
-                self.renameFolderContent = ""
-                renameFolerContinuation?.resume()
+                renameFolderInput.close(result: "")
             }
         )
-        .alert("lc.appSettings.toSharedApp".loc, isPresented: $confirmMoveToAppGroupShow) {
+        .alert("lc.appSettings.toSharedApp".loc, isPresented: $moveToAppGroupAlert.show) {
             Button {
-                self.confirmMoveToAppGroup = true
-                self.confirmMoveToAppGroupContinuation?.resume()
+                self.moveToAppGroupAlert.close(result: true)
             } label: {
                 Text("lc.common.move".loc)
             }
             Button("lc.common.cancel".loc, role: .cancel) {
-                self.confirmMoveToAppGroup = false
-                self.confirmMoveToAppGroupContinuation?.resume()
+                self.moveToAppGroupAlert.close(result: false)
             }
         } message: {
             Text("lc.appSettings.toSharedAppDesc".loc)
         }
-        .alert("lc.appSettings.toPrivateApp".loc, isPresented: $confirmMoveToPrivateDocShow) {
+        .alert("lc.appSettings.toPrivateApp".loc, isPresented: $moveToPrivateDocAlert.show) {
             Button {
-                self.confirmMoveToPrivateDoc = true
-                self.confirmMoveToPrivateDocContinuation?.resume()
+                self.moveToPrivateDocAlert.close(result: true)
             } label: {
                 Text("lc.common.move".loc)
             }
             Button("lc.common.cancel".loc, role: .cancel) {
-                self.confirmMoveToPrivateDoc = false
-                self.confirmMoveToPrivateDocContinuation?.resume()
+                self.moveToPrivateDocAlert.close(result: false)
             }
         } message: {
             Text("lc.appSettings.toPrivateAppDesc".loc)
@@ -306,19 +258,11 @@ struct LCAppSettingsView : View{
     }
     
     func createFolder() async {
-        
-        self.renameFolderContent = NSUUID().uuidString
-        
-        await withCheckedContinuation { c in
-            self.renameFolerContinuation = c
-            self.renameFolderShow = true
-        }
-        
-        if self.renameFolderContent == "" {
+        guard let newName = await renameFolderInput.open(initVal: NSUUID().uuidString), newName != "" else {
             return
         }
         let fm = FileManager()
-        let dest = LCPath.dataPath.appendingPathComponent(self.renameFolderContent)
+        let dest = LCPath.dataPath.appendingPathComponent(newName)
         do {
             try fm.createDirectory(at: dest, withIntermediateDirectories: false)
         } catch {
@@ -327,8 +271,8 @@ struct LCAppSettingsView : View{
             return
         }
         
-        self.appDataFolders.append(self.renameFolderContent)
-        self.setDataFolder(folderName: self.renameFolderContent)
+        self.appDataFolders.append(newName)
+        self.setDataFolder(folderName: newName)
         
     }
     
@@ -337,17 +281,13 @@ struct LCAppSettingsView : View{
             return
         }
         
-        self.renameFolderContent = self.model.uiDataFolder == nil ? "" : self.model.uiDataFolder!
-        await withCheckedContinuation { c in
-            self.renameFolerContinuation = c
-            self.renameFolderShow = true
-        }
-        if self.renameFolderContent == "" {
+        let initVal = self.model.uiDataFolder == nil ? "" : self.model.uiDataFolder!
+        guard let newName = await renameFolderInput.open(initVal: initVal), newName != "" else {
             return
         }
         let fm = FileManager()
         let orig = LCPath.dataPath.appendingPathComponent(appInfo.getDataUUIDNoAssign())
-        let dest = LCPath.dataPath.appendingPathComponent(self.renameFolderContent)
+        let dest = LCPath.dataPath.appendingPathComponent(newName)
         do {
             try fm.moveItem(at: orig, to: dest)
         } catch {
@@ -361,8 +301,8 @@ struct LCAppSettingsView : View{
             return
         }
         
-        self.appDataFolders[i] = self.renameFolderContent
-        self.setDataFolder(folderName: self.renameFolderContent)
+        self.appDataFolders[i] = newName
+        self.setDataFolder(folderName: newName)
         
     }
     
@@ -373,11 +313,7 @@ struct LCAppSettingsView : View{
     }
     
     func moveToAppGroup() async {
-        await withCheckedContinuation { c in
-            confirmMoveToAppGroupContinuation = c
-            confirmMoveToAppGroupShow = true
-        }
-        if !confirmMoveToAppGroup {
+        guard let result = await moveToAppGroupAlert.open(), result else {
             return
         }
         
@@ -417,11 +353,7 @@ struct LCAppSettingsView : View{
             return
         }
         
-        await withCheckedContinuation { c in
-            confirmMoveToPrivateDocContinuation = c
-            confirmMoveToPrivateDocShow = true
-        }
-        if !confirmMoveToPrivateDoc {
+        guard let result = await moveToPrivateDocAlert.open(), result else {
             return
         }
         
@@ -467,10 +399,15 @@ struct LCAppSettingsView : View{
             model.uiBypassAssertBarrierOnQueue = enabled
     }
     func toggleHidden() async {
-        await delegate.toggleHidden()
+        await model.toggleHidden()
     }
     
     func forceResign() async {
-        await delegate.forceResign()
+        do {
+            try await model.forceResign()
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
     }
 }

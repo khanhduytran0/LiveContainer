@@ -9,8 +9,8 @@ import Foundation
 import SwiftUI
 
 struct LCTabView: View {
-    @State var apps: [LCAppInfo]
-    @State var hiddenApps: [LCAppInfo]
+    @State var apps: [LCAppModel]
+    @State var hiddenApps: [LCAppModel]
     @State var appDataFolderNames: [String]
     @State var tweakFolderNames: [String]
     
@@ -22,8 +22,8 @@ struct LCTabView: View {
         var tempAppDataFolderNames : [String] = []
         var tempTweakFolderNames : [String] = []
         
-        var tempApps: [LCAppInfo] = []
-        var tempHiddenApps: [LCAppInfo] = []
+        var tempApps: [LCAppModel] = []
+        var tempHiddenApps: [LCAppModel] = []
 
         do {
             // load apps
@@ -37,9 +37,9 @@ struct LCTabView: View {
                 newApp.relativeBundlePath = appDir
                 newApp.isShared = false
                 if newApp.isHidden {
-                    tempHiddenApps.append(newApp)
+                    tempHiddenApps.append(LCAppModel(appInfo: newApp))
                 } else {
-                    tempApps.append(newApp)
+                    tempApps.append(LCAppModel(appInfo: newApp))
                 }
             }
             
@@ -53,9 +53,9 @@ struct LCTabView: View {
                 newApp.relativeBundlePath = appDir
                 newApp.isShared = true
                 if newApp.isHidden {
-                    tempHiddenApps.append(newApp)
+                    tempHiddenApps.append(LCAppModel(appInfo: newApp))
                 } else {
-                    tempApps.append(newApp)
+                    tempApps.append(LCAppModel(appInfo: newApp))
                 }
             }
             // load document folders

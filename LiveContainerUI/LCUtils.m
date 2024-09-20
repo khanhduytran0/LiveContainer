@@ -56,11 +56,11 @@
 }
 
 + (NSData *)certificateDataProperty {
-    NSData* ans = [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+    NSData* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
     if(ans) {
         return ans;
     } else {
-        return [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
+        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
     }
     
 }
@@ -72,11 +72,11 @@
 
 + (NSString *)certificatePassword {
     if (self.certificateDataFile) {
-        NSString* ans = [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
+        NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
         if(ans) {
             return ans;
         }
-        return [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
+        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
     } else if (self.certificateDataProperty) {
         return @"";
     } else {

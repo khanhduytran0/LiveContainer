@@ -10,8 +10,29 @@ import SwiftUI
 
 
 @objc public class LCObjcBridge: NSObject {
-    public static var urlStrToOpen: String? = nil
-    public static var openUrlStrFunc: ((String) async -> Void)?
+    private static var urlStrToOpen: String? = nil
+    private static var openUrlStrFunc: ((String) async -> Void)?
+    private static var bundleToLaunch: String? = nil
+    private static var launchAppFunc: ((String) async -> Void)?
+    
+    public static func setOpenUrlStrFunc(handler: @escaping ((String) async -> Void)){
+        self.openUrlStrFunc = handler
+        if let urlStrToOpen = self.urlStrToOpen {
+            Task { await handler(urlStrToOpen) }
+            self.urlStrToOpen = nil
+        } else if let urlStr = UserDefaults.standard.string(forKey: "webPageToOpen") {
+            UserDefaults.standard.removeObject(forKey: "webPageToOpen")
+            Task { await handler(urlStr) }
+        }
+    }
+    
+    public static func setLaunchAppFunc(handler: @escaping ((String) async -> Void)){
+        self.launchAppFunc = handler
+        if let bundleToLaunch = self.bundleToLaunch {
+            Task { await handler(bundleToLaunch) }
+            self.bundleToLaunch = nil
+        }
+    }
     
     @objc public static func openWebPage(urlStr: String) {
         if openUrlStrFunc == nil {
@@ -22,7 +43,11 @@ import SwiftUI
     }
     
     @objc public static func launchApp(bundleId: String) {
-        DataManager.shared.model.bundleIdToLaunch = bundleId
+        if launchAppFunc == nil {
+            bundleToLaunch = bundleId
+        } else {
+            Task { await launchAppFunc!(bundleId) }
+        }
     }
     
     @objc public static func getRootVC() -> UIViewController {
