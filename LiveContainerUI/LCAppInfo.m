@@ -1,17 +1,24 @@
+@import CommonCrypto;
+
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import "LCAppInfo.h"
+#import "LCUtils.h"
 
 @implementation LCAppInfo
 - (instancetype)initWithBundlePath:(NSString*)bundlePath {
-	 self = [super init];
-    
+    self = [super init];
+    self.isShared = false;
 	 if(self) {
         _bundlePath = bundlePath;
         _info = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
         
     }
     return self;
+}
+
+- (void)setBundlePath:(NSString*)newBundlePath {
+    _bundlePath = newBundlePath;
 }
 
 - (NSMutableArray*)urlSchemes {
@@ -68,6 +75,10 @@
     return _info[@"LCDataUUID"];
 }
 
+- (NSString*)getDataUUIDNoAssign {
+    return _info[@"LCDataUUID"];
+}
+
 - (NSString*)tweakFolder {
     return _info[@"LCTweakFolder"];
 }
@@ -92,6 +103,10 @@
 
 - (UIImage*)icon {
     UIImage* icon = [UIImage imageNamed:[_info valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+    if(!icon) {
+        icon = [UIImage imageNamed:[_info valueForKeyPath:@"CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+    }
+    
     if(!icon) {
         icon = [UIImage imageNamed:@"DefaultIcon"];
     }
@@ -127,7 +142,7 @@
         @"PayloadDisplayName": self.displayName,
         @"PayloadIdentifier": self.bundleIdentifier,
         @"PayloadType": @"com.apple.webClip.managed",
-        @"PayloadUUID": self.dataUUID,
+        @"PayloadUUID": NSUUID.UUID.UUIDString,
         @"PayloadVersion": @(1),
         @"Precomposed": @NO,
         @"toPayloadOrganization": @"LiveContainer",
@@ -151,5 +166,169 @@
 
 - (void)save {
     [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
+}
+
+- (void)preprocessBundleBeforeSiging:(NSURL *)bundleURL completion:(dispatch_block_t)completion {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // Remove faulty file
+        [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"LiveContainer"] error:nil];
+        // Remove PlugIns folder
+        [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
+        // Remove code signature from all library files
+        [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
+        dispatch_async(dispatch_get_main_queue(), completion);
+    });
+}
+
+// return "SignNeeded" if sign is needed, other wise return an error
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* errorInfo))progressHandler forceSign:(BOOL)forceSign {
+    NSString *appPath = self.bundlePath;
+    NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
+    if (!info) {
+        completetionHandler(@"Info.plist not found");
+        return;
+    }
+    
+    // Update patch
+    int currentPatchRev = 5;
+    if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
+        NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
+        NSString *error = LCParseMachO(execPath.UTF8String, ^(const char *path, struct mach_header_64 *header) {
+            LCPatchExecSlice(path, header);
+        });
+        if (error) {
+            completetionHandler(error);
+            return;
+        }
+        info[@"LCPatchRevision"] = @(currentPatchRev);
+        [info writeToFile:infoPath atomically:YES];
+    }
+
+    if (!LCUtils.certificatePassword) {
+        completetionHandler(nil);
+        return;
+    }
+
+    int signRevision = 1;
+
+    // We're only getting the first 8 bytes for comparison
+    NSUInteger signID;
+    if (LCUtils.certificateData) {
+        uint8_t digest[CC_SHA1_DIGEST_LENGTH];
+        CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
+        signID = *(uint64_t *)digest + signRevision;
+    } else {
+        completetionHandler(@"Failed to find ALTCertificate.p12. Please refresh your store and try again.");
+        return;
+    }
+    
+    // Sign app if JIT-less is set up
+    if ([info[@"LCJITLessSignID"] unsignedLongValue] != signID || forceSign) {
+        NSURL *appPathURL = [NSURL fileURLWithPath:appPath];
+        [self preprocessBundleBeforeSiging:appPathURL completion:^{
+            // We need to temporarily fake bundle ID and main executable to sign properly
+            NSString *tmpExecPath = [appPath stringByAppendingPathComponent:@"LiveContainer.tmp"];
+            if (!info[@"LCBundleIdentifier"]) {
+                // Don't let main executable get entitlements
+                [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
+
+                info[@"LCBundleExecutable"] = info[@"CFBundleExecutable"];
+                info[@"LCBundleIdentifier"] = info[@"CFBundleIdentifier"];
+                info[@"CFBundleExecutable"] = tmpExecPath.lastPathComponent;
+                info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+                [info writeToFile:infoPath atomically:YES];
+            }
+            info[@"CFBundleExecutable"] = info[@"LCBundleExecutable"];
+            info[@"CFBundleIdentifier"] = info[@"LCBundleIdentifier"];
+            [info removeObjectForKey:@"LCBundleExecutable"];
+            [info removeObjectForKey:@"LCBundleIdentifier"];
+
+            __block NSProgress *progress = [LCUtils signAppBundle:appPathURL
+            completionHandler:^(BOOL success, NSError *_Nullable error) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (!error) {
+                        info[@"LCJITLessSignID"] = @(signID);
+                    }
+                    
+                    // Remove fake main executable
+                    [NSFileManager.defaultManager removeItemAtPath:tmpExecPath error:nil];
+                    
+                    // Save sign ID and restore bundle ID
+                    [info writeToFile:infoPath atomically:YES];
+                    
+                    
+                    if(error) {
+                        completetionHandler(error.localizedDescription);
+                        return;
+                    } else {
+                        completetionHandler(nil);
+                        return;
+                    }
+
+                });
+            }];
+            if (progress) {
+                progressHandler(progress);
+            }
+        }];
+
+    } else {
+        // no need to sign again
+        completetionHandler(nil);
+        return;
+    }
+}
+
+- (bool)isJITNeeded {
+    if(_info[@"isJITNeeded"] != nil) {
+        return [_info[@"isJITNeeded"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setIsJITNeeded:(bool)isJITNeeded {
+    _info[@"isJITNeeded"] = [NSNumber numberWithBool:isJITNeeded];
+    [self save];
+    
+}
+
+- (bool)isHidden {
+    if(_info[@"isHidden"] != nil) {
+        return [_info[@"isHidden"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setIsHidden:(bool)isHidden {
+    _info[@"isHidden"] = [NSNumber numberWithBool:isHidden];
+    [self save];
+    
+}
+
+- (bool)doSymlinkInbox {
+    if(_info[@"doSymlinkInbox"] != nil) {
+        return [_info[@"doSymlinkInbox"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDoSymlinkInbox:(bool)doSymlinkInbox {
+    _info[@"doSymlinkInbox"] = [NSNumber numberWithBool:doSymlinkInbox];
+    [self save];
+    
+}
+
+- (bool)bypassAssertBarrierOnQueue {
+    if(_info[@"bypassAssertBarrierOnQueue"] != nil) {
+        return [_info[@"bypassAssertBarrierOnQueue"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setBypassAssertBarrierOnQueue:(bool)enabled {
+    _info[@"bypassAssertBarrierOnQueue"] = [NSNumber numberWithBool:enabled];
+    [self save];
+    
 }
 @end

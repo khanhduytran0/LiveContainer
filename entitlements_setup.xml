@@ -13,6 +13,7 @@
 	<key>keychain-access-groups</key>
 	<array>
 		<string>group.*</string>
+		<string>$(AppIdentifierPrefix)com.kdt.livecontainer</string>
 		<string>KeychainAccessGroupWillBeWrittenByLiveContainerAAAAAAAAAAAAAAAAAAAA</string>
 	</array>
 </dict>

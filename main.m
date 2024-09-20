@@ -18,10 +18,22 @@
 static int (*appMain)(int, char**);
 static const char *dyldImageName;
 NSUserDefaults *lcUserDefaults;
+NSUserDefaults *lcSharedDefaults;
+NSString *lcAppGroupPath;
+NSString* lcAppUrlScheme;
 
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
     return lcUserDefaults;
+}
++ (instancetype)lcSharedDefaults {
+    return lcSharedDefaults;
+}
++ (NSString *)lcAppGroupPath {
+    return lcAppGroupPath;
+}
++ (NSString *)lcAppUrlScheme {
+    return lcAppUrlScheme;
 }
 @end
 
@@ -186,12 +198,38 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     NSFileManager *fm = NSFileManager.defaultManager;
     NSString *docPath = [fm URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
         .lastObject.path;
+    
+    NSURL *appGroupFolder = nil;
+    
     NSString *bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", docPath, selectedApp];
     NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+    bool isSharedBundle = false;
+    // not found locally, let's look for the app in shared folder
+    if (!appBundle) {
+        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
+        appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
+        
+        bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, selectedApp];
+        appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+        isSharedBundle = true;
+    }
+    
+    if(!appBundle) {
+        return @"App not found";
+    }
+    if(isSharedBundle) {
+        [LCSharedUtils setAppRunningByThisLC:selectedApp];
+    }
+    
     NSError *error;
 
     // Setup tweak loader
-    NSString *tweakFolder = [docPath stringByAppendingPathComponent:@"Tweaks"];
+    NSString *tweakFolder = nil;
+    if (isSharedBundle) {
+        tweakFolder = [appGroupFolder.path  stringByAppendingPathComponent:@"Tweaks"];
+    } else {
+        tweakFolder = [docPath stringByAppendingPathComponent:@"Tweaks"];
+    }
     setenv("LC_GLOBAL_TWEAKS_FOLDER", tweakFolder.UTF8String, 1);
 
     // Update TweakLoader symlink
@@ -225,7 +263,85 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
 
     // Overwrite NSUserDefaults
     NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
+    
+    // Set & save the folder it it does not exist in Info.plist
+    NSString* dataUUID = appBundle.infoDictionary[@"LCDataUUID"];
+    if(dataUUID == nil) {
+        NSMutableDictionary* infoDict = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
+        dataUUID = NSUUID.UUID.UUIDString;
+        infoDict[@"LCDataUUID"] = dataUUID;
+        [infoDict writeToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
+    }
 
+    // Overwrite home and tmp path
+    NSString *newHomePath = nil;
+    if(isSharedBundle) {
+        newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", appGroupFolder.path, dataUUID];
+        // move data folder to private library
+        NSURL *libraryPathUrl = [fm URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
+        NSString *sharedAppDataFolderPath = [libraryPathUrl.path stringByAppendingPathComponent:@"SharedDocuments"];
+        NSString* dataFolderPath = [appGroupFolder.path stringByAppendingPathComponent:[NSString stringWithFormat:@"Data/Application/%@", dataUUID]];
+        newHomePath = [sharedAppDataFolderPath stringByAppendingPathComponent: dataUUID];
+        [fm moveItemAtPath:dataFolderPath toPath:newHomePath error:&error];
+    } else {
+        newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, dataUUID];
+    }
+    
+    
+    NSString *newTmpPath = [newHomePath stringByAppendingPathComponent:@"tmp"];
+    remove(newTmpPath.UTF8String);
+    symlink(getenv("TMPDIR"), newTmpPath.UTF8String);
+    
+    if([appBundle.infoDictionary[@"doSymlinkInbox"] boolValue]) {
+        NSString* inboxSymlinkPath = [NSString stringWithFormat:@"%s/%@-Inbox", getenv("TMPDIR"), [appBundle bundleIdentifier]];
+        NSString* inboxPath = [newHomePath stringByAppendingPathComponent:@"Inbox"];
+        
+        if (![fm fileExistsAtPath:inboxPath]) {
+            [fm createDirectoryAtPath:inboxPath withIntermediateDirectories:YES attributes:nil error:&error];
+        }
+        if([fm fileExistsAtPath:inboxSymlinkPath]) {
+            NSString* fileType = [fm attributesOfItemAtPath:inboxSymlinkPath error:&error][NSFileType];
+            if(fileType == NSFileTypeDirectory) {
+                NSArray* contents = [fm contentsOfDirectoryAtPath:inboxSymlinkPath error:&error];
+                for(NSString* content in contents) {
+                    [fm moveItemAtPath:[inboxSymlinkPath stringByAppendingPathComponent:content] toPath:[inboxPath stringByAppendingPathComponent:content] error:&error];
+                }
+                [fm removeItemAtPath:inboxSymlinkPath error:&error];
+            }
+        }
+        
+
+        symlink(inboxPath.UTF8String, inboxSymlinkPath.UTF8String);
+    } else {
+        NSString* inboxSymlinkPath = [NSString stringWithFormat:@"%s/%@-Inbox", getenv("TMPDIR"), [appBundle bundleIdentifier]];
+        NSDictionary* targetAttribute = [fm attributesOfItemAtPath:inboxSymlinkPath error:&error];
+        if(targetAttribute) {
+            if(targetAttribute[NSFileType] == NSFileTypeSymbolicLink) {
+                [fm removeItemAtPath:inboxSymlinkPath error:&error];
+            }
+        }
+
+    }
+
+    setenv("CFFIXED_USER_HOME", newHomePath.UTF8String, 1);
+    setenv("HOME", newHomePath.UTF8String, 1);
+    setenv("TMPDIR", newTmpPath.UTF8String, 1);
+
+    // Setup directories
+    NSArray *dirList = @[@"Library/Caches", @"Documents", @"SystemData"];
+    for (NSString *dir in dirList) {
+        NSString *dirPath = [newHomePath stringByAppendingPathComponent:dir];
+        [fm createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+    [LCSharedUtils loadPreferencesFromPath:[newHomePath stringByAppendingPathComponent:@"Library/Preferences"]];
+    [lcUserDefaults setObject:dataUUID forKey:@"lastLaunchDataUUID"];
+    if(isSharedBundle) {
+        [lcUserDefaults setObject:@"Shared" forKey:@"lastLaunchType"];
+    } else {
+        [lcUserDefaults setObject:@"Private" forKey:@"lastLaunchType"];
+    }
+
+    
     // Overwrite NSBundle
     overwriteMainNSBundle(appBundle);
 
@@ -238,24 +354,6 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
     NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
     *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
-
-    // Overwrite home and tmp path
-    NSString *newHomePath = [NSString stringWithFormat:@"%@/Data/Application/%@", docPath, appBundle.infoDictionary[@"LCDataUUID"]];
-    NSString *newTmpPath = [newHomePath stringByAppendingPathComponent:@"tmp"];
-    remove(newTmpPath.UTF8String);
-    symlink(getenv("TMPDIR"), newTmpPath.UTF8String);
-
-    setenv("CFFIXED_USER_HOME", newHomePath.UTF8String, 1);
-    setenv("HOME", newHomePath.UTF8String, 1);
-    setenv("TMPDIR", newTmpPath.UTF8String, 1);
-
-    // Setup directories
-    NSArray *dirList = @[@"Library/Caches", @"Documents", @"SystemData"];
-    for (NSString *dir in dirList) {
-        NSString *dirPath = [newHomePath stringByAppendingPathComponent:dir];
-        [fm createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:nil];
-    }
-
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
@@ -308,20 +406,81 @@ int LiveContainerMain(int argc, char *argv[]) {
     NSLog(@"Ignore this: %@", UIScreen.mainScreen);
 
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
+    lcSharedDefaults = [[NSUserDefaults alloc] initWithSuiteName: [LCSharedUtils appGroupID]];
+    lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
+    lcAppGroupPath = [[NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[NSClassFromString(@"LCSharedUtils") appGroupID]] path];
+    // move preferences first then the entire folder
+    
+
+    NSString* lastLaunchDataUUID = [lcUserDefaults objectForKey:@"lastLaunchDataUUID"];
+    if(lastLaunchDataUUID) {
+        NSString* lastLaunchType = [lcUserDefaults objectForKey:@"lastLaunchType"];
+        NSString* preferencesTo;
+        NSURL *libraryPathUrl = [NSFileManager.defaultManager URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
+        NSURL *docPathUrl = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject;
+        if([lastLaunchType isEqualToString:@"Shared"]) {
+            preferencesTo = [libraryPathUrl.path stringByAppendingPathComponent:[NSString stringWithFormat:@"SharedDocuments/%@/Library/Preferences", lastLaunchDataUUID]];
+        } else {
+            preferencesTo = [docPathUrl.path stringByAppendingPathComponent:[NSString stringWithFormat:@"Data/Application/%@/Library/Preferences", lastLaunchDataUUID]];
+        }
+        [LCSharedUtils movePreferencesFromPath:[NSString stringWithFormat:@"%@/Preferences", libraryPathUrl.path] toPath:preferencesTo];
+        [lcUserDefaults removeObjectForKey:@"lastLaunchDataUUID"];
+        [lcUserDefaults removeObjectForKey:@"lastLaunchType"];
+    }
+
+    [LCSharedUtils moveSharedAppFolderBack];
+    
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
+    NSString* runningLC = [LCSharedUtils getAppRunningLCSchemeWithBundleId:selectedApp];
+    // if another instance is running, we just switch to that one, these should be called after uiapplication initialized
+    if(selectedApp && runningLC) {
+        [lcUserDefaults removeObjectForKey:@"selected"];
+        NSString* selectedAppBackUp = selectedApp;
+        selectedApp = nil;
+        dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
+        dispatch_after(delay, dispatch_get_main_queue(), ^{
+            // Base64 encode the data
+            NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, selectedAppBackUp];
+            NSURL* url = [NSURL URLWithString:urlStr];
+            if([[UIApplication sharedApplication] canOpenURL:url]){
+                [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                
+                NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
+                // also pass url scheme to another lc
+                if(launchUrl) {
+                    [lcUserDefaults removeObjectForKey:@"launchAppUrlScheme"];
+
+                    // Base64 encode the data
+                    NSData *data = [launchUrl dataUsingEncoding:NSUTF8StringEncoding];
+                    NSString *encodedUrl = [data base64EncodedStringWithOptions:0];
+                    
+                    NSString* finalUrl = [NSString stringWithFormat:@"%@://open-url?url=%@", runningLC, encodedUrl];
+                    NSURL* url = [NSURL URLWithString: finalUrl];
+                    
+                    [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+
+                }
+            } else {
+                [LCSharedUtils removeAppRunningByLC: runningLC];
+            }
+        });
+
+    }
+    
     if (selectedApp) {
+        
         NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
         [lcUserDefaults removeObjectForKey:@"selected"];
         // wait for app to launch so that it can receive the url
         if(launchUrl) {
             [lcUserDefaults removeObjectForKey:@"launchAppUrlScheme"];
-            dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC));
+            dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
             dispatch_after(delay, dispatch_get_main_queue(), ^{
                 // Base64 encode the data
                 NSData *data = [launchUrl dataUsingEncoding:NSUTF8StringEncoding];
                 NSString *encodedUrl = [data base64EncodedStringWithOptions:0];
                 
-                NSString* finalUrl = [NSString stringWithFormat:@"livecontainer://open-url?url=%@", encodedUrl];
+                NSString* finalUrl = [NSString stringWithFormat:@"%@://open-url?url=%@", lcAppUrlScheme, encodedUrl];
                 NSURL* url = [NSURL URLWithString: finalUrl];
                 
                 [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
@@ -332,18 +491,24 @@ int LiveContainerMain(int argc, char *argv[]) {
         NSString *appError = invokeAppMain(selectedApp, argc, argv);
         if (appError) {
             [lcUserDefaults setObject:appError forKey:@"error"];
+            [LCSharedUtils setAppRunningByThisLC:nil];
             // potentially unrecovable state, exit now
             return 1;
         }
     }
-
+    [LCSharedUtils setAppRunningByThisLC:nil];
     void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerUI.framework/LiveContainerUI", RTLD_LAZY);
     assert(LiveContainerUIHandle);
+    if([NSBundle.mainBundle.executablePath.lastPathComponent isEqualToString:@"JITLessSetup"]) {
+        return UIApplicationMain(argc, argv, nil, @"LCJITLessAppDelegate");
+    }
+    void *LiveContainerSwiftUIHandle = dlopen("@executable_path/Frameworks/LiveContainerSwiftUI.framework/LiveContainerSwiftUI", RTLD_LAZY);
+    assert(LiveContainerSwiftUIHandle);
     @autoreleasepool {
         if ([lcUserDefaults boolForKey:@"LCLoadTweaksToSelf"]) {
             dlopen("@executable_path/Frameworks/TweakLoader.dylib", RTLD_LAZY);
         }
-        return UIApplicationMain(argc, argv, nil, @"LCAppDelegate");
+        return UIApplicationMain(argc, argv, nil, @"LCAppDelegateSwiftUI");
     }
 }
 

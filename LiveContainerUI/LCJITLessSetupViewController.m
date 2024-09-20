@@ -3,6 +3,20 @@
 #import "LCUtils.h"
 #import "UIKitPrivate.h"
 
+@implementation LCJITLessAppDelegate
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    UIViewController *viewController;
+    viewController = [LCJITLessSetupViewController new];
+    _rootViewController = [[UINavigationController alloc] initWithRootViewController:viewController];
+    _window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    _window.rootViewController = _rootViewController;
+    [_window makeKeyAndVisible];
+    return YES;
+}
+
+@end
+
 @implementation LCJITLessSetupViewController
 
 - (void)showDialogTitle:(NSString *)title message:(NSString *)message handler:(void(^)(UIAlertAction *))handler {

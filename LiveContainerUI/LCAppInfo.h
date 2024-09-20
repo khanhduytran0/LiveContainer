@@ -6,6 +6,13 @@
    NSString* _bundlePath;
 }
 @property NSString* relativeBundlePath;
+@property bool isShared;
+@property bool isJITNeeded;
+@property bool isHidden;
+@property bool doSymlinkInbox;
+@property bool bypassAssertBarrierOnQueue;
+
+- (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;
 - (UIImage*)icon;
 - (NSString*)displayName;
@@ -13,6 +20,7 @@
 - (NSString*)bundleIdentifier;
 - (NSString*)version;
 - (NSString*)dataUUID;
+- (NSString*)getDataUUIDNoAssign;
 - (NSString*)tweakFolder;
 - (NSMutableArray*) urlSchemes;
 - (void)setDataUUID:(NSString *)uuid;
@@ -20,4 +28,5 @@
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
 - (NSDictionary *)generateWebClipConfig;
 - (void)save;
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* errorInfo))progressHandler  forceSign:(BOOL)forceSign;
 @end

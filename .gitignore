@@ -1,3 +1,6 @@
 .theos/
 packages/
 .DS_Store
+LiveContainer.xcodeproj
+project.xcworkspace
+xcuserdata

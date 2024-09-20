@@ -4,6 +4,7 @@
 
 #import "AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
+#import "LCVersionInfo.h"
 
 @implementation LCUtils
 
@@ -55,7 +56,13 @@
 }
 
 + (NSData *)certificateDataProperty {
-    return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+    NSData* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
+    if(ans) {
+        return ans;
+    } else {
+        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+    }
+    
 }
 
 + (NSData *)certificateData {
@@ -65,7 +72,11 @@
 
 + (NSString *)certificatePassword {
     if (self.certificateDataFile) {
-        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];;
+        NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
+        if(ans) {
+            return ans;
+        }
+        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
     } else if (self.certificateDataProperty) {
         return @"";
     } else {
@@ -75,11 +86,16 @@
 
 + (void)setCertificatePassword:(NSString *)certPassword {
     [NSUserDefaults.standardUserDefaults setObject:certPassword forKey:@"LCCertificatePassword"];
+    [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] setObject:certPassword forKey:@"LCCertificatePassword"];
 }
 
 #pragma mark LCSharedUtils wrappers
 + (BOOL)launchToGuestApp {
     return [NSClassFromString(@"LCSharedUtils") launchToGuestApp];
+}
+
++ (BOOL)askForJIT {
+    return [NSClassFromString(@"LCSharedUtils") askForJIT];
 }
 
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url {
@@ -210,7 +226,7 @@
 
 + (NSString *)appGroupID {
     static dispatch_once_t once;
-    static NSString *appGroupID;
+    static NSString *appGroupID = @"group.com.SideStore.SideStore";;
     dispatch_once(&once, ^{
         for (NSString *group in NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"]) {
             NSURL *path = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:group];
@@ -223,6 +239,10 @@
         }
     });
     return appGroupID;
+}
+
++ (NSString *)appUrlScheme {
+    return NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
 }
 
 + (BOOL)isAppGroupAltStoreLike {
@@ -299,4 +319,80 @@
 
     return tmpIPAPath;
 }
+
++ (NSURL *)archiveIPAWithBundleName:(NSString*)newBundleName error:(NSError **)error {
+    if (*error) return nil;
+
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    NSURL *bundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
+
+    NSURL *tmpPath = [appGroupPath URLByAppendingPathComponent:@"tmp"];
+    [manager removeItemAtURL:tmpPath error:nil];
+
+    NSURL *tmpPayloadPath = [tmpPath URLByAppendingPathComponent:@"Payload"];
+    NSURL *tmpIPAPath = [appGroupPath URLByAppendingPathComponent:@"tmp.ipa"];
+
+    [manager createDirectoryAtURL:tmpPath withIntermediateDirectories:YES attributes:nil error:error];
+    if (*error) return nil;
+
+    [manager copyItemAtURL:bundlePath toURL:tmpPayloadPath error:error];
+    if (*error) return nil;
+    
+    NSURL *infoPath = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/Info.plist"];
+    NSMutableDictionary *infoDict = [NSMutableDictionary dictionaryWithContentsOfURL:infoPath];
+    if (!infoDict) return nil;
+
+    infoDict[@"CFBundleDisplayName"] = newBundleName;
+    infoDict[@"CFBundleName"] = newBundleName;
+    infoDict[@"CFBundleIdentifier"] = [NSString stringWithFormat:@"com.kdt.%@", newBundleName];
+    infoDict[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0] = [newBundleName lowercaseString];
+    infoDict[@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconFiles"][0] = @"AppIcon60x60_2";
+    infoDict[@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconFiles"][1] = @"AppIcon76x76_2";
+    infoDict[@"CFBundleIcons"][@"CFBundlePrimaryIcon"][@"CFBundleIconFiles"][0] = @"AppIcon60x60_2";
+    // reset a executable name so they don't look the same on the log
+    NSURL* appBundlePath = [tmpPayloadPath URLByAppendingPathComponent:@"App.app"];
+    
+    NSURL* execFromPath = [appBundlePath URLByAppendingPathComponent:infoDict[@"CFBundleExecutable"]];
+    infoDict[@"CFBundleExecutable"] = @"LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou2";
+    NSURL* execToPath = [appBundlePath URLByAppendingPathComponent:infoDict[@"CFBundleExecutable"]];
+    
+    [manager moveItemAtURL:execFromPath toURL:execToPath error:error];
+    if (*error) {
+        NSLog(@"[LC] %@", *error);
+        return nil;
+    }
+    
+    // We have to change executable's UUID so iOS won't consider 2 executables the same
+    NSString* errorChangeUUID = LCParseMachO([execToPath.path UTF8String], ^(const char *path, struct mach_header_64 *header) {
+        LCChangeExecUUID(header);
+    });
+    if (errorChangeUUID) {
+        NSMutableDictionary* details = [NSMutableDictionary dictionary];
+        [details setValue:errorChangeUUID forKey:NSLocalizedDescriptionKey];
+        // populate the error object with the details
+        *error = [NSError errorWithDomain:@"world" code:200 userInfo:details];
+        NSLog(@"[LC] %@", errorChangeUUID);
+        return nil;
+    }
+    
+    [infoDict writeToURL:infoPath error:error];
+
+    dlopen("/System/Library/PrivateFrameworks/PassKitCore.framework/PassKitCore", RTLD_GLOBAL);
+    NSData *zipData = [[NSClassFromString(@"PKZipArchiver") new] zippedDataForURL:tmpPayloadPath.URLByDeletingLastPathComponent];
+    if (!zipData) return nil;
+
+    [manager removeItemAtURL:tmpPath error:error];
+    if (*error) return nil;
+
+    [zipData writeToURL:tmpIPAPath options:0 error:error];
+    if (*error) return nil;
+
+    return tmpIPAPath;
+}
+
++ (NSString *)getVersionInfo {
+    return [NSClassFromString(@"LCVersionInfo") getVersionStr];
+}
+
 @end
