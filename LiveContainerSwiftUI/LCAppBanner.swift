@@ -242,7 +242,7 @@ struct LCAppBanner : View {
         do {
             try await model.runApp()
         } catch {
-            errorInfo = errorInfo
+            errorInfo = error.localizedDescription
             errorShow = true
         }
     }

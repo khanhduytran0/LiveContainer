@@ -37,4 +37,9 @@
     return NO;
 }
 
+- (void)applicationWillTerminate:(UIApplication *)application {
+    // fix launching app if user open JIT waiting dialogue and kill the app. Won't trigger normally
+    [NSUserDefaults.standardUserDefaults removeObjectForKey: @"selected"];
+}
+
 @end

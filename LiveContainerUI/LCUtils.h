@@ -2,6 +2,11 @@
 
 typedef void (^LCParseMachOCallback)(const char *path, struct mach_header_64 *header);
 
+typedef NS_ENUM(NSInteger, Store){
+    SideStore,
+    AltStore
+};
+
 NSString *LCParseMachO(const char *path, LCParseMachOCallback callback);
 void LCPatchAddRPath(const char *path, struct mach_header_64 *header);
 void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
@@ -32,9 +37,11 @@ void LCChangeExecUUID(struct mach_header_64 *header);
 + (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 
 + (BOOL)isAppGroupAltStoreLike;
++ (Store)store;
 + (NSString *)appGroupID;
 + (NSString *)appUrlScheme;
 + (NSURL *)appGroupPath;
 + (NSString *)storeInstallURLScheme;
 + (NSString *)getVersionInfo;
 @end
+

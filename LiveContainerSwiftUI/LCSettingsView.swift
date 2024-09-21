@@ -34,6 +34,8 @@ struct LCSettingsView: View {
     @State var sideJITServerAddress : String
     @State var deviceUDID: String
     
+    @State var isSideStore : Bool
+    
     @EnvironmentObject private var sharedModel : SharedModel
     
     init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>) {
@@ -42,6 +44,8 @@ struct LCSettingsView: View {
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
         _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
+        
+        _isSideStore = State(initialValue: LCUtils.store() == .SideStore)
         
         _apps = apps
         _hiddenApps = hiddenApps
@@ -103,14 +107,16 @@ struct LCSettingsView: View {
                     Text("lc.settings.multiLCDesc".loc)
                 }
                 
-                
-                Section {
-                    Toggle(isOn: $isAltCertIgnored) {
-                        Text("lc.settings.ignoreAltCert".loc)
+                if(isSideStore) {
+                    Section {
+                        Toggle(isOn: $isAltCertIgnored) {
+                            Text("lc.settings.ignoreAltCert".loc)
+                        }
+                    } footer: {
+                        Text("lc.settings.ignoreAltCertDesc".loc)
                     }
-                } footer: {
-                    Text("lc.settings.ignoreAltCertDesc".loc)
                 }
+
                 
                 Section {
                     HStack {

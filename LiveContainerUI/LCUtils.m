@@ -48,7 +48,8 @@
 }
 
 + (NSData *)certificateDataFile {
-    if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCIgnoreALTCertificate"]) {
+    // it seems that alstore never changes its ALTCertificate.p12 and the one it shipped with is invalid so we ignore it anyhow.
+    if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCIgnoreALTCertificate"] || [self store] == AltStore) {
         return nil;
     }
     NSURL *url = [self.storeBundlePath URLByAppendingPathComponent:@"ALTCertificate.p12"];
@@ -109,7 +110,16 @@
     static BOOL loaded = NO;
     if (loaded) return;
 
-    NSArray *signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
+    NSArray *signerFrameworks;
+    
+    if([self store] == AltStore) {
+        // AltStore requires 1 more framework than sidestore
+        signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"KeychainAccess.framework", @"AltStoreCore.framework"];
+    } else {
+        signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
+    }
+    
+    
     NSURL *storeFrameworksPath = [self.storeBundlePath URLByAppendingPathComponent:@"Frameworks"];
     for (NSString *framework in signerFrameworks) {
         NSBundle *frameworkBundle = [NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:framework]];
@@ -239,6 +249,19 @@
         }
     });
     return appGroupID;
+}
+
++ (Store) store {
+    static Store ans;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        if([[self appGroupID] containsString:@"AltStore"]) {
+            ans = AltStore;
+        } else {
+            ans = SideStore;
+        }
+    });
+    return ans;
 }
 
 + (NSString *)appUrlScheme {
