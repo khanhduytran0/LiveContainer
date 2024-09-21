@@ -29,7 +29,7 @@ struct LCWebView: View {
     @EnvironmentObject private var sharedModel : SharedModel
     
     init(url: Binding<URL>, apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, isPresent: Binding<Bool>) {
-        self.webView = WebView()
+        self._webView = State(initialValue: WebView())
         self._url = url
         self._apps = apps
         self._isPresent = isPresent
