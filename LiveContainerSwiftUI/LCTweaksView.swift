@@ -123,7 +123,9 @@ struct LCTweakFolderView : View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if !isTweakSigning && LCUtils.certificatePassword() != nil {
-                    Button(action: fixCydiaSubstratePath) {
+                    Button { 
+                        Task { await fixCydiaSubstratePath() }
+                    } label: {
                         Label("fixCSP".loc, systemImage: "pencil.and.outline")
                     }
                 }
@@ -298,7 +300,7 @@ struct LCTweakFolderView : View {
         }
     }
 
-    mutating func fixCydiaSubstratePath() {
+    func fixCydiaSubstratePath() async {
         llvmOtoolOutsShow = true
         changeOutsString(str_add: "", reset: true)
         for item in tweakItems {
@@ -311,7 +313,7 @@ struct LCTweakFolderView : View {
         }
     }
 
-    mutating func changeOutsString(str_add: String, reset: Bool = false) {
+    func changeOutsString(str_add: String, reset: Bool = false) async {
         if (reset) {
             llvmOtoolOuts = ""
         } else {
