@@ -34,7 +34,7 @@ struct LCTweakFolderView : View {
     @State private var isTweakSigning = false
 
     @State private var llvmOtoolOutsShow = false
-    private var llvmOtoolOuts = ""
+    @State private var llvmOtoolOuts = ""
     
     init(baseUrl: URL, isRoot: Bool = false, tweakFolders: Binding<[String]>) {
         _baseUrl = State(initialValue: baseUrl)
@@ -298,16 +298,24 @@ struct LCTweakFolderView : View {
         }
     }
 
-    mutating func fixCydiaSubstratePath() {
+    func fixCydiaSubstratePath() {
         llvmOtoolOutsShow = true
-        llvmOtoolOuts = ""
+        changeOutsString(str_add: nil, reset: true)
         for item in tweakItems {
             if !llvmOtoolOuts.isEmpty {
-                llvmOtoolOuts += "\n"
+                changeOutsString(str_add: "\n")
             }
-            llvmOtoolOuts += item.fileUrl.lastPathComponent
-            llvmOtoolOuts += ":\n"
-            llvmOtoolOuts += LCObjcBridge.showMachOFileInfo(filePath: item.fileUrl.absoluteString) 
+            changeOutsString(str_add: item.fileUrl.lastPathComponent)
+            changeOutsString(str_add: ":\n")
+            changeOutsString(str_add: LCObjcBridge.showMachOFileInfo(filePath: item.fileUrl.absoluteString))
+        }
+    }
+
+    mutating func changeOutsString(str_add: String, reset: Bool = false) {
+        if (reset) {
+            llvmOtoolOuts = ""
+        } else {
+            llvmOtoolOuts += str_add
         }
     }
     
