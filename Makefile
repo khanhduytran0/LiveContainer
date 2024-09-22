@@ -19,7 +19,7 @@ $(APPLICATION_NAME)_FRAMEWORKS = UIKit
 
 include $(THEOS_MAKE_PATH)/application.mk
 
-SUBPROJECTS += LiveContainerUI TweakLoader TestJITLess LiveContainerSwiftUI
+SUBPROJECTS += LiveContainerSwiftUI LiveContainerUI TweakLoader TestJITLess 
 include $(THEOS_MAKE_PATH)/aggregate.mk
 
 # Make the executable name longer so we have space to overwrite it with the guest app's name

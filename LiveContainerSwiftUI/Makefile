@@ -10,11 +10,14 @@ $(shell find ./ -name '*.swift') \
 ../LiveContainerUI/LCAppInfo.m \
 ../LiveContainerUI/LCUtils.m \
 ../LiveContainerUI/LCMachOUtils.m \
-../LiveContainerUI/unarchive.m
-LiveContainerSwiftUI_SWIFTFLAGS = -I../LiveContainerUI
+../LiveContainerUI/unarchive.m \
+../llvm-tools/llvm-objdump.m
+LiveContainerSwiftUI_SWIFTFLAGS = \
+-I../LiveContainerUI \
+-I../llvm-tools
 LiveContainerSwiftUI_CFLAGS = \
   -fobjc-arc
-LiveContainerSwiftUI_LIBRARIES = archive
+LiveContainerSwiftUI_LIBRARIES = archive -L../Resources/Frameworks llvm-objdump
 LiveContainerSwiftUI_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 
 include $(THEOS_MAKE_PATH)/framework.mk

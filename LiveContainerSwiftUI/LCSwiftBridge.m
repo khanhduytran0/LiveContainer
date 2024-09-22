@@ -23,6 +23,12 @@
     [LCObjcBridge launchAppWithBundleId:bundleId];
 }
 
+/*
++ (void)showMachOFileInfo:(NSString*  _Nonnull)filePath resultOutput:(NSString* _Nonnull)result {
+    [LCObjcBridge showMachOFileInfo:filePath resultOutput:result];
+}
+*/
+
 @end
 
 // make SFSafariView happy and open data: URLs

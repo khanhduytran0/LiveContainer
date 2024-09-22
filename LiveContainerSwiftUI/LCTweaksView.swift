@@ -32,6 +32,9 @@ struct LCTweakFolderView : View {
     @State private var choosingTweak = false
     
     @State private var isTweakSigning = false
+
+    //@State private var llvmOtoolOutsShow = false
+    private var llvmOtoolOuts = ""
     
     init(baseUrl: URL, isRoot: Bool = false, tweakFolders: Binding<[String]>) {
         _baseUrl = State(initialValue: baseUrl)
@@ -118,6 +121,14 @@ struct LCTweakFolderView : View {
         }
         .navigationTitle(isRoot ? "lc.tabView.tweaks".loc : baseUrl.lastPathComponent)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if !isTweakSigning && LCUtils.certificatePassword() != nil {
+                    Button(action: fixCydiaSubstratePath) {
+                        Label("fixCSP".loc, systemImage: "pencil.and.outline")
+                    }
+                }
+
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 if !isTweakSigning && LCUtils.certificatePassword() != nil {
                     Button {
@@ -277,6 +288,17 @@ struct LCTweakFolderView : View {
             tweakFolders.remove(at: indexToRename2)
             tweakFolders.insert(newName, at: indexToRename2)
             
+        }
+    }
+
+    mutating func fixCydiaSubstratePath() {
+        for item in tweakItems {
+            llvmOtoolOuts = LCObjcBridge.showMachOFileInfo(filePath: item.fileUrl) 
+            alert("llvm-otool", isPresented: $true) {
+                Button("lc.common.ok".loc, action: {})
+            } message: {
+                Text(llvmOtoolOuts)
+            }
         }
     }
     

@@ -15,4 +15,5 @@
 + (UIViewController * _Nonnull)getRootVC;
 + (void)openWebPageWithUrlStr:(NSURL* _Nonnull)url;
 + (void)launchAppWithBundleId:(NSString*  _Nonnull)bundleId;
+// + (void)showMachOFileInfo:(NSString*  _Nonnull)filePath (NSString* _Nonnull)resultOutput;
 @end
