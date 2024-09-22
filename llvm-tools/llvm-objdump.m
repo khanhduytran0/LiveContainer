@@ -1,9 +1,9 @@
 #import "llvm-objdump.h"
 
-const char *llvm_objdump(int argc, char **argv);
+const char *llvm_objdump(int argc, const char **argv);
 
 NSString* exec_llvm_objdump(NSString* filePath) {
-    char* command[] = {
+    const char* command[] = {
         "llvm-otool",
         "-L",
         [filePath UTF8String]
