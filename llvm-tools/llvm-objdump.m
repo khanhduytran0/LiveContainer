@@ -2,12 +2,12 @@
 
 const char *llvm_objdump(int argc, char **argv);
 
-void exec_llvm_objdump(filePath: NSString*) {
-    char* res[] = {
+NSString* exec_llvm_objdump(NSString* filePath) {
+    char* command[] = {
         "llvm-otool",
         "-L",
-        [file_path UTF8String]
+        [filePath UTF8String]
     };
-    const char *res = llvm_objdump(3, res);
+    const char *res = llvm_objdump(3, command);
     return [NSString stringWithUTF8String:res];
 }
