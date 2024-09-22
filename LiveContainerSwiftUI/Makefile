@@ -18,8 +18,8 @@ LiveContainerSwiftUI_SWIFTFLAGS = \
 LiveContainerSwiftUI_CFLAGS = \
   -fobjc-arc
 LiveContainerSwiftUI_LDFLAGS = \
-libLLVM-20.0.a \
-libllvm-objdump.a
+../llvm-tools/libLLVM-20.0.a \
+../llvm-tools/libllvm-objdump.a
 LiveContainerSwiftUI_LIBRARIES = archive 
 LiveContainerSwiftUI_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 
