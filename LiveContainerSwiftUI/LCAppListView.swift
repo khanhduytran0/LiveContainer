@@ -127,11 +127,12 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                             Spacer()
                         }
                         ForEach(hiddenApps, id: \.self) { app in
-                            sharedModel.isHiddenAppUnlocked ? 
-                                LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames) : LCAppSkeletonBanner()
+                            if sharedModel.isHiddenAppUnlocked {
+                                LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
+                            } else {
+                                LCAppSkeletonBanner()
+                            }
                         }
-                        .blur(radius: sharedModel.isHiddenAppUnlocked ? 0 : 8.0)
-                        .clipShape(RoundedRectangle(cornerSize: CGSize(width:22, height: 22)))
                         .animation(.easeInOut, value: sharedModel.isHiddenAppUnlocked)
                         .onTapGesture {
                             Task { await authenticateUser() }
