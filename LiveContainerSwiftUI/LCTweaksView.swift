@@ -298,9 +298,9 @@ struct LCTweakFolderView : View {
         }
     }
 
-    func fixCydiaSubstratePath() {
+    mutating func fixCydiaSubstratePath() {
         llvmOtoolOutsShow = true
-        changeOutsString(str_add: nil, reset: true)
+        changeOutsString(str_add: "", reset: true)
         for item in tweakItems {
             if !llvmOtoolOuts.isEmpty {
                 changeOutsString(str_add: "\n")
