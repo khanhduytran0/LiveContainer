@@ -302,25 +302,17 @@ struct LCTweakFolderView : View {
 
     func fixCydiaSubstratePath() async {
         llvmOtoolOutsShow = true
-        changeOutsString(str_add: "", reset: true)
+        llvmOtoolOuts = ""
         for item in tweakItems {
             if !llvmOtoolOuts.isEmpty {
-                changeOutsString(str_add: "\n")
+                llvmOtoolOuts += "\n"
             }
-            changeOutsString(str_add: item.fileUrl.lastPathComponent)
-            changeOutsString(str_add: ":\n")
-            changeOutsString(str_add: LCObjcBridge.showMachOFileInfo(filePath: item.fileUrl.absoluteString))
+            llvmOtoolOuts += item.fileUrl.lastPathComponent
+            llvmOtoolOuts += ":\n"
+            llvmOtoolOuts += LCObjcBridge.showMachOFileInfo(filePath: item.fileUrl.absoluteString)
         }
     }
 
-    func changeOutsString(str_add: String, reset: Bool = false) async {
-        if (reset) {
-            llvmOtoolOuts = ""
-        } else {
-            llvmOtoolOuts += str_add
-        }
-    }
-    
     func signAllTweaks() async {
         do {
             let fm = FileManager()
