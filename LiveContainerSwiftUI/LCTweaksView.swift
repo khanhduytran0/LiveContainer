@@ -33,7 +33,7 @@ struct LCTweakFolderView : View {
     
     @State private var isTweakSigning = false
 
-    //@State private var llvmOtoolOutsShow = false
+    @State private var llvmOtoolOutsShow = false
     private var llvmOtoolOuts = ""
     
     init(baseUrl: URL, isRoot: Bool = false, tweakFolders: Binding<[String]>) {
@@ -175,6 +175,13 @@ struct LCTweakFolderView : View {
         } message: {
             Text(errorInfo)
         }
+        .alert("llvm-otool", isPresented: $llvmOtoolOutsShow) {
+            Button("lc.common.ok".loc, action: {
+                llvmOtoolOutsShow = false
+            })
+        } message: {
+            Text(llvmOtoolOuts)
+        }
         .textFieldAlert(
             isPresented: $newFolderInput.show,
             title: "lc.common.enterNewFolderName".loc,
@@ -292,13 +299,15 @@ struct LCTweakFolderView : View {
     }
 
     mutating func fixCydiaSubstratePath() {
+        llvmOtoolOutsShow = true
+        llvmOtoolOuts = ""
         for item in tweakItems {
-            llvmOtoolOuts = LCObjcBridge.showMachOFileInfo(filePath: item.fileUrl) 
-            alert("llvm-otool", isPresented: $true) {
-                Button("lc.common.ok".loc, action: {})
-            } message: {
-                Text(llvmOtoolOuts)
+            if !llvmOtoolOuts.isEmpty {
+                llvmOtoolOuts += "\n"
             }
+            llvmOtoolOuts += item.fileUrl.lastPathComponent
+            llvmOtoolOuts += ":\n"
+            llvmOtoolOuts += LCObjcBridge.showMachOFileInfo(filePath: item.fileUrl.absoluteString) 
         }
     }
     

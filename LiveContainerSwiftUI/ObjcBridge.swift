@@ -14,7 +14,6 @@ import SwiftUI
     private static var openUrlStrFunc: ((String) async -> Void)?
     private static var bundleToLaunch: String? = nil
     private static var launchAppFunc: ((String) async -> Void)?
-    var resultOutput: String
     
     public static func setOpenUrlStrFunc(handler: @escaping ((String) async -> Void)){
         self.openUrlStrFunc = handler
@@ -44,8 +43,7 @@ import SwiftUI
     }
 
     @objc public static func showMachOFileInfo(filePath: String) -> String {
-        resultOutput = exec_llvm_objdump(filePath)
-        return resultOutput
+        return exec_llvm_objdump(filePath)
     }
     
     @objc public static func launchApp(bundleId: String) {
