@@ -29,5 +29,5 @@ before-package::
 	@cp $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/JITLessSetup
 	@ldid -Sentitlements_setup.xml $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/JITLessSetup
 	@mv $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou
-	@ldid -Sentitlements.xml $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/Frameworks/libLLVM.dylib
-	@ldid -Sentitlements.xml $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/Frameworks/libllvm-objdump.dylib
+	@ldid -S $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/Frameworks/libLLVM.dylib
+	@ldid -S $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/Frameworks/libllvm-objdump.dylib
