@@ -35,19 +35,25 @@
     self.view.backgroundColor = UIColor.systemBackgroundColor;
     self.title = @"lc.jitlessSetup.title".loc;
 
-/* TODO: support AltStore */
-
-    NSData *certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.SideStore.SideStore"];
-    if (!certData) {
-        certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.rileytestut.AltStore"];
+    NSString* storeBundleId;
+    if([LCUtils store] == AltStore) {
+        // it's wried, but bundleID of AltStore looks like com.xxxxxxxxxx.com.rileytestut.AltStore
+        NSString* bundleId = [NSBundle.mainBundle bundleIdentifier];
+        NSUInteger len = [bundleId length];
+        NSString* teamId = [bundleId substringFromIndex:len - 10];
+        storeBundleId = [NSString stringWithFormat:@"com.%@.com.rileytestut.AltStore", teamId];
+    } else {
+        storeBundleId = @"com.SideStore.SideStore";
     }
+
+    NSData *certData = [LCUtils keychainItem:@"signingCertificate" ofStore:storeBundleId];
     if (!certData) {
         [self showDialogTitle:@"lc.common.error".loc message:@"lc.jitlessSetup.error.certDataNotFound".loc handler:nil];
         return;
     }
     LCUtils.certificateData = certData;
 
-    NSData *certPassword = [LCUtils keychainItem:@"signingCertificatePassword".loc ofStore:@"com.SideStore.SideStore"];
+    NSData *certPassword = [LCUtils keychainItem:@"signingCertificatePassword".loc ofStore:storeBundleId];
     if (!certPassword) {
         [self showDialogTitle:@"lc.common.error".loc message:@"lc.jitlessSetup.error.passwordNotFound".loc handler:nil];
         return;

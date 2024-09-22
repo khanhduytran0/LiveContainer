@@ -80,6 +80,12 @@ struct LCSettingsView: View {
                                 Text("lc.settings.setupJitLess".loc)
                             }
                         }
+                        
+                        Button {
+                            patchAltStore()
+                        } label: {
+                            Text("Patch AltStore")
+                        }
                     } header: {
                         Text("lc.settings.jitLess".loc)
                     } footer: {
@@ -529,5 +535,17 @@ struct LCSettingsView: View {
     
     func openTwitter() {
         UIApplication.shared.open(URL(string: "https://twitter.com/TranKha50277352")!)
+    }
+    
+    func patchAltStore() {
+        do {
+            let altStoreIpa = try LCUtils.archiveTweakedAltStore()
+            let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), altStoreIpa.absoluteString)
+            UIApplication.shared.open(URL(string: storeInstallUrl)!)
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
+        
     }
 }

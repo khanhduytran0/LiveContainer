@@ -414,6 +414,56 @@
     return tmpIPAPath;
 }
 
++ (NSURL *)archiveTweakedAltStoreWithError:(NSError **)error {
+    if (*error) return nil;
+
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    NSURL *lcBundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
+    NSURL *bundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.rileytestut.AltStore"];
+
+    NSURL *tmpPath = [appGroupPath URLByAppendingPathComponent:@"tmp"];
+    [manager removeItemAtURL:tmpPath error:nil];
+
+    NSURL *tmpPayloadPath = [tmpPath URLByAppendingPathComponent:@"Payload"];
+    NSURL *tmpIPAPath = [appGroupPath URLByAppendingPathComponent:@"tmp.ipa"];
+
+    [manager createDirectoryAtURL:tmpPath withIntermediateDirectories:YES attributes:nil error:error];
+    if (*error) return nil;
+
+    [manager copyItemAtURL:bundlePath toURL:tmpPayloadPath error:error];
+    if (*error) return nil;
+    
+    // copy cydiasubstrate & altstore tweak
+    [manager copyItemAtURL:[lcBundlePath URLByAppendingPathComponent:@"App.app/Frameworks/AltStoreTweak.dylib"] toURL:[tmpPayloadPath URLByAppendingPathComponent:@"App.app/Frameworks/AltStoreTweak.dylib"] error:error];
+    [manager copyItemAtURL:[lcBundlePath URLByAppendingPathComponent:@"App.app/Frameworks/CydiaSubstrate.framework"] toURL:[tmpPayloadPath URLByAppendingPathComponent:@"App.app/Frameworks/CydiaSubstrate.framework"] error:error];
+    NSURL* execToPath = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/AltStore"];
+    NSString* errorPatchAltStore = LCParseMachO([execToPath.path UTF8String], ^(const char *path, struct mach_header_64 *header) {
+        LCPatchAltStore(execToPath.path.UTF8String, header);
+    });
+    if (errorPatchAltStore) {
+        NSMutableDictionary* details = [NSMutableDictionary dictionary];
+        [details setValue:errorPatchAltStore forKey:NSLocalizedDescriptionKey];
+        // populate the error object with the details
+        *error = [NSError errorWithDomain:@"world" code:200 userInfo:details];
+        NSLog(@"[LC] %@", errorPatchAltStore);
+        return nil;
+    }
+    
+
+    dlopen("/System/Library/PrivateFrameworks/PassKitCore.framework/PassKitCore", RTLD_GLOBAL);
+    NSData *zipData = [[NSClassFromString(@"PKZipArchiver") new] zippedDataForURL:tmpPayloadPath.URLByDeletingLastPathComponent];
+    if (!zipData) return nil;
+
+    [manager removeItemAtURL:tmpPath error:error];
+    if (*error) return nil;
+
+    [zipData writeToURL:tmpIPAPath options:0 error:error];
+    if (*error) return nil;
+
+    return tmpIPAPath;
+}
+
 + (NSString *)getVersionInfo {
     return [NSClassFromString(@"LCVersionInfo") getVersionStr];
 }
