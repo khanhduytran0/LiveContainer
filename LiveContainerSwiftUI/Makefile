@@ -17,7 +17,9 @@ LiveContainerSwiftUI_SWIFTFLAGS = \
 -I../llvm-tools
 LiveContainerSwiftUI_CFLAGS = \
   -fobjc-arc
-LiveContainerSwiftUI_LIBRARIES = archive -L../Resources/Frameworks llvm-objdump
+LiveContainerSwiftUI_LDFLAGS = \
+-L../Resources/Frameworks
+LiveContainerSwiftUI_LIBRARIES = archive llvm-objdump
 LiveContainerSwiftUI_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 
 include $(THEOS_MAKE_PATH)/framework.mk
