@@ -108,7 +108,7 @@ struct LCAppBanner : View {
 
             })
             .clipShape(Capsule())
-            .disabled(model.isAppRunning)
+            .disabled(model.isAppRunning || (model.uiIsHidden && !sharedModel.isHiddenAppUnlocked))
             
         }
         .padding()

@@ -95,16 +95,30 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 }
                 .padding()
                 .animation(.easeInOut, value: apps)
-                
-                if !sharedModel.isHiddenAppUnlocked {
-                    Text(apps.count > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(apps.count) : "lc.appList.installTip".loc).foregroundStyle(.gray)
-                        .onTapGesture(count: 3) {
-                            Task { await authenticateUser() }
-                        }
-                }
 
-                
-                if sharedModel.isHiddenAppUnlocked {
+                if LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
+                    if sharedModel.isHiddenAppUnlocked {
+                        LazyVStack {
+                            HStack {
+                                Text("lc.appList.hiddenApps".loc)
+                                    .font(.system(.title2).bold())
+                                    .border(Color.black)
+                                Spacer()
+                            }
+                            ForEach(hiddenApps, id: \.self) { app in
+                                LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
+                            }
+                            .transition(.scale)
+                        }
+                        .padding()
+                        .animation(.easeInOut, value: apps)
+                        
+                        if hiddenApps.count == 0 {
+                            Text("lc.appList.hideAppTip".loc)
+                                .foregroundStyle(.gray)
+                        }
+                    }
+                } else if hiddenApps.count > 0 {
                     LazyVStack {
                         HStack {
                             Text("lc.appList.hiddenApps".loc)
@@ -115,18 +129,25 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                         ForEach(hiddenApps, id: \.self) { app in
                             LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
                         }
-                        .transition(.scale)
+                        .blur(radius: sharedModel.isHiddenAppUnlocked ? 0 : 8.0)
+                        .clipShape(RoundedRectangle(cornerSize: CGSize(width:22, height: 22)))
+                        .animation(.easeInOut, value: sharedModel.isHiddenAppUnlocked)
+                        .onTapGesture {
+                            Task { await authenticateUser() }
+                        }
                     }
                     .padding()
                     .animation(.easeInOut, value: apps)
-                    
-                    if hiddenApps.count == 0 {
-                        Text("lc.appList.hideAppTip".loc)
-                            .foregroundStyle(.gray)
-                    }
-                    Text(apps.count + hiddenApps.count > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(apps.count + hiddenApps.count) : "lc.appList.installTip".loc).foregroundStyle(.gray)
                 }
-                
+
+                let appCount = sharedModel.isHiddenAppUnlocked ? apps.count + hiddenApps.count : apps.count
+                Text(appCount > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(appCount) : "lc.appList.installTip".loc)
+                    .foregroundStyle(.gray)
+                    .animation(.easeInOut, value: appCount)
+                    .onTapGesture(count: 3) {
+                        Task { await authenticateUser() }
+                    }
+
                 if LCUtils.multiLCStatus == 2 {
                     Text("lc.appList.manageInPrimaryTip".loc).foregroundStyle(.gray).padding()
                 }
