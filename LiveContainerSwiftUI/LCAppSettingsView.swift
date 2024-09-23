@@ -160,14 +160,16 @@ struct LCAppSettingsView : View{
                 }
                 .onChange(of: model.uiIsLocked, perform: { newValue in
                     Task {
-                        do {
-                            let result = try await LCUtils.authenticateUser()
-                            if !result {
-                                model.uiIsLocked = !newValue
+                        if !newValue {
+                            do {
+                                let result = try await LCUtils.authenticateUser()
+                                if !result {
+                                    model.uiIsLocked = true
+                                    return
+                                }
+                            } catch {
                                 return
                             }
-                        } catch {
-                            return
                         }
 
                         await model.toggleLock()
