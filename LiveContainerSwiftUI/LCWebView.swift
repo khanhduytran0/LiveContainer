@@ -169,7 +169,7 @@ struct LCWebView: View {
             return
         }
         
-        if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
+        if appToLaunch.appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
             
             do {
                 if !(try await LCUtils.authenticateUser()) {
@@ -214,7 +214,7 @@ struct LCWebView: View {
             return
         }
         
-        if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
+        if appToLaunch.appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
             do {
                 if !(try await LCUtils.authenticateUser()) {
                     return

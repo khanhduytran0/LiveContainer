@@ -71,7 +71,7 @@ struct LCAppBanner : View {
                                     Capsule().fill(Color("JITBadgeColor"))
                                 )
                         }
-                        if model.uiIsLocked {
+                        if model.uiIsLocked && !model.uiIsHidden {
                             Text("lc.appBanner.locked".loc).font(.system(size: 8)).bold().padding(2)
                                 .frame(width: 50, height:16)
                                 .background(
@@ -246,6 +246,18 @@ struct LCAppBanner : View {
     }
     
     func runApp() async {
+        if appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
+            do {
+                if !(try await LCUtils.authenticateUser()) {
+                    return
+                }
+            } catch {
+                errorInfo = error.localizedDescription
+                errorShow = true
+                return
+            }
+        }
+
         do {
             try await model.runApp()
         } catch {

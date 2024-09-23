@@ -30,6 +30,10 @@ class LCAppModel: ObservableObject, Hashable {
     init(appInfo : LCAppInfo, delegate: LCAppModelDelegate? = nil) {
         self.appInfo = appInfo
         self.delegate = delegate
+
+        if !appInfo.isLocked && appInfo.isHidden {
+            appInfo.isLocked = true
+        }
         
         self.uiIsJITNeeded = appInfo.isJITNeeded
         self.uiIsHidden = appInfo.isHidden
@@ -124,10 +128,14 @@ class LCAppModel: ObservableObject, Hashable {
 
     }
 
-    func toggleLocked() async {
+    func toggleLock() async {
         if appInfo.isLocked {
             appInfo.isLocked = false
             uiIsLocked = false
+
+            if appInfo.isHidden {
+                await toggleHidden()
+            }
         } else {
             appInfo.isLocked = true
             uiIsLocked = true

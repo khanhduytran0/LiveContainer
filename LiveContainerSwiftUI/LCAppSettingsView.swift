@@ -159,19 +159,37 @@ struct LCAppSettingsView : View{
                     Text("lc.appSettings.lockApp".loc)
                 }
                 .onChange(of: model.uiIsLocked, perform: { newValue in
-                    Task { await model.toggleLock() }
-                })
-            }
+                    Task {
+                        if !newValue {
+                            do {
+                                let result = try await LCUtils.authenticateUser()
+                                if !result {
+                                    model.uiIsLocked = true
+                                    return
+                                }
+                            } catch {
+                                return
+                            }
+                        }
 
-            Section {
-                Toggle(isOn: $model.uiIsHidden) {
-                    Text("lc.appSettings.hideApp".loc)
-                }
-                .onChange(of: model.uiIsHidden, perform: { newValue in
-                    Task { await toggleHidden() }
+                        await model.toggleLock()
+                    }
                 })
+
+                if model.uiIsLocked {
+                    Toggle(isOn: $model.uiIsHidden) {
+                        Text("lc.appSettings.hideApp".loc)
+                    }
+                    .onChange(of: model.uiIsHidden, perform: { _ in
+                        Task { await toggleHidden() }
+                    })
+                    .transition(.opacity.combined(with: .slide)) 
+                }
             } footer: {
-                Text("lc.appSettings.hideAppDesc".loc)
+                if model.uiIsLocked {
+                    Text("lc.appSettings.hideAppDesc".loc)
+                        .transition(.opacity.combined(with: .slide))
+                }
             }
 
             

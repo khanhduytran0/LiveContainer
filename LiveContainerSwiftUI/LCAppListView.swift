@@ -123,7 +123,6 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                             HStack {
                                 Text("lc.appList.hiddenApps".loc)
                                     .font(.system(.title2).bold())
-                                    .border(Color.black)
                                 Spacer()
                             }
                             ForEach(hiddenApps, id: \.self) { app in
@@ -296,7 +295,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 return
             }
             
-            if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
+            if appToLaunch.appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
                 do {
                     if !(try await LCUtils.authenticateUser()) {
                         return
@@ -484,10 +483,13 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             return
         }
         var appFound : LCAppModel? = nil
-        var isFoundAppHidden = false
+        var isFoundAppLocked = false
         for app in apps {
             if app.appInfo.relativeBundlePath == bundleId {
                 appFound = app
+                if app.appInfo.isLocked {
+                    isFoundAppLocked = true
+                }
                 break
             }
         }
@@ -495,13 +497,13 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             for app in hiddenApps {
                 if app.appInfo.relativeBundlePath == bundleId {
                     appFound = app
-                    isFoundAppHidden = true
+                    isFoundAppLocked = true
                     break
                 }
             }
         }
         
-        if isFoundAppHidden && !sharedModel.isHiddenAppUnlocked {
+        if isFoundAppLocked && !sharedModel.isHiddenAppUnlocked {
             do {
                 let result = try await LCUtils.authenticateUser()
                 if !result {
