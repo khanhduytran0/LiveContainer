@@ -124,7 +124,7 @@ class LCAppModel: ObservableObject, Hashable {
 
     }
 
-    func toggleLocked() async {
+    func toggleLock() async {
         if appInfo.isLocked {
             appInfo.isLocked = false
             uiIsLocked = false
