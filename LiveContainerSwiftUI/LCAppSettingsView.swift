@@ -158,9 +158,9 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiIsLocked) {
                     Text("lc.appSettings.lockApp".loc)
                 }
-                .onChange(of: model.uiIsLocked, perform: { _ in
-                    Task { await model.toggleLock() }
-                })
+                // .onChange(of: model.uiIsLocked, perform: { _ in
+                //     Task { await model.toggleLock() }
+                // })
             }
 
             Section {
