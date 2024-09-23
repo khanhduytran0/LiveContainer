@@ -174,7 +174,7 @@ void handleLiveContainerLaunch(NSURL* url) {
         NSBundle* bundle = [NSClassFromString(@"LCSharedUtils") findBundleWithBundleId: bundleName];
         if(!bundle || ([bundle.infoDictionary[@"isHidden"] boolValue] && [NSUserDefaults.lcSharedDefaults boolForKey:@"LCStrictHiding"])) {
             LCShowAppNotFoundAlert(bundleName);
-        } else if ([bundle.infoDictionary[@"isHidden"] boolValue]) {
+        } else if ([bundle.infoDictionary[@"isLocked"] boolValue]) {
             // need authentication
             authenticateUser(^(BOOL success, NSError *error) {
                 if (success) {

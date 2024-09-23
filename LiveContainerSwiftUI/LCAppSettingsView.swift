@@ -153,16 +153,26 @@ struct LCAppSettingsView : View{
             } footer: {
                 Text("lc.appSettings.launchWithJitDesc".loc)
             }
-            
+
             Section {
-                Toggle(isOn: $model.uiIsHidden) {
-                    Text("lc.appSettings.hideApp".loc)
+                Toggle(isOn: $model.uiIsLocked) {
+                    Text("lc.appSettings.lockApp".loc)
                 }
-                .onChange(of: model.uiIsHidden, perform: { newValue in
-                    Task { await toggleHidden() }
+                .onChange(of: model.uiIsLocked, perform: { newValue in
+                    Task { await model.toggleLock() }
                 })
+                if model.uiIsLocked {
+                    Toggle(isOn: $model.uiIsHidden) {
+                        Text("lc.appSettings.hideApp".loc)
+                    }
+                    .onChange(of: model.uiIsHidden, perform: { newValue in
+                        Task { await toggleHidden() }
+                    })
+                }
             } footer: {
-                Text("lc.appSettings.hideAppDesc".loc)
+                if model.uiIsLocked {
+                    Text("lc.appSettings.hideAppDesc".loc)
+                }
             }
 
             

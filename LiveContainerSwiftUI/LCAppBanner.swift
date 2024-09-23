@@ -71,6 +71,13 @@ struct LCAppBanner : View {
                                     Capsule().fill(Color("JITBadgeColor"))
                                 )
                         }
+                        if model.uiIsLocked {
+                            Text("lc.appBanner.locked".loc).font(.system(size: 8)).bold().padding(2)
+                                .frame(width: 50, height:16)
+                                .background(
+                                    Capsule().fill(Color("BadgeColor"))
+                                )
+                        }
                     }
 
                     Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(Color("FontColor"))

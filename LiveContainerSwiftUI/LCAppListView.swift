@@ -48,7 +48,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     @State private var isNavigationActive = false
     
     @EnvironmentObject private var sharedModel : SharedModel
- 
+
     init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
         _installOptions = State(initialValue: [])
         _apps = apps
@@ -103,7 +103,6 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                                 HStack {
                                     Text("lc.appList.hiddenApps".loc)
                                         .font(.system(.title2).bold())
-                                        .border(Color.black)
                                     Spacer()
                                 }
                                 ForEach(hiddenApps, id: \.self) { app in
