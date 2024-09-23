@@ -159,16 +159,19 @@ struct LCAppSettingsView : View{
                     Text("lc.appSettings.lockApp".loc)
                 }
                 .onChange(of: model.uiIsLocked, perform: { newValue in
-                    do {
-                        let result = try await LCUtils.authenticateUser()
-                        if !result {
-                            model.uiIsLocked = !newValue
+                    Task {
+                        do {
+                            let result = try await LCUtils.authenticateUser()
+                            if !result {
+                                model.uiIsLocked = !newValue
+                                return
+                            }
+                        } catch {
                             return
                         }
-                    } catch {
-                        return
+
+                        await model.toggleLock()
                     }
-                    Task { await model.toggleLock() }
                 })
 
                 if model.uiIsLocked {
