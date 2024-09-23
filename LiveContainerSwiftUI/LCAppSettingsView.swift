@@ -169,10 +169,12 @@ struct LCAppSettingsView : View{
                     .onChange(of: model.uiIsHidden, perform: { _ in
                         Task { await toggleHidden() }
                     })
+                    .transition(.opacity.combined(with: .slide)) 
                 }
             } footer: {
                 if model.uiIsLocked {
                     Text("lc.appSettings.hideAppDesc".loc)
+                        .transition(.opacity.combined(with: .slide))
                 }
             }
 
