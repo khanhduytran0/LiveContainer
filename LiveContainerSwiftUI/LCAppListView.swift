@@ -483,10 +483,13 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             return
         }
         var appFound : LCAppModel? = nil
-        var isFoundAppHidden = false
+        var isFoundAppLocked = false
         for app in apps {
             if app.appInfo.relativeBundlePath == bundleId {
                 appFound = app
+                if app.appInfo.isLocked {
+                    isFoundAppLocked = true
+                }
                 break
             }
         }
@@ -494,13 +497,13 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             for app in hiddenApps {
                 if app.appInfo.relativeBundlePath == bundleId {
                     appFound = app
-                    isFoundAppHidden = true
+                    isFoundAppLocked = true
                     break
                 }
             }
         }
         
-        if isFoundAppHidden && !sharedModel.isHiddenAppUnlocked {
+        if isFoundAppLocked && !sharedModel.isHiddenAppUnlocked {
             do {
                 let result = try await LCUtils.authenticateUser()
                 if !result {
