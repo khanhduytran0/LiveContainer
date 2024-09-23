@@ -295,7 +295,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 return
             }
             
-            if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
+            if appToLaunch.appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
                 do {
                     if !(try await LCUtils.authenticateUser()) {
                         return
