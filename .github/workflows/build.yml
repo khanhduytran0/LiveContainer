@@ -33,9 +33,6 @@ jobs:
         uses: dhinakg/procursus-action@main
         with:
           packages: coreutils make xz ldid
-
-      - name: concat static library
-        run: cat llvm-tools/xaa llvm-tools/xab > llvm-tools/libLLVM-20.0.a
           
       - name: Build
         run: |
