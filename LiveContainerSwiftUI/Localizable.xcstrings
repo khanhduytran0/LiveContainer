@@ -1613,6 +1613,23 @@
         }
       }
     },
+    "lc.settings.error.altstoreNotPatched" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You must patch AltStore before setting up JIT-Less mode."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在设置免JIT模式前，你必须要先给AltStore打补丁。"
+          }
+        }
+      }
+    },
     "lc.settings.FrameIcon" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2016,6 +2033,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未删除任何数据文件夹，所有文件夹都已被使用。"
+          }
+        }
+      }
+    },
+    "lc.settings.patchAltstore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch AltStore"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "给AltStore打补丁"
+          }
+        }
+      }
+    },
+    "lc.settings.patchAltstoreAgain" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch AltStore Again"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新给AltStore打补丁"
+          }
+        }
+      }
+    },
+    "lc.settings.patchAltstoreDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To use JIT-Less mode with AltStore, you must patch AltStore in order to retrive keychain. AltStore's functions will not be affected. Continue?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了通过AltStore获取证书以配置免JIT模式，你必须要给AltStore打补丁。AltStore的功能不会受到任何影响。要继续吗？"
           }
         }
       }

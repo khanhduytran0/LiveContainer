@@ -434,9 +434,13 @@
     [manager copyItemAtURL:bundlePath toURL:tmpPayloadPath error:error];
     if (*error) return nil;
     
-    // copy cydiasubstrate & altstore tweak
-    [manager copyItemAtURL:[lcBundlePath URLByAppendingPathComponent:@"App.app/Frameworks/AltStoreTweak.dylib"] toURL:[tmpPayloadPath URLByAppendingPathComponent:@"App.app/Frameworks/AltStoreTweak.dylib"] error:error];
-    [manager copyItemAtURL:[lcBundlePath URLByAppendingPathComponent:@"App.app/Frameworks/CydiaSubstrate.framework"] toURL:[tmpPayloadPath URLByAppendingPathComponent:@"App.app/Frameworks/CydiaSubstrate.framework"] error:error];
+    // copy altstore tweak
+    NSURL* tweakToURL = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/Frameworks/AltStoreTweak.dylib"];
+    if([manager fileExistsAtPath:tweakToURL.path]) {
+        [manager removeItemAtURL:tweakToURL error:error];
+    }
+    
+    [manager copyItemAtURL:[lcBundlePath URLByAppendingPathComponent:@"App.app/Frameworks/AltStoreTweak.dylib"] toURL:tweakToURL error:error];
     NSURL* execToPath = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/AltStore"];
     NSString* errorPatchAltStore = LCParseMachO([execToPath.path UTF8String], ^(const char *path, struct mach_header_64 *header) {
         LCPatchAltStore(execToPath.path.UTF8String, header);

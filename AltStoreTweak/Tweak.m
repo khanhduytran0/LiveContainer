@@ -1,70 +1,64 @@
 @import Foundation;
 @import Security;
-#include <substrate.h>
 
-void LCMoveKeychainItems(NSString *oldService, NSString *newService) {
+void LCCopyKeychainItems(NSString *oldService, NSString *newService) {
     // Query to find all keychain items with the old service
     NSDictionary *query = @{
-        (id)kSecClass: (id)kSecClassGenericPassword,
-        (id)kSecAttrService: oldService,
-        (id)kSecReturnAttributes: @YES,
-        (id)kSecReturnData: @YES
+        (__bridge id)kSecAttrService: oldService,
+        (__bridge id)kSecClass: (__bridge id)kSecClassGenericPassword,
+        (__bridge id)kSecReturnData: @YES,
+        (__bridge id)kSecAttrSynchronizable: (__bridge id)kSecAttrSynchronizableAny,
+        (__bridge id)kSecMatchLimit: (__bridge id)kSecMatchLimitAll,
+        (__bridge id)kSecReturnAttributes: @YES
     };
 
     CFTypeRef result = NULL;
     OSStatus status = SecItemCopyMatching((CFDictionaryRef)query, &result);
 
     if (status == errSecSuccess) {
-        NSArray *items = (__bridge_transfer NSArray *)result;
+        NSArray *items = (__bridge NSArray *)result;
 
         for (NSDictionary *item in items) {
             // Retrieve attributes and data of the keychain item
             NSString *account = item[(id)kSecAttrAccount];
             NSData *passwordData = item[(id)kSecValueData];
+            
+            NSDictionary *deleteQuery = @{
+                (__bridge id)kSecAttrService: newService,
+                (__bridge id)kSecClass: (__bridge id)kSecClassGenericPassword,
+                (__bridge id)kSecAttrSynchronizable: (__bridge id)kSecAttrSynchronizableAny,
+                (__bridge id)kSecAttrAccount: account
+            };
+
+            OSStatus deleteStatus = SecItemDelete((CFDictionaryRef)deleteQuery);
+            if (deleteStatus != errSecSuccess && deleteStatus != errSecItemNotFound) {
+                NSLog(@"[LC] Delete failed %d", (int)deleteStatus);
+                continue;
+            }
 
             // Create a new keychain entry with the new service name
             NSDictionary *newItem = @{
-                (id)kSecClass: (id)kSecClassGenericPassword,
-                (id)kSecAttrService: newService,
-                (id)kSecAttrAccount: account,
-                (id)kSecValueData: passwordData
+                (__bridge id)kSecAttrService: newService,
+                (__bridge id)kSecClass: (__bridge id)kSecClassGenericPassword,
+                (__bridge id)kSecAttrSynchronizable: (__bridge id)kSecAttrSynchronizableAny,
+                (__bridge id)kSecAttrAccount: account,
+                (__bridge id)kSecValueData: passwordData
             };
-
-            // Add the new item to the keychain
             OSStatus addStatus = SecItemAdd((CFDictionaryRef)newItem, NULL);
-            if (addStatus == errSecSuccess) {
-                // Successfully added the new item, now delete the old one
-                NSDictionary *deleteQuery = @{
-                    (id)kSecClass: (id)kSecClassGenericPassword,
-                    (id)kSecAttrService: oldService,
-                    (id)kSecAttrAccount: account
-                };
-
-                SecItemDelete((CFDictionaryRef)deleteQuery);
-            } else if (addStatus == errSecDuplicateItem) {
-                NSLog(@"Item already exists in the new service.");
-            } else {
-                NSLog(@"Error adding item to the new service: %d", (int)addStatus);
+            if (addStatus != errSecSuccess) {
+                NSLog(@"[LC] Add item failed %d", (int)deleteStatus);
             }
         }
     } else {
-        NSLog(@"Error retrieving keychain items: %d", (int)status);
+        NSLog(@"[LC] Error retrieving keychain items: %d", (int)status);
     }
 }
 
-id (*keychainInitWithServiceName)(id, id) = NULL;
-id (*keychainInitWithWithNothing)(id) = NULL;
-
-id hook_keychainInitWithServiceName(id arg1, id self) {
-	NSLog(@"Hook succeeded!");
-   return keychainInitWithWithNothing(self);
-}
-
+BOOL synced = NO;
 __attribute__((constructor))
-static void LCAltstoreHookInit() {
-	LCMoveKeychainItems(@"com.rileytestut.AltStore", [NSBundle.mainBundle bundleIdentifier]);
-	keychainInitWithWithNothing = MSFindSymbol(NULL, "_$s14KeychainAccess0A0CACycfC");
-    MSHookFunction(MSFindSymbol(NULL, "_$s14KeychainAccess0A0C7serviceACSS_tcfC"),
-                   (void*)hook_keychainInitWithServiceName,
-                   (void**)&keychainInitWithServiceName);
+static void LCAltstoreHookInit(void) {
+    if (!synced) {
+        LCCopyKeychainItems(@"com.rileytestut.AltStore", [NSBundle.mainBundle bundleIdentifier]);
+        synced = YES;
+    }
 }

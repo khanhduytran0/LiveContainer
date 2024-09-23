@@ -133,7 +133,7 @@ struct LCAppSettingsView : View{
                         Task { await moveToAppGroup()}
                     }
                     
-                } else if LCUtils.multiLCStatus != 2 {
+                } else if sharedModel.multiLCStatus != 2 {
                     Button("lc.appSettings.toPrivateApp".loc) {
                         Task { await movePrivateDoc() }
                     }

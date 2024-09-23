@@ -22,6 +22,8 @@ struct LCSettingsView: View {
     @State private var folderRemoveCount = 0
     
     @StateObject private var keyChainRemovalAlert = YesNoHelper()
+    @StateObject private var patchAltStoreAlert = YesNoHelper()
+    @State private var isAltStorePatched = false
     
     @State var isJitLessEnabled = false
     
@@ -69,7 +71,7 @@ struct LCSettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                if LCUtils.multiLCStatus != 2 {
+                if sharedModel.multiLCStatus != 2 {
                     Section{
                         Button {
                             setupJitLess()
@@ -81,11 +83,18 @@ struct LCSettingsView: View {
                             }
                         }
                         
-                        Button {
-                            patchAltStore()
-                        } label: {
-                            Text("Patch AltStore")
+                        if !isSideStore {
+                            Button {
+                                Task { await patchAltStore() }
+                            } label: {
+                                if isAltStorePatched {
+                                    Text("lc.settings.patchAltstoreAgain".loc)
+                                } else {
+                                    Text("lc.settings.patchAltstore".loc)
+                                }
+                            }
                         }
+
                     } header: {
                         Text("lc.settings.jitLess".loc)
                     } footer: {
@@ -97,16 +106,16 @@ struct LCSettingsView: View {
                     Button {
                         installAnotherLC()
                     } label: {
-                        if LCUtils.multiLCStatus == 0 {
+                        if sharedModel.multiLCStatus == 0 {
                             Text("lc.settings.multiLCInstall".loc)
-                        } else if LCUtils.multiLCStatus == 1 {
+                        } else if sharedModel.multiLCStatus == 1 {
                             Text("lc.settings.multiLCReinstall".loc)
-                        } else if LCUtils.multiLCStatus == 2 {
+                        } else if sharedModel.multiLCStatus == 2 {
                             Text("lc.settings.multiLCIsSecond".loc)
                         }
 
                     }
-                    .disabled(LCUtils.multiLCStatus == 2)
+                    .disabled(sharedModel.multiLCStatus == 2)
                 } header: {
                     Text("lc.settings.multiLC".loc)
                 } footer: {
@@ -180,7 +189,7 @@ struct LCSettingsView: View {
                 }
                 
                 Section {
-                    if LCUtils.multiLCStatus != 2 {
+                    if sharedModel.multiLCStatus != 2 {
                         Button {
                             moveAppGroupFolderFromPrivateToAppGroup()
                         } label: {
@@ -239,6 +248,13 @@ struct LCSettingsView: View {
                     .listRowInsets(EdgeInsets())
             }
             .navigationBarTitle("lc.tabView.settings".loc)
+            .onAppear {
+                updateSideStorePatchStatus()
+            }
+            .onForeground {
+                updateSideStorePatchStatus()
+                sharedModel.updateMultiLCStatus()
+            }
             .alert("lc.common.error".loc, isPresented: $errorShow){
             } message: {
                 Text(errorInfo)
@@ -280,6 +296,19 @@ struct LCSettingsView: View {
             } message: {
                 Text("lc.settings.cleanKeychainDesc".loc)
             }
+            .alert("lc.settings.patchAltstore".loc, isPresented: $patchAltStoreAlert.show) {
+                Button(role: .destructive) {
+                    patchAltStoreAlert.close(result: true)
+                } label: {
+                    Text("lc.common.ok".loc)
+                }
+
+                Button("lc.common.cancel".loc, role: .cancel) {
+                    patchAltStoreAlert.close(result: false)
+                }
+            } message: {
+                Text("lc.settings.patchAltstoreDesc".loc)
+            }
             .onChange(of: isAltCertIgnored) { newValue in
                 saveItem(key: "LCIgnoreALTCertificate", val: newValue)
             }
@@ -320,6 +349,13 @@ struct LCSettingsView: View {
             errorShow = true
             return;
         }
+        
+        if LCUtils.store() == .AltStore && !isAltStorePatched {
+            errorInfo = "lc.settings.error.altstoreNotPatched".loc
+            errorShow = true
+            return;
+        }
+        
         do {
             let packedIpaUrl = try LCUtils.archiveIPA(withSetupMode: true)
             let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), packedIpaUrl.absoluteString)
@@ -537,11 +573,33 @@ struct LCSettingsView: View {
         UIApplication.shared.open(URL(string: "https://twitter.com/TranKha50277352")!)
     }
     
-    func patchAltStore() {
+    func updateSideStorePatchStatus() {
+        let fm = FileManager()
+        if LCUtils.store() == .SideStore {
+            isAltStorePatched = true
+            return
+        }
+        
+        guard let appGroupPath = LCUtils.appGroupPath() else {
+            isAltStorePatched = false
+            return
+        }
+        if(fm.fileExists(atPath: appGroupPath.appendingPathComponent("Apps/com.rileytestut.AltStore/App.app/Frameworks/AltStoreTweak.dylib").path)) {
+            isAltStorePatched = true
+        } else {
+            isAltStorePatched = false
+        }
+    }
+    
+    func patchAltStore() async {
+        guard let result = await patchAltStoreAlert.open(), result else {
+            return
+        }
+        
         do {
             let altStoreIpa = try LCUtils.archiveTweakedAltStore()
             let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), altStoreIpa.absoluteString)
-            UIApplication.shared.open(URL(string: storeInstallUrl)!)
+            await UIApplication.shared.open(URL(string: storeInstallUrl)!)
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true

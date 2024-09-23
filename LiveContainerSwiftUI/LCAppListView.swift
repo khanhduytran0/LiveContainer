@@ -127,7 +127,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                     Text(apps.count + hiddenApps.count > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(apps.count + hiddenApps.count) : "lc.appList.installTip".loc).foregroundStyle(.gray)
                 }
                 
-                if LCUtils.multiLCStatus == 2 {
+                if sharedModel.multiLCStatus == 2 {
                     Text("lc.appList.manageInPrimaryTip".loc).foregroundStyle(.gray).padding()
                 }
 
@@ -142,7 +142,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             .navigationTitle("lc.appList.myApps".loc)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    if LCUtils.multiLCStatus != 2 {
+                    if sharedModel.multiLCStatus != 2 {
                         if !installprogressVisible {
                             Button("Add".loc, systemImage: "plus", action: {
                                 if choosingIPA {

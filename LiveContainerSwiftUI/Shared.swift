@@ -53,6 +53,22 @@ struct LCPath {
 
 class SharedModel: ObservableObject {
     @Published var isHiddenAppUnlocked = false
+    // 0= not installed, 1= is installed, 2=current liveContainer is the second one
+    @Published var multiLCStatus = 0
+    
+    func updateMultiLCStatus() {
+        if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {
+            multiLCStatus = 2
+        } else if UIApplication.shared.canOpenURL(URL(string: "livecontainer2://")!) {
+            multiLCStatus = 1
+        } else {
+            multiLCStatus = 0
+        }
+    }
+    
+    init() {
+        updateMultiLCStatus()
+    }
 }
 
 class DataManager {
@@ -157,6 +173,20 @@ extension View {
         actionCancel: @escaping (String?) -> Void
     ) -> some View {
         self.modifier(TextFieldAlertModifier(isPresented: isPresented, title: title, text: text, placeholder: placeholder, action: action, actionCancel: actionCancel))
+    }
+    
+    func onBackground(_ f: @escaping () -> Void) -> some View {
+        self.onReceive(
+            NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification),
+            perform: { _ in f() }
+        )
+    }
+    
+    func onForeground(_ f: @escaping () -> Void) -> some View {
+        self.onReceive(
+            NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification),
+            perform: { _ in f() }
+        )
     }
     
 }
@@ -277,17 +307,6 @@ struct SiteAssociation : Codable {
 
 extension LCUtils {
     public static let appGroupUserDefault = UserDefaults.init(suiteName: LCUtils.appGroupID())!
-    
-    // 0= not installed, 1= is installed, 2=current liveContainer is the second one
-    public static let multiLCStatus = {
-        if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {
-            return 2
-        } else if UIApplication.shared.canOpenURL(URL(string: "livecontainer2://")!) {
-            return 1
-        } else {
-            return 0
-        }
-    }()
     
     public static func signFilesInFolder(url: URL, onProgressCreated: (Progress) -> Void) async -> String? {
         let fm = FileManager()

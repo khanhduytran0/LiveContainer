@@ -29,4 +29,3 @@ before-package::
 	@cp $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/JITLessSetup
 	@ldid -Sentitlements_setup.xml $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/JITLessSetup
 	@mv $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou
-	@install_name_tool -change /Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate @rpath/CydiaSubstrate.framework/CydiaSubstrate $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/Frameworks/AltStoreTweak.dylib
