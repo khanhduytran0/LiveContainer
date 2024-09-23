@@ -161,14 +161,14 @@ struct LCAppSettingsView : View{
                 .onChange(of: model.uiIsLocked, perform: { newValue in
                     Task { await model.toggleLock() }
                 })
-                if model.uiIsLocked {
-                    Toggle(isOn: $model.uiIsHidden) {
-                        Text("lc.appSettings.hideApp".loc)
-                    }
-                    .onChange(of: model.uiIsHidden, perform: { newValue in
-                        Task { await toggleHidden() }
-                    })
+
+                Toggle(isOn: $model.uiIsHidden) {
+                    Text("lc.appSettings.hideApp".loc)
                 }
+                .onChange(of: model.uiIsHidden, perform: { newValue in
+                    Task { await toggleHidden() }
+                })
+                .disabled(!model.uiIsLocked)
             } footer: {
                 if model.uiIsLocked {
                     Text("lc.appSettings.hideAppDesc".loc)
