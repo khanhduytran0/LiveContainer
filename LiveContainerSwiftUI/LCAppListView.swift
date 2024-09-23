@@ -123,7 +123,6 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                             HStack {
                                 Text("lc.appList.hiddenApps".loc)
                                     .font(.system(.title2).bold())
-                                    .border(Color.black)
                                 Spacer()
                             }
                             ForEach(hiddenApps, id: \.self) { app in
