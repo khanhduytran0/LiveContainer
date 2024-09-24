@@ -44,6 +44,7 @@
 }
 
 + (void)setCertificateData:(NSData *)certData {
+    [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] setObject:certData forKey:@"LCCertificateData"];
     [NSUserDefaults.standardUserDefaults setObject:certData forKey:@"LCCertificateData"];
 }
 
