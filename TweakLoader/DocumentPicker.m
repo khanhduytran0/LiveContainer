@@ -10,6 +10,7 @@ static void NSFMGuestHooksInit() {
     fixFilePicker = [NSBundle.mainBundle.infoDictionary[@"doSymlinkInbox"] boolValue];
     
     swizzle(UIDocumentPickerViewController.class, @selector(initForOpeningContentTypes:asCopy:), @selector(hook_initForOpeningContentTypes:asCopy:));
+    swizzle(UIDocumentPickerViewController.class, @selector(initWithDocumentTypes:inMode:), @selector(hook_initWithDocumentTypes:inMode:));
     swizzle(UIDocumentBrowserViewController.class, @selector(initForOpeningContentTypes:), @selector(hook_initForOpeningContentTypes));
     if (fixFilePicker) {
         swizzle(NSURL.class, @selector(startAccessingSecurityScopedResource), @selector(hook_startAccessingSecurityScopedResource));
@@ -42,6 +43,10 @@ static void NSFMGuestHooksInit() {
     } else {
         return [self hook_initForOpeningContentTypes:contentTypesNew asCopy:asCopy];
     }
+}
+
+- (instancetype)hook_initWithDocumentTypes:(NSArray<UTType *> *)contentTypes inMode:(NSUInteger)mode {
+    return [self initForOpeningContentTypes:contentTypes asCopy:(mode == 1 ? NO : YES)];
 }
 
 - (void)hook_setAllowsMultipleSelection:(BOOL)allowsMultipleSelection {
