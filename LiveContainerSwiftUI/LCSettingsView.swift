@@ -177,15 +177,16 @@ struct LCSettingsView: View {
                 } footer: {
                     Text("lc.settings.injectLCItselfDesc".loc)
                 }
-                
-                Section {
-                    Toggle(isOn: $strictHiding) {
-                        Text("lc.settings.strictHiding".loc)
+                if sharedModel.isHiddenAppUnlocked {
+                    Section {
+                        Toggle(isOn: $strictHiding) {
+                            Text("lc.settings.strictHiding".loc)
+                        }
+                    } footer: {
+                        Text("lc.settings.strictHidingDesc".loc)
                     }
-                } footer: {
-                    Text("lc.settings.strictHidingDesc".loc)
                 }
-                
+                    
                 Section {
                     if sharedModel.multiLCStatus != 2 {
                         Button {

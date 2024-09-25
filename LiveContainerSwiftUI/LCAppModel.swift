@@ -128,17 +128,32 @@ class LCAppModel: ObservableObject, Hashable {
 
     }
 
-    func toggleLock() async {
-        if appInfo.isLocked {
+    func setLocked(newLockState: Bool) async {
+        // if locked state in appinfo already match with the new state, we just the change
+        if appInfo.isLocked == newLockState {
+            return
+        }
+        
+        if newLockState {
+            appInfo.isLocked = true
+        } else {
+            // authenticate before cancelling locked state
+            do {
+                let result = try await LCUtils.authenticateUser()
+                if !result {
+                    uiIsLocked = true
+                    return
+                }
+            } catch {
+                uiIsLocked = true
+                return
+            }
+            
+            // auth pass, we need to cancel app's lock and hidden state
             appInfo.isLocked = false
-            uiIsLocked = false
-
             if appInfo.isHidden {
                 await toggleHidden()
             }
-        } else {
-            appInfo.isLocked = true
-            uiIsLocked = true
         }
     }
     

@@ -150,7 +150,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                         }
                 }.animation(.easeInOut, value: LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding"))
 
-                if LCUtils.multiLCStatus == 2 {
+                if sharedModel.multiLCStatus == 2 {
                     Text("lc.appList.manageInPrimaryTip".loc).foregroundStyle(.gray).padding()
                 }
 

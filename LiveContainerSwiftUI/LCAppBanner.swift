@@ -72,8 +72,9 @@ struct LCAppBanner : View {
                                 )
                         }
                         if model.uiIsLocked && !model.uiIsHidden {
-                            Text("lc.appBanner.locked".loc).font(.system(size: 8)).bold().padding(2)
-                                .frame(width: 50, height:16)
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 8))
+                                .frame(width: 16, height:16)
                                 .background(
                                     Capsule().fill(Color("BadgeColor"))
                                 )
