@@ -8,6 +8,7 @@
 @property NSString* relativeBundlePath;
 @property bool isShared;
 @property bool isJITNeeded;
+@property bool isLocked;
 @property bool isHidden;
 @property bool doSymlinkInbox;
 @property bool bypassAssertBarrierOnQueue;

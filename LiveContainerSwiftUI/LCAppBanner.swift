@@ -71,6 +71,13 @@ struct LCAppBanner : View {
                                     Capsule().fill(Color("JITBadgeColor"))
                                 )
                         }
+                        if model.uiIsLocked && !model.uiIsHidden {
+                            Text("lc.appBanner.locked".loc).font(.system(size: 8)).bold().padding(2)
+                                .frame(width: 50, height:16)
+                                .background(
+                                    Capsule().fill(Color("BadgeColor"))
+                                )
+                        }
                     }
 
                     Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(Color("FontColor"))
@@ -239,6 +246,18 @@ struct LCAppBanner : View {
     }
     
     func runApp() async {
+        if appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
+            do {
+                if !(try await LCUtils.authenticateUser()) {
+                    return
+                }
+            } catch {
+                errorInfo = error.localizedDescription
+                errorShow = true
+                return
+            }
+        }
+
         do {
             try await model.runApp()
         } catch {
@@ -318,4 +337,38 @@ struct LCAppBanner : View {
     }
     
     
+}
+
+
+struct LCAppSkeletonBanner: View {
+    var body: some View {
+        HStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 60, height: 60)
+            
+            VStack(alignment: .leading, spacing: 5) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 100, height: 16)
+                
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 150, height: 12)
+                
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 120, height: 8)
+            }
+            
+            Spacer()
+            
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 70, height: 32)
+        }
+        .padding()
+        .frame(height: 88)
+        .background(RoundedRectangle(cornerRadius: 22).fill(Color.gray.opacity(0.1)))
+    }
 }

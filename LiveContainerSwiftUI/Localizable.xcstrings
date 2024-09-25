@@ -222,6 +222,23 @@
         }
       }
     },
+    "lc.appBanner.locked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LOCKED"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁定"
+          }
+        }
+      }
+    },
     "lc.appBanner.uninstall" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -786,6 +803,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果App启动时的报错包含“Invalid Signature”，则可以尝试强制重新签名。如果仍然报错，则可能需要刷新免JIT证书。"
+          }
+        }
+      }
+    },
+    "lc.appSettings.lockApp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock App"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁定App"
           }
         }
       }
