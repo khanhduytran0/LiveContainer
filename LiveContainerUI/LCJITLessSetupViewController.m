@@ -2,6 +2,7 @@
 #import "LCJITLessSetupViewController.h"
 #import "LCUtils.h"
 #import "UIKitPrivate.h"
+#import "Localization.h"
 
 @implementation LCJITLessAppDelegate
 
@@ -23,7 +24,7 @@
     UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
         message:message
         preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:handler];
+    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"lc.common.ok".loc style:UIAlertActionStyleDefault handler:handler];
     [alert addAction:okAction];
     [self presentViewController:alert animated:YES completion:nil];
 }
@@ -32,23 +33,29 @@
     [super loadView];
 
     self.view.backgroundColor = UIColor.systemBackgroundColor;
-    self.title = @"LiveContainer JIT-less setup";
+    self.title = @"lc.jitlessSetup.title".loc;
 
-/* TODO: support AltStore
-    if (!certData) {
-        certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.rileytestut.AltStore"];
+    NSString* storeBundleId;
+    if([LCUtils store] == AltStore) {
+        // it's wried, but bundleID of AltStore looks like com.xxxxxxxxxx.com.rileytestut.AltStore
+        NSString* bundleId = [NSBundle.mainBundle bundleIdentifier];
+        NSUInteger len = [bundleId length];
+        NSString* teamId = [bundleId substringFromIndex:len - 10];
+        storeBundleId = [NSString stringWithFormat:@"com.%@.com.rileytestut.AltStore", teamId];
+    } else {
+        storeBundleId = @"com.SideStore.SideStore";
     }
-*/
-    NSData *certData = [LCUtils keychainItem:@"signingCertificate" ofStore:@"com.SideStore.SideStore"];
+
+    NSData *certData = [LCUtils keychainItem:@"signingCertificate" ofStore:storeBundleId];
     if (!certData) {
-        [self showDialogTitle:@"Error" message:@"Failed to find certificate data. Refresh app in SideStore and try again." handler:nil];
+        [self showDialogTitle:@"lc.common.error".loc message:@"lc.jitlessSetup.error.certDataNotFound".loc handler:nil];
         return;
     }
     LCUtils.certificateData = certData;
 
-    NSData *certPassword = [LCUtils keychainItem:@"signingCertificatePassword" ofStore:@"com.SideStore.SideStore"];
+    NSData *certPassword = [LCUtils keychainItem:@"signingCertificatePassword".loc ofStore:storeBundleId];
     if (!certPassword) {
-        [self showDialogTitle:@"Error" message:@"Failed to find certificate password" handler:nil];
+        [self showDialogTitle:@"lc.common.error".loc message:@"lc.jitlessSetup.error.passwordNotFound".loc handler:nil];
         return;
     }
     LCUtils.certificatePassword = [NSString stringWithUTF8String:certPassword.bytes];
@@ -71,7 +78,7 @@
     completionHandler:^(BOOL success, NSError *_Nullable error) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (!success) {
-                [self showDialogTitle:@"Error while performing signing test" message:error.localizedDescription handler:nil];
+                [self showDialogTitle:@"lc.jitlessSetup.error.testFailed".loc message:error.localizedDescription handler:nil];
             } else {
                 // Attempt to load the signed library
                 void *handle = dlopen(tmpLibPath.UTF8String, RTLD_LAZY);
@@ -87,12 +94,12 @@
     NSError *error;
     NSURL *url = [LCUtils archiveIPAWithSetupMode:!success error:&error];
     if (!url) {
-        [self showDialogTitle:@"Error" message:error.localizedDescription handler:nil];
+        [self showDialogTitle:@"lc.common.error".loc message:error.localizedDescription handler:nil];
         return;
     }
 
     if (!success) {
-        [self showDialogTitle:@"Error" message:@"The test library has failed to load. This means your certificate may be having issue. LiveContainer will try to repair it. SideStore will refresh LiveContainer and then you will try again. Press OK to continue."
+        [self showDialogTitle:@"lc.common.error".loc message:@"lc.jitlessSetup.error.testLibLoadFailed".loc
         handler:^(UIAlertAction * action) {
             // Erase signingCertificate
             [LCUtils deleteKeychainItem:@"signingCertificate" ofStore:@"com.rileytestut.AltStore"];
@@ -102,7 +109,7 @@
         return;
     }
 
-    [self showDialogTitle:@"Instruction" message:@"Done. Press OK to finish setting up."
+    [self showDialogTitle:@"lc.common.success".loc message:@"lc.jitlessSetup.success".loc
     handler:^(UIAlertAction * action) {
         [UIApplication.sharedApplication openURL:[NSURL URLWithString:[NSString stringWithFormat:LCUtils.storeInstallURLScheme, url]] options:@{} completionHandler:nil];
     }];

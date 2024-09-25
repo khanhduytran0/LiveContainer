@@ -1266,6 +1266,193 @@
         }
       }
     },
+    "lc.guestTweak.appSwitchTip %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to switch to %@? Doing so will terminate this app."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换到%@将终止当前App，要继续吗？"
+          }
+        }
+      }
+    },
+    "lc.guestTweak.error.bundleNotFound %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App %@ not found."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到App %@。"
+          }
+        }
+      }
+    },
+    "lc.guestTweak.openInCurrentApp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current App"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在当前App打开"
+          }
+        }
+      }
+    },
+    "lc.guestTweak.openInLc2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open In LiveContainer2"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在LiveContainer2中打开"
+          }
+        }
+      }
+    },
+    "lc.guestTweak.openWebPageTip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to open the web page and launch an app? Doing so will terminate this app. You can try to open it in the current app if it supports Universal Links."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开网页并打开App需要先终止当前App，要继续吗？若App支持，你也可以在当前App内打开。"
+          }
+        }
+      }
+    },
+    "lc.jitlessSetup.error.certDataNotFound" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to find certificate data. Refresh app in SideStore/AltStore and try again."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无获取到证书信息，请在SideStore/AltStore刷新后再试。"
+          }
+        }
+      }
+    },
+    "lc.jitlessSetup.error.passwordNotFound" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to find certificate password"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无获取到证书密码。"
+          }
+        }
+      }
+    },
+    "lc.jitlessSetup.error.testFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error while performing signing test"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "执行签名测试时出现问题。"
+          }
+        }
+      }
+    },
+    "lc.jitlessSetup.error.testLibLoadFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The test library has failed to load. This means your certificate may be having issue. LiveContainer will try to repair it. SideStore will refresh LiveContainer and then you will try again. Press OK to continue."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载测试动态链接库，这可能是由于证书出现问题。可通过刷新LiveContainer解决。点击按钮进行刷新。"
+          }
+        }
+      }
+    },
+    "lc.jitlessSetup.success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done. Press OK to finish setting up."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置成功，点击按钮继续。"
+          }
+        }
+      }
+    },
+    "lc.jitlessSetup.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer JIT-less setup"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer免JIT模式配置"
+          }
+        }
+      }
+    },
     "lc.settings.about" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1456,6 +1643,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "某些App的账户不能在LiveContainer间同步的原因可能是其Keychain还存储在本地。清理Keychain可能能解决此问题，但可能会导致你登出某些账户。要继续吗？"
+          }
+        }
+      }
+    },
+    "lc.settings.error.altstoreNotPatched" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You must patch AltStore before setting up JIT-Less mode."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在设置免JIT模式前，你必须要先给AltStore打补丁。"
           }
         }
       }
@@ -1863,6 +2067,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未删除任何数据文件夹，所有文件夹都已被使用。"
+          }
+        }
+      }
+    },
+    "lc.settings.patchAltstore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch AltStore"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "给AltStore打补丁"
+          }
+        }
+      }
+    },
+    "lc.settings.patchAltstoreAgain" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch AltStore Again"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新给AltStore打补丁"
+          }
+        }
+      }
+    },
+    "lc.settings.patchAltstoreDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To use JIT-Less mode with AltStore, you must patch AltStore in order to retrive keychain. AltStore's functions will not be affected. Continue?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了通过AltStore获取证书以配置免JIT模式，你必须要给AltStore打补丁。AltStore的功能不会受到任何影响。要继续吗？"
           }
         }
       }

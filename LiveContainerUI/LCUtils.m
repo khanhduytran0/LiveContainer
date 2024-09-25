@@ -44,11 +44,13 @@
 }
 
 + (void)setCertificateData:(NSData *)certData {
+    [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] setObject:certData forKey:@"LCCertificateData"];
     [NSUserDefaults.standardUserDefaults setObject:certData forKey:@"LCCertificateData"];
 }
 
 + (NSData *)certificateDataFile {
-    if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCIgnoreALTCertificate"]) {
+    // it seems that alstore never changes its ALTCertificate.p12 and the one it shipped with is invalid so we ignore it anyhow.
+    if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCIgnoreALTCertificate"] || [self store] == AltStore) {
         return nil;
     }
     NSURL *url = [self.storeBundlePath URLByAppendingPathComponent:@"ALTCertificate.p12"];
@@ -109,7 +111,16 @@
     static BOOL loaded = NO;
     if (loaded) return;
 
-    NSArray *signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
+    NSArray *signerFrameworks;
+    
+    if([self store] == AltStore) {
+        // AltStore requires 1 more framework than sidestore
+        signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"KeychainAccess.framework", @"AltStoreCore.framework"];
+    } else {
+        signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"AltStoreCore.framework"];
+    }
+    
+    
     NSURL *storeFrameworksPath = [self.storeBundlePath URLByAppendingPathComponent:@"Frameworks"];
     for (NSString *framework in signerFrameworks) {
         NSBundle *frameworkBundle = [NSBundle bundleWithURL:[storeFrameworksPath URLByAppendingPathComponent:framework]];
@@ -239,6 +250,19 @@
         }
     });
     return appGroupID;
+}
+
++ (Store) store {
+    static Store ans;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        if([[self appGroupID] containsString:@"AltStore"]) {
+            ans = AltStore;
+        } else {
+            ans = SideStore;
+        }
+    });
+    return ans;
 }
 
 + (NSString *)appUrlScheme {
@@ -377,6 +401,60 @@
     }
     
     [infoDict writeToURL:infoPath error:error];
+
+    dlopen("/System/Library/PrivateFrameworks/PassKitCore.framework/PassKitCore", RTLD_GLOBAL);
+    NSData *zipData = [[NSClassFromString(@"PKZipArchiver") new] zippedDataForURL:tmpPayloadPath.URLByDeletingLastPathComponent];
+    if (!zipData) return nil;
+
+    [manager removeItemAtURL:tmpPath error:error];
+    if (*error) return nil;
+
+    [zipData writeToURL:tmpIPAPath options:0 error:error];
+    if (*error) return nil;
+
+    return tmpIPAPath;
+}
+
++ (NSURL *)archiveTweakedAltStoreWithError:(NSError **)error {
+    if (*error) return nil;
+
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    NSURL *lcBundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
+    NSURL *bundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.rileytestut.AltStore"];
+
+    NSURL *tmpPath = [appGroupPath URLByAppendingPathComponent:@"tmp"];
+    [manager removeItemAtURL:tmpPath error:nil];
+
+    NSURL *tmpPayloadPath = [tmpPath URLByAppendingPathComponent:@"Payload"];
+    NSURL *tmpIPAPath = [appGroupPath URLByAppendingPathComponent:@"tmp.ipa"];
+
+    [manager createDirectoryAtURL:tmpPath withIntermediateDirectories:YES attributes:nil error:error];
+    if (*error) return nil;
+
+    [manager copyItemAtURL:bundlePath toURL:tmpPayloadPath error:error];
+    if (*error) return nil;
+    
+    // copy altstore tweak
+    NSURL* tweakToURL = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/Frameworks/AltStoreTweak.dylib"];
+    if([manager fileExistsAtPath:tweakToURL.path]) {
+        [manager removeItemAtURL:tweakToURL error:error];
+    }
+    
+    [manager copyItemAtURL:[lcBundlePath URLByAppendingPathComponent:@"App.app/Frameworks/AltStoreTweak.dylib"] toURL:tweakToURL error:error];
+    NSURL* execToPath = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/AltStore"];
+    NSString* errorPatchAltStore = LCParseMachO([execToPath.path UTF8String], ^(const char *path, struct mach_header_64 *header) {
+        LCPatchAltStore(execToPath.path.UTF8String, header);
+    });
+    if (errorPatchAltStore) {
+        NSMutableDictionary* details = [NSMutableDictionary dictionary];
+        [details setValue:errorPatchAltStore forKey:NSLocalizedDescriptionKey];
+        // populate the error object with the details
+        *error = [NSError errorWithDomain:@"world" code:200 userInfo:details];
+        NSLog(@"[LC] %@", errorPatchAltStore);
+        return nil;
+    }
+    
 
     dlopen("/System/Library/PrivateFrameworks/PassKitCore.framework/PassKitCore", RTLD_GLOBAL);
     NSData *zipData = [[NSClassFromString(@"PKZipArchiver") new] zippedDataForURL:tmpPayloadPath.URLByDeletingLastPathComponent];
