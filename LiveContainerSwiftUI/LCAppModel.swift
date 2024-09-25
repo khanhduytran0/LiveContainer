@@ -16,6 +16,7 @@ class LCAppModel: ObservableObject, Hashable {
     
     @Published var uiIsJITNeeded : Bool
     @Published var uiIsHidden : Bool
+    @Published var uiIsLocked : Bool
     @Published var uiIsShared : Bool
     @Published var uiDataFolder : String?
     @Published var uiTweakFolder : String?
@@ -29,9 +30,14 @@ class LCAppModel: ObservableObject, Hashable {
     init(appInfo : LCAppInfo, delegate: LCAppModelDelegate? = nil) {
         self.appInfo = appInfo
         self.delegate = delegate
+
+        if !appInfo.isLocked && appInfo.isHidden {
+            appInfo.isLocked = true
+        }
         
         self.uiIsJITNeeded = appInfo.isJITNeeded
         self.uiIsHidden = appInfo.isHidden
+        self.uiIsLocked = appInfo.isLocked
         self.uiIsShared = appInfo.isShared
         self.uiDataFolder = appInfo.getDataUUIDNoAssign()
         self.uiTweakFolder = appInfo.tweakFolder()
@@ -120,6 +126,20 @@ class LCAppModel: ObservableObject, Hashable {
         }
         LCUtils.launchToGuestApp()
 
+    }
+
+    func toggleLock() async {
+        if appInfo.isLocked {
+            appInfo.isLocked = false
+            uiIsLocked = false
+
+            if appInfo.isHidden {
+                await toggleHidden()
+            }
+        } else {
+            appInfo.isLocked = true
+            uiIsLocked = true
+        }
     }
     
     func toggleHidden() async {

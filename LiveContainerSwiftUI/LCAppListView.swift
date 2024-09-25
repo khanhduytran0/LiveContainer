@@ -48,7 +48,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     @State private var isNavigationActive = false
     
     @EnvironmentObject private var sharedModel : SharedModel
- 
+
     init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
         _installOptions = State(initialValue: [])
         _apps = apps
@@ -95,39 +95,62 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 }
                 .padding()
                 .animation(.easeInOut, value: apps)
-                
-                if !sharedModel.isHiddenAppUnlocked {
-                    Text(apps.count > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(apps.count) : "lc.appList.installTip".loc).foregroundStyle(.gray)
+
+                VStack {
+                    if LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
+                        if sharedModel.isHiddenAppUnlocked {
+                            LazyVStack {
+                                HStack {
+                                    Text("lc.appList.hiddenApps".loc)
+                                        .font(.system(.title2).bold())
+                                    Spacer()
+                                }
+                                ForEach(hiddenApps, id: \.self) { app in
+                                    LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
+                                }
+                            }
+                            .padding()
+                            .transition(.opacity)
+                            .animation(.easeInOut, value: apps)
+                            
+                            if hiddenApps.count == 0 {
+                                Text("lc.appList.hideAppTip".loc)
+                                    .foregroundStyle(.gray)
+                            }
+                        }
+                    } else if hiddenApps.count > 0 {
+                        LazyVStack {
+                            HStack {
+                                Text("lc.appList.hiddenApps".loc)
+                                    .font(.system(.title2).bold())
+                                Spacer()
+                            }
+                            ForEach(hiddenApps, id: \.self) { app in
+                                if sharedModel.isHiddenAppUnlocked {
+                                    LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
+                                } else {
+                                    LCAppSkeletonBanner()
+                                }
+                            }
+                            .animation(.easeInOut, value: sharedModel.isHiddenAppUnlocked)
+                            .onTapGesture {
+                                Task { await authenticateUser() }
+                            }
+                        }
+                        .padding()
+                        .animation(.easeInOut, value: apps)
+                    }
+
+                    let appCount = sharedModel.isHiddenAppUnlocked ? apps.count + hiddenApps.count : apps.count
+                    Text(appCount > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(appCount) : "lc.appList.installTip".loc)
+                        .foregroundStyle(.gray)
+                        .animation(.easeInOut, value: appCount)
                         .onTapGesture(count: 3) {
                             Task { await authenticateUser() }
                         }
-                }
+                }.animation(.easeInOut, value: LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding"))
 
-                
-                if sharedModel.isHiddenAppUnlocked {
-                    LazyVStack {
-                        HStack {
-                            Text("lc.appList.hiddenApps".loc)
-                                .font(.system(.title2).bold())
-                                .border(Color.black)
-                            Spacer()
-                        }
-                        ForEach(hiddenApps, id: \.self) { app in
-                            LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
-                        }
-                        .transition(.scale)
-                    }
-                    .padding()
-                    .animation(.easeInOut, value: apps)
-                    
-                    if hiddenApps.count == 0 {
-                        Text("lc.appList.hideAppTip".loc)
-                            .foregroundStyle(.gray)
-                    }
-                    Text(apps.count + hiddenApps.count > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(apps.count + hiddenApps.count) : "lc.appList.installTip".loc).foregroundStyle(.gray)
-                }
-                
-                if sharedModel.multiLCStatus == 2 {
+                if LCUtils.multiLCStatus == 2 {
                     Text("lc.appList.manageInPrimaryTip".loc).foregroundStyle(.gray).padding()
                 }
 
@@ -272,7 +295,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 return
             }
             
-            if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
+            if appToLaunch.appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
                 do {
                     if !(try await LCUtils.authenticateUser()) {
                         return
@@ -460,10 +483,13 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             return
         }
         var appFound : LCAppModel? = nil
-        var isFoundAppHidden = false
+        var isFoundAppLocked = false
         for app in apps {
             if app.appInfo.relativeBundlePath == bundleId {
                 appFound = app
+                if app.appInfo.isLocked {
+                    isFoundAppLocked = true
+                }
                 break
             }
         }
@@ -471,13 +497,13 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             for app in hiddenApps {
                 if app.appInfo.relativeBundlePath == bundleId {
                     appFound = app
-                    isFoundAppHidden = true
+                    isFoundAppLocked = true
                     break
                 }
             }
         }
         
-        if isFoundAppHidden && !sharedModel.isHiddenAppUnlocked {
+        if isFoundAppLocked && !sharedModel.isHiddenAppUnlocked {
             do {
                 let result = try await LCUtils.authenticateUser()
                 if !result {

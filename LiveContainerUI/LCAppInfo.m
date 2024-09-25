@@ -9,7 +9,7 @@
 - (instancetype)initWithBundlePath:(NSString*)bundlePath {
     self = [super init];
     self.isShared = false;
-	 if(self) {
+	if(self) {
         _bundlePath = bundlePath;
         _info = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
         
@@ -289,6 +289,19 @@
 }
 - (void)setIsJITNeeded:(bool)isJITNeeded {
     _info[@"isJITNeeded"] = [NSNumber numberWithBool:isJITNeeded];
+    [self save];
+    
+}
+
+- (bool)isLocked {
+    if(_info[@"isLocked"] != nil) {
+        return [_info[@"isLocked"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setIsLocked:(bool)isLocked {
+    _info[@"isLocked"] = [NSNumber numberWithBool:isLocked];
     [self save];
     
 }

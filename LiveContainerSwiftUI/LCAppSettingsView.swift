@@ -153,20 +153,45 @@ struct LCAppSettingsView : View{
             } footer: {
                 Text("lc.appSettings.launchWithJitDesc".loc)
             }
-            
-            if sharedModel.isHiddenAppUnlocked {
-                Section {
+
+            Section {
+                Toggle(isOn: $model.uiIsLocked) {
+                    Text("lc.appSettings.lockApp".loc)
+                }
+                .onChange(of: model.uiIsLocked, perform: { newValue in
+                    Task {
+                        if !newValue {
+                            do {
+                                let result = try await LCUtils.authenticateUser()
+                                if !result {
+                                    model.uiIsLocked = true
+                                    return
+                                }
+                            } catch {
+                                return
+                            }
+                        }
+
+                        await model.toggleLock()
+                    }
+                })
+
+                if model.uiIsLocked {
                     Toggle(isOn: $model.uiIsHidden) {
                         Text("lc.appSettings.hideApp".loc)
                     }
-                    .onChange(of: model.uiIsHidden, perform: { newValue in
+                    .onChange(of: model.uiIsHidden, perform: { _ in
                         Task { await toggleHidden() }
                     })
-                } footer: {
-                    Text("lc.appSettings.hideAppDesc".loc)
+                    .transition(.opacity.combined(with: .slide)) 
                 }
-
+            } footer: {
+                if model.uiIsLocked {
+                    Text("lc.appSettings.hideAppDesc".loc)
+                        .transition(.opacity.combined(with: .slide))
+                }
             }
+
             
             Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
