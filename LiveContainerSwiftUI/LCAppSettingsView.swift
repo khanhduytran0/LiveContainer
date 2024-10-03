@@ -133,7 +133,7 @@ struct LCAppSettingsView : View{
                         Task { await moveToAppGroup()}
                     }
                     
-                } else if LCUtils.multiLCStatus != 2 {
+                } else if sharedModel.multiLCStatus != 2 {
                     Button("lc.appSettings.toPrivateApp".loc) {
                         Task { await movePrivateDoc() }
                     }
@@ -153,20 +153,31 @@ struct LCAppSettingsView : View{
             } footer: {
                 Text("lc.appSettings.launchWithJitDesc".loc)
             }
-            
-            if sharedModel.isHiddenAppUnlocked {
-                Section {
+
+            Section {
+                Toggle(isOn: $model.uiIsLocked) {
+                    Text("lc.appSettings.lockApp".loc)
+                }
+                .onChange(of: model.uiIsLocked, perform: { newValue in
+                    Task { await model.setLocked(newLockState: newValue) }
+                })
+
+                if model.uiIsLocked {
                     Toggle(isOn: $model.uiIsHidden) {
                         Text("lc.appSettings.hideApp".loc)
                     }
-                    .onChange(of: model.uiIsHidden, perform: { newValue in
+                    .onChange(of: model.uiIsHidden, perform: { _ in
                         Task { await toggleHidden() }
                     })
-                } footer: {
-                    Text("lc.appSettings.hideAppDesc".loc)
+                    .transition(.opacity.combined(with: .slide)) 
                 }
-
+            } footer: {
+                if model.uiIsLocked {
+                    Text("lc.appSettings.hideAppDesc".loc)
+                        .transition(.opacity.combined(with: .slide))
+                }
             }
+
             
             Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {

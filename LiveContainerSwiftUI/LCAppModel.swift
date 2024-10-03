@@ -16,6 +16,7 @@ class LCAppModel: ObservableObject, Hashable {
     
     @Published var uiIsJITNeeded : Bool
     @Published var uiIsHidden : Bool
+    @Published var uiIsLocked : Bool
     @Published var uiIsShared : Bool
     @Published var uiDataFolder : String?
     @Published var uiTweakFolder : String?
@@ -29,9 +30,14 @@ class LCAppModel: ObservableObject, Hashable {
     init(appInfo : LCAppInfo, delegate: LCAppModelDelegate? = nil) {
         self.appInfo = appInfo
         self.delegate = delegate
+
+        if !appInfo.isLocked && appInfo.isHidden {
+            appInfo.isLocked = true
+        }
         
         self.uiIsJITNeeded = appInfo.isJITNeeded
         self.uiIsHidden = appInfo.isHidden
+        self.uiIsLocked = appInfo.isLocked
         self.uiIsShared = appInfo.isShared
         self.uiDataFolder = appInfo.getDataUUIDNoAssign()
         self.uiTweakFolder = appInfo.tweakFolder()
@@ -120,6 +126,35 @@ class LCAppModel: ObservableObject, Hashable {
         }
         LCUtils.launchToGuestApp()
 
+    }
+
+    func setLocked(newLockState: Bool) async {
+        // if locked state in appinfo already match with the new state, we just the change
+        if appInfo.isLocked == newLockState {
+            return
+        }
+        
+        if newLockState {
+            appInfo.isLocked = true
+        } else {
+            // authenticate before cancelling locked state
+            do {
+                let result = try await LCUtils.authenticateUser()
+                if !result {
+                    uiIsLocked = true
+                    return
+                }
+            } catch {
+                uiIsLocked = true
+                return
+            }
+            
+            // auth pass, we need to cancel app's lock and hidden state
+            appInfo.isLocked = false
+            if appInfo.isHidden {
+                await toggleHidden()
+            }
+        }
     }
     
     func toggleHidden() async {

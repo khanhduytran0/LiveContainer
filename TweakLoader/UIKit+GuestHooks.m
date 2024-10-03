@@ -3,6 +3,7 @@
 #import "UIKitPrivate.h"
 #import "utils.h"
 #import <LocalAuthentication/LocalAuthentication.h>
+#import "Localization.h"
 
 __attribute__((constructor))
 static void UIKitGuestHooksInit() {
@@ -16,16 +17,16 @@ void LCShowSwitchAppConfirmation(NSURL *url, NSString* bundleId) {
         return;
     }
 
-    NSString *message = [NSString stringWithFormat:@"Are you sure you want to switch to %@? Doing so will terminate this app.", bundleId];
+    NSString *message = [@"lc.guestTweak.appSwitchTip %@" localizeWithFormat:bundleId];
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"lc.common.ok".loc style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
         [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
         window.windowScene = nil;
     }];
     [alert addAction:okAction];
     if([NSUserDefaults.lcAppUrlScheme isEqualToString:@"livecontainer"] && [UIApplication.sharedApplication canOpenURL:[NSURL URLWithString: @"livecontainer2://"]]) {
-        UIAlertAction* openlc2Action = [UIAlertAction actionWithTitle:@"Open In LiveContainer2" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+        UIAlertAction* openlc2Action = [UIAlertAction actionWithTitle:@"lc.guestTweak.openInLc2".loc style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
             NSURLComponents* newUrlComp = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
             [newUrlComp setScheme:@"livecontainer2"];
             [UIApplication.sharedApplication openURL:[newUrlComp URL] options:@{} completionHandler:nil];
@@ -34,7 +35,7 @@ void LCShowSwitchAppConfirmation(NSURL *url, NSString* bundleId) {
         [alert addAction:openlc2Action];
     }
     
-    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * action) {
+    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"lc.common.cancel".loc style:UIAlertActionStyleCancel handler:^(UIAlertAction * action) {
         window.windowScene = nil;
     }];
     [alert addAction:cancelAction];
@@ -47,10 +48,10 @@ void LCShowSwitchAppConfirmation(NSURL *url, NSString* bundleId) {
 }
 
 void LCShowAppNotFoundAlert(NSString* bundleId) {
-    NSString *message = [NSString stringWithFormat:@"App %@ not found.", bundleId];
+    NSString *message = [@"lc.guestTweak.error.bundleNotFound %@" localizeWithFormat: bundleId];
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"lc.common.ok".loc style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
         window.windowScene = nil;
     }];
     [alert addAction:okAction];
@@ -81,20 +82,20 @@ void openUniversalLink(NSString* decodedUrl) {
 }
 
 void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
-    NSString *message = [NSString stringWithFormat:@"Are you sure you want to open the web page and launch an app? Doing so will terminate this app. You can try to open it in the current app if it supports Universal Links."];
+    NSString *message = @"lc.guestTweak.openWebPageTip".loc;
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"lc.common.ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
         [NSClassFromString(@"LCSharedUtils") setWebPageUrlForNextLaunch:webPageUrlString];
         [NSClassFromString(@"LCSharedUtils") launchToGuestApp];
     }];
     [alert addAction:okAction];
-    UIAlertAction* openNowAction = [UIAlertAction actionWithTitle:@"Current App" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+    UIAlertAction* openNowAction = [UIAlertAction actionWithTitle:@"lc.guestTweak.openInCurrentApp".loc style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
         openUniversalLink(webPageUrlString);
         window.windowScene = nil;
     }];
     if([NSUserDefaults.lcAppUrlScheme isEqualToString:@"livecontainer"] && [UIApplication.sharedApplication canOpenURL:[NSURL URLWithString: @"livecontainer2://"]]) {
-        UIAlertAction* openlc2Action = [UIAlertAction actionWithTitle:@"Open In LiveContainer2" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+        UIAlertAction* openlc2Action = [UIAlertAction actionWithTitle:@"lc.guestTweak.openInLc2".loc style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
             NSURLComponents* newUrlComp = [NSURLComponents componentsWithString:originalUrl];
             [newUrlComp setScheme:@"livecontainer2"];
             [UIApplication.sharedApplication openURL:[newUrlComp URL] options:@{} completionHandler:nil];
@@ -104,7 +105,7 @@ void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
     }
     
     [alert addAction:openNowAction];
-    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * action) {
+    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"lc.common.cancel".loc style:UIAlertActionStyleCancel handler:^(UIAlertAction * action) {
         window.windowScene = nil;
     }];
     [alert addAction:cancelAction];
@@ -123,7 +124,7 @@ void authenticateUser(void (^completion)(BOOL success, NSError *error)) {
     NSError *error = nil;
 
     if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&error]) {
-        NSString *reason = @"Authentication Required.";
+        NSString *reason = @"lc.utils.requireAuthentication".loc;
 
         // Evaluate the policy for both biometric and passcode authentication
         [context evaluatePolicy:LAPolicyDeviceOwnerAuthentication
@@ -174,7 +175,7 @@ void handleLiveContainerLaunch(NSURL* url) {
         NSBundle* bundle = [NSClassFromString(@"LCSharedUtils") findBundleWithBundleId: bundleName];
         if(!bundle || ([bundle.infoDictionary[@"isHidden"] boolValue] && [NSUserDefaults.lcSharedDefaults boolForKey:@"LCStrictHiding"])) {
             LCShowAppNotFoundAlert(bundleName);
-        } else if ([bundle.infoDictionary[@"isHidden"] boolValue]) {
+        } else if ([bundle.infoDictionary[@"isLocked"] boolValue]) {
             // need authentication
             authenticateUser(^(BOOL success, NSError *error) {
                 if (success) {

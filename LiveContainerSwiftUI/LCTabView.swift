@@ -94,7 +94,7 @@ struct LCTabView: View {
                 .tabItem {
                     Label("lc.tabView.apps".loc, systemImage: "square.stack.3d.up.fill")
                 }
-            if LCUtils.multiLCStatus != 2 {
+            if DataManager.shared.model.multiLCStatus != 2 {
                 LCTweaksView(tweakFolders: $tweakFolderNames)
                     .tabItem{
                         Label("lc.tabView.tweaks".loc, systemImage: "wrench.and.screwdriver")

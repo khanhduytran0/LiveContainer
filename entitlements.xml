@@ -18,7 +18,7 @@
 
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)com.kdt.livecontainer</string>
+		<string>*.com.kdt.livecontainer.shared</string>
 	</array>
 </dict>
 </plist>

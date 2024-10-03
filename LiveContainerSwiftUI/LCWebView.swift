@@ -29,7 +29,7 @@ struct LCWebView: View {
     @EnvironmentObject private var sharedModel : SharedModel
     
     init(url: Binding<URL>, apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, isPresent: Binding<Bool>) {
-        self.webView = WebView()
+        self._webView = State(initialValue: WebView())
         self._url = url
         self._apps = apps
         self._isPresent = isPresent
@@ -169,7 +169,7 @@ struct LCWebView: View {
             return
         }
         
-        if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
+        if appToLaunch.appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
             
             do {
                 if !(try await LCUtils.authenticateUser()) {
@@ -214,7 +214,7 @@ struct LCWebView: View {
             return
         }
         
-        if appToLaunch.appInfo.isHidden && !sharedModel.isHiddenAppUnlocked {
+        if appToLaunch.appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
             do {
                 if !(try await LCUtils.authenticateUser()) {
                     return

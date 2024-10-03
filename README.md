@@ -20,8 +20,12 @@ make package
 - If no app is selected, it loads LiveContainerUI.
 
 ### LiveContainerUI
-- LiveContainer's default implementation of app manager, tweak manager and settings UI. 
-- If you're making a mod loader, you can provide your own.
+- LiveContainer's default implementation of app manager, tweak manager and settings UI.
+- If you're making something like a mod loader, you can provide your own.
+- This is obsolete and will be removed.
+
+### LiveContainerSwiftUI
+- SwiftUI rewrite of LiveContainerUI (by @hugeBlack)
 
 ### TweakLoader
 - A simple tweak injector, which loads CydiaSubstrate and load tweaks.
@@ -84,7 +88,6 @@ To install tweaks, you can use the built-in tweak manager in LiveContainer, whic
 - Only one guest app can run at a time. This is much more like 3 apps limit where you have to disable an app to run another (switching between app in LiveContainer is instant).
 - Remote push notification might not work. ~~If you have a paid developer account then you don't even have to use LiveContainer~~
 - Querying custom URL schemes might not work(?)
-- File picker might be broken for unknown reasons.
 
 ## TODO
 - Isolate Keychain per app
@@ -100,3 +103,5 @@ To install tweaks, you can use the built-in tweak manager in LiveContainer, whic
 - [MBRoundProgressView](https://gist.github.com/saturngod/1224648)
 - @haxi0 for icon
 - @Vishram1123 for the initial shortcut implementation.
+- @hugeBlack for SwiftUI contribution
+- @Staubgeborener for automatic AltStore/SideStore source updater

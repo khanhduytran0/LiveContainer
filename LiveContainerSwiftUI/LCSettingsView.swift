@@ -22,6 +22,8 @@ struct LCSettingsView: View {
     @State private var folderRemoveCount = 0
     
     @StateObject private var keyChainRemovalAlert = YesNoHelper()
+    @StateObject private var patchAltStoreAlert = YesNoHelper()
+    @State private var isAltStorePatched = false
     
     @State var isJitLessEnabled = false
     
@@ -34,6 +36,8 @@ struct LCSettingsView: View {
     @State var sideJITServerAddress : String
     @State var deviceUDID: String
     
+    @State var isSideStore : Bool
+    
     @EnvironmentObject private var sharedModel : SharedModel
     
     init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>) {
@@ -42,6 +46,8 @@ struct LCSettingsView: View {
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
         _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
+        
+        _isSideStore = State(initialValue: LCUtils.store() == .SideStore)
         
         _apps = apps
         _hiddenApps = hiddenApps
@@ -65,7 +71,7 @@ struct LCSettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                if LCUtils.multiLCStatus != 2 {
+                if sharedModel.multiLCStatus != 2 {
                     Section{
                         Button {
                             setupJitLess()
@@ -76,6 +82,19 @@ struct LCSettingsView: View {
                                 Text("lc.settings.setupJitLess".loc)
                             }
                         }
+                        
+                        if !isSideStore {
+                            Button {
+                                Task { await patchAltStore() }
+                            } label: {
+                                if isAltStorePatched {
+                                    Text("lc.settings.patchAltstoreAgain".loc)
+                                } else {
+                                    Text("lc.settings.patchAltstore".loc)
+                                }
+                            }
+                        }
+
                     } header: {
                         Text("lc.settings.jitLess".loc)
                     } footer: {
@@ -87,30 +106,32 @@ struct LCSettingsView: View {
                     Button {
                         installAnotherLC()
                     } label: {
-                        if LCUtils.multiLCStatus == 0 {
+                        if sharedModel.multiLCStatus == 0 {
                             Text("lc.settings.multiLCInstall".loc)
-                        } else if LCUtils.multiLCStatus == 1 {
+                        } else if sharedModel.multiLCStatus == 1 {
                             Text("lc.settings.multiLCReinstall".loc)
-                        } else if LCUtils.multiLCStatus == 2 {
+                        } else if sharedModel.multiLCStatus == 2 {
                             Text("lc.settings.multiLCIsSecond".loc)
                         }
 
                     }
-                    .disabled(LCUtils.multiLCStatus == 2)
+                    .disabled(sharedModel.multiLCStatus == 2)
                 } header: {
                     Text("lc.settings.multiLC".loc)
                 } footer: {
                     Text("lc.settings.multiLCDesc".loc)
                 }
                 
-                
-                Section {
-                    Toggle(isOn: $isAltCertIgnored) {
-                        Text("lc.settings.ignoreAltCert".loc)
+                if(isSideStore) {
+                    Section {
+                        Toggle(isOn: $isAltCertIgnored) {
+                            Text("lc.settings.ignoreAltCert".loc)
+                        }
+                    } footer: {
+                        Text("lc.settings.ignoreAltCertDesc".loc)
                     }
-                } footer: {
-                    Text("lc.settings.ignoreAltCertDesc".loc)
                 }
+
                 
                 Section {
                     HStack {
@@ -156,7 +177,6 @@ struct LCSettingsView: View {
                 } footer: {
                     Text("lc.settings.injectLCItselfDesc".loc)
                 }
-                
                 if sharedModel.isHiddenAppUnlocked {
                     Section {
                         Toggle(isOn: $strictHiding) {
@@ -166,9 +186,9 @@ struct LCSettingsView: View {
                         Text("lc.settings.strictHidingDesc".loc)
                     }
                 }
-                
+                    
                 Section {
-                    if LCUtils.multiLCStatus != 2 {
+                    if sharedModel.multiLCStatus != 2 {
                         Button {
                             moveAppGroupFolderFromPrivateToAppGroup()
                         } label: {
@@ -227,6 +247,13 @@ struct LCSettingsView: View {
                     .listRowInsets(EdgeInsets())
             }
             .navigationBarTitle("lc.tabView.settings".loc)
+            .onAppear {
+                updateSideStorePatchStatus()
+            }
+            .onForeground {
+                updateSideStorePatchStatus()
+                sharedModel.updateMultiLCStatus()
+            }
             .alert("lc.common.error".loc, isPresented: $errorShow){
             } message: {
                 Text(errorInfo)
@@ -268,6 +295,19 @@ struct LCSettingsView: View {
             } message: {
                 Text("lc.settings.cleanKeychainDesc".loc)
             }
+            .alert("lc.settings.patchAltstore".loc, isPresented: $patchAltStoreAlert.show) {
+                Button(role: .destructive) {
+                    patchAltStoreAlert.close(result: true)
+                } label: {
+                    Text("lc.common.ok".loc)
+                }
+
+                Button("lc.common.cancel".loc, role: .cancel) {
+                    patchAltStoreAlert.close(result: false)
+                }
+            } message: {
+                Text("lc.settings.patchAltstoreDesc".loc)
+            }
             .onChange(of: isAltCertIgnored) { newValue in
                 saveItem(key: "LCIgnoreALTCertificate", val: newValue)
             }
@@ -308,6 +348,13 @@ struct LCSettingsView: View {
             errorShow = true
             return;
         }
+        
+        if LCUtils.store() == .AltStore && !isAltStorePatched {
+            errorInfo = "lc.settings.error.altstoreNotPatched".loc
+            errorShow = true
+            return;
+        }
+        
         do {
             let packedIpaUrl = try LCUtils.archiveIPA(withSetupMode: true)
             let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), packedIpaUrl.absoluteString)
@@ -523,5 +570,39 @@ struct LCSettingsView: View {
     
     func openTwitter() {
         UIApplication.shared.open(URL(string: "https://twitter.com/TranKha50277352")!)
+    }
+    
+    func updateSideStorePatchStatus() {
+        let fm = FileManager()
+        if LCUtils.store() == .SideStore {
+            isAltStorePatched = true
+            return
+        }
+        
+        guard let appGroupPath = LCUtils.appGroupPath() else {
+            isAltStorePatched = false
+            return
+        }
+        if(fm.fileExists(atPath: appGroupPath.appendingPathComponent("Apps/com.rileytestut.AltStore/App.app/Frameworks/AltStoreTweak.dylib").path)) {
+            isAltStorePatched = true
+        } else {
+            isAltStorePatched = false
+        }
+    }
+    
+    func patchAltStore() async {
+        guard let result = await patchAltStoreAlert.open(), result else {
+            return
+        }
+        
+        do {
+            let altStoreIpa = try LCUtils.archiveTweakedAltStore()
+            let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), altStoreIpa.absoluteString)
+            await UIApplication.shared.open(URL(string: storeInstallUrl)!)
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+        }
+        
     }
 }

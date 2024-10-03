@@ -7,13 +7,13 @@
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.SideStore.SideStore</string>
+		<string>group.com.rileytestut.AltStore</string>
 	</array>
 	<key>get-task-allow</key>
 	<true/>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>group.*</string>
-		<string>$(AppIdentifierPrefix)com.kdt.livecontainer</string>
+		<string>*.com.kdt.livecontainer.shared</string>
 		<string>KeychainAccessGroupWillBeWrittenByLiveContainerAAAAAAAAAAAAAAAAAAAA</string>
 	</array>
 </dict>
