@@ -162,16 +162,6 @@ struct LCSettingsView: View {
                 } footer: {
                     Text("lc.settings.dynamicColors.desc".loc)
                 }
- // MARK: Go here!
-                // MARK: Go here!
-                // MARK: Go here!
-                // MARK: Go here!
-                // MARK: Go here! // MARK: Go here!
-                // MARK: Go here! // MARK: Go here! // MARK: Go here!
-                // MARK: Go here!
-                // MARK: Go here!
-                // MARK: Go here! // MARK: Go here!
-                // MARK: Go here!
                 Section{
                     Toggle(isOn: $frameShortIcon) {
                         Text("lc.settings.FrameIcon".loc)
