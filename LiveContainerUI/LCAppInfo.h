@@ -12,6 +12,7 @@
 @property bool isHidden;
 @property bool doSymlinkInbox;
 @property bool bypassAssertBarrierOnQueue;
+@property UIColor* cachedColor;
 
 - (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;
