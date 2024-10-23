@@ -384,7 +384,7 @@ struct LCAppBanner : View {
         let ans = Color(hue: hue, saturation: saturation, brightness: brightness)
         appInfo.cachedColor = UIColor(ans)
         
-        return Color.red
+        return ans
     }
 
 }
