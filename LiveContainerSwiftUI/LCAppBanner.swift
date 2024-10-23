@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
+import UIKit
 
 protocol LCAppBannerDelegate {
     func removeApp(app: LCAppModel)
@@ -33,6 +34,7 @@ struct LCAppBanner : View {
     
     @State private var errorShow = false
     @State private var errorInfo = ""
+    @AppStorage("dynamicColors") var dynamicColors = true
     
     @EnvironmentObject private var sharedModel : SharedModel
     
@@ -44,6 +46,7 @@ struct LCAppBanner : View {
         
         _model = ObservedObject(wrappedValue: appModel)
     }
+    @State private var mainHueColor: CGFloat? = nil
     
     var body: some View {
 
@@ -81,8 +84,8 @@ struct LCAppBanner : View {
                         }
                     }
 
-                    Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(Color("FontColor"))
-                    Text(LocalizedStringKey(model.uiDataFolder == nil ? "lc.appBanner.noDataFolder".loc : model.uiDataFolder!)).font(.system(size: 8)).foregroundColor(Color("FontColor"))
+                    Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor"))
+                    Text(LocalizedStringKey(model.uiDataFolder == nil ? "lc.appBanner.noDataFolder".loc : model.uiDataFolder!)).font(.system(size: 8)).foregroundColor(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor"))
                 })
             }
             Spacer()
@@ -102,14 +105,14 @@ struct LCAppBanner : View {
             .fixedSize()
             .background(GeometryReader { g in
                 if !model.isSigningInProgress {
-                    Capsule().fill(Color("FontColor"))
+                    Capsule().fill(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor"))
                 } else {
                     let w = g.size.width
                     let h = g.size.height
                     Capsule()
-                        .fill(Color("FontColor")).opacity(0.2)
+                        .fill(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor")).opacity(0.2)
                     Circle()
-                        .fill(Color("FontColor"))
+                        .fill(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor"))
                         .frame(width: w * 2, height: w * 2)
                         .offset(x: (model.signProgress - 2) * w, y: h/2-w)
                 }
@@ -121,7 +124,7 @@ struct LCAppBanner : View {
         }
         .padding()
         .frame(height: 88)
-        .background(RoundedRectangle(cornerSize: CGSize(width:22, height: 22)).fill(Color("AppBannerBG")))
+        .background(RoundedRectangle(cornerSize: CGSize(width:22, height: 22)).fill(dynamicColors ? extractMainHueColor(from: appInfo.icon()).opacity(0.5) : Color("AppBannerBG")))
         .onAppear() {
             handleOnAppear()
         }
@@ -337,6 +340,47 @@ struct LCAppBanner : View {
         self.saveIconExporterShow = true
     }
     
+    func extractMainHueColor(from image: UIImage) -> Color {
+        guard let cgImage = image.cgImage else { return Color.clear }
+
+        let width = 1
+        let height = 1
+        let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        var pixelData = [UInt8](repeating: 0, count: 4)
+        
+        guard let context = CGContext(data: &pixelData, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 4, space: colorSpace, bitmapInfo: bitmapInfo) else {
+            return Color.clear
+        }
+        
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        
+        let red = CGFloat(pixelData[0]) / 255.0
+        let green = CGFloat(pixelData[1]) / 255.0
+        let blue = CGFloat(pixelData[2]) / 255.0
+        
+        let averageColor = UIColor(red: red, green: green, blue: blue, alpha: 1.0)
+        
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
+        averageColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        
+        if brightness < 0.1 && saturation < 0.1 {
+            return Color.red
+        }
+        
+        if brightness < 0.3 {
+            brightness = 0.3
+        }
+        
+        return Color(hue: hue, saturation: saturation, brightness: brightness)
+    }
+
+
+
+    
     
 }
 
@@ -372,4 +416,6 @@ struct LCAppSkeletonBanner: View {
         .frame(height: 88)
         .background(RoundedRectangle(cornerRadius: 22).fill(Color.gray.opacity(0.1)))
     }
+    
 }
+

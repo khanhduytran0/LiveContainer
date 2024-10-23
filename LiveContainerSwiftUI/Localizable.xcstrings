@@ -137,6 +137,23 @@
         }
       }
     },
+    "lc.appBanner.locked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LOCKED"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁定"
+          }
+        }
+      }
+    },
     "lc.appBanner.noDataFolder" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -218,23 +235,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "共享"
-          }
-        }
-      }
-    },
-    "lc.appBanner.locked" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LOCKED"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "锁定"
           }
         }
       }
@@ -807,23 +807,6 @@
         }
       }
     },
-    "lc.appSettings.lockApp" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lock App"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "锁定App"
-          }
-        }
-      }
-    },
     "lc.appSettings.hideApp" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -888,6 +871,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在启动App前LiveContainer会尝试获取JIT权限。"
+          }
+        }
+      }
+    },
+    "lc.appSettings.lockApp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock App"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁定App"
           }
         }
       }
@@ -1647,6 +1647,28 @@
         }
       }
     },
+    "lc.settings.dynamicColors" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dynamic colors"
+          }
+        }
+      }
+    },
+    "lc.settings.dynamicColors.desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable dynamic colors for app boxes"
+          }
+        }
+      }
+    },
     "lc.settings.error.altstoreNotPatched" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1762,6 +1784,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "启用后，LiveContainer自身会加载全局模块文件夹中的模块。"
+          }
+        }
+      }
+    },
+    "lc.settings.interface" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "interface"
           }
         }
       }

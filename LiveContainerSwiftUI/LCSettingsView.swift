@@ -32,6 +32,7 @@ struct LCSettingsView: View {
     @State var silentSwitchApp = false
     @State var injectToLCItelf = false
     @State var strictHiding = false
+    @AppStorage("dynamicColors") var dynamicColors = true
     
     @State var sideJITServerAddress : String
     @State var deviceUDID: String
@@ -152,6 +153,15 @@ struct LCSettingsView: View {
                     Text("lc.settings.JitDesc".loc)
                 }
                 
+                Section{
+                    Toggle(isOn: $dynamicColors) {
+                        Text("lc.settings.dynamicColors".loc)
+                    }
+                } header: {
+                    Text("lc.settings.interface".loc)
+                } footer: {
+                    Text("lc.settings.dynamicColors.desc".loc)
+                }
                 Section{
                     Toggle(isOn: $frameShortIcon) {
                         Text("lc.settings.FrameIcon".loc)
