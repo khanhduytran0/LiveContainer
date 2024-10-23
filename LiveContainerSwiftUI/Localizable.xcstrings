@@ -1655,6 +1655,12 @@
             "state" : "translated",
             "value" : "Dynamic colors"
           }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "动态颜色"
+          }
         }
       }
     },
@@ -1665,6 +1671,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enable dynamic colors for app boxes"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App横幅的颜色随图标动态变化"
           }
         }
       }
@@ -1795,6 +1807,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "interface"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外观"
           }
         }
       }

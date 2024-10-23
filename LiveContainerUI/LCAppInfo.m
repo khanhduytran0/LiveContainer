@@ -344,4 +344,36 @@
     [self save];
     
 }
+
+- (UIColor*)cachedColor {
+    if(_info[@"cachedColor"] != nil) {
+        NSData *colorData = _info[@"cachedColor"];
+        NSError* error;
+        UIColor *color = [NSKeyedUnarchiver unarchivedObjectOfClass:UIColor.class fromData:colorData error:&error];
+        if (!error) {
+            return color;
+        } else {
+            NSLog(@"[LC] failed to get color %@", error);
+            return nil;
+        }
+    } else {
+        return nil;
+    }
+}
+
+- (void)setCachedColor:(UIColor*) color {
+    if(color == nil) {
+        _info[@"cachedColor"] = nil;
+    } else {
+        NSError* error;
+        NSData *colorData = [NSKeyedArchiver archivedDataWithRootObject:color requiringSecureCoding:YES error:&error];
+        [_info setObject:colorData forKey:@"cachedColor"];
+        if(error) {
+            NSLog(@"[LC] failed to set color %@", error);
+        }
+
+    }
+    [self save];
+}
+
 @end

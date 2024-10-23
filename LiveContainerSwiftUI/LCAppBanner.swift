@@ -35,6 +35,7 @@ struct LCAppBanner : View {
     @State private var errorShow = false
     @State private var errorInfo = ""
     @AppStorage("dynamicColors") var dynamicColors = true
+    @State private var mainColor : Color
     
     @EnvironmentObject private var sharedModel : SharedModel
     
@@ -45,6 +46,8 @@ struct LCAppBanner : View {
         self.delegate = delegate
         
         _model = ObservedObject(wrappedValue: appModel)
+        _mainColor = State(initialValue: Color.clear)
+        _mainColor = State(initialValue: extractMainHueColor())
     }
     @State private var mainHueColor: CGFloat? = nil
     
@@ -84,8 +87,8 @@ struct LCAppBanner : View {
                         }
                     }
 
-                    Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor"))
-                    Text(LocalizedStringKey(model.uiDataFolder == nil ? "lc.appBanner.noDataFolder".loc : model.uiDataFolder!)).font(.system(size: 8)).foregroundColor(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor"))
+                    Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(dynamicColors ? mainColor : Color("FontColor"))
+                    Text(LocalizedStringKey(model.uiDataFolder == nil ? "lc.appBanner.noDataFolder".loc : model.uiDataFolder!)).font(.system(size: 8)).foregroundColor(dynamicColors ? mainColor : Color("FontColor"))
                 })
             }
             Spacer()
@@ -105,14 +108,14 @@ struct LCAppBanner : View {
             .fixedSize()
             .background(GeometryReader { g in
                 if !model.isSigningInProgress {
-                    Capsule().fill(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor"))
+                    Capsule().fill(dynamicColors ? mainColor : Color("FontColor"))
                 } else {
                     let w = g.size.width
                     let h = g.size.height
                     Capsule()
-                        .fill(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor")).opacity(0.2)
+                        .fill(dynamicColors ? mainColor : Color("FontColor")).opacity(0.2)
                     Circle()
-                        .fill(dynamicColors ? extractMainHueColor(from: appInfo.icon()) : Color("FontColor"))
+                        .fill(dynamicColors ? mainColor : Color("FontColor"))
                         .frame(width: w * 2, height: w * 2)
                         .offset(x: (model.signProgress - 2) * w, y: h/2-w)
                 }
@@ -124,7 +127,7 @@ struct LCAppBanner : View {
         }
         .padding()
         .frame(height: 88)
-        .background(RoundedRectangle(cornerSize: CGSize(width:22, height: 22)).fill(dynamicColors ? extractMainHueColor(from: appInfo.icon()).opacity(0.5) : Color("AppBannerBG")))
+        .background(RoundedRectangle(cornerSize: CGSize(width:22, height: 22)).fill(dynamicColors ? mainColor.opacity(0.5) : Color("AppBannerBG")))
         .onAppear() {
             handleOnAppear()
         }
@@ -340,8 +343,11 @@ struct LCAppBanner : View {
         self.saveIconExporterShow = true
     }
     
-    func extractMainHueColor(from image: UIImage) -> Color {
-        guard let cgImage = image.cgImage else { return Color.clear }
+    func extractMainHueColor() -> Color {
+        if let cachedColor = appInfo.cachedColor {
+            return Color(uiColor: cachedColor)
+        }
+        guard let cgImage = appInfo.icon().cgImage else { return Color.clear }
 
         let width = 1
         let height = 1
@@ -375,13 +381,12 @@ struct LCAppBanner : View {
             brightness = 0.3
         }
         
-        return Color(hue: hue, saturation: saturation, brightness: brightness)
+        let ans = Color(hue: hue, saturation: saturation, brightness: brightness)
+        appInfo.cachedColor = UIColor(ans)
+        
+        return Color.red
     }
 
-
-
-    
-    
 }
 
 

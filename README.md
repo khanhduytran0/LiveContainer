@@ -105,3 +105,5 @@ To install tweaks, you can use the built-in tweak manager in LiveContainer, whic
 - @Vishram1123 for the initial shortcut implementation.
 - @hugeBlack for SwiftUI contribution
 - @Staubgeborener for automatic AltStore/SideStore source updater
+- @fkunn1326 for improved app hiding
+- @slds1 for dynamic color frature
