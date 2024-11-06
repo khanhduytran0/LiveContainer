@@ -157,7 +157,10 @@ static void overwriteExecPath(NSString *bundlePath) {
     char currPath[PATH_MAX];
     uint32_t len = PATH_MAX;
     _NSGetExecutablePath(currPath, &len);
-    if (strncmp(currPath, newPath, newLen)) {
+    // trying to overrite config.process.mainExecutablePath will result in app crash and confuse dylb in 18.2+, so we skip it for now
+    if(@available(iOS 18.2, *)) {
+
+    } else if (strncmp(currPath, newPath, newLen)) { 
         struct sigaction sa, saOld;
         sa.sa_sigaction = overwriteExecPath_handler;
         sa.sa_flags = SA_SIGINFO;
