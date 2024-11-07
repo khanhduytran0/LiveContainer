@@ -286,7 +286,7 @@ struct LCSettingsView: View {
                 }
             } message: {
                 if folderRemoveCount > 0 {
-                    Text("lc.settings.cleanDataFolderConfirm".localizeWithFormat(folderRemoveCount))
+                    Text("lc.settings.cleanDataFolderConfirm %lld".localizeWithFormat(folderRemoveCount))
                 } else {
                     Text("lc.settings.noDataFolderToClean".loc)
                 }

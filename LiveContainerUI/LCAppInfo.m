@@ -184,7 +184,7 @@
 - (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* errorInfo))progressHandler forceSign:(BOOL)forceSign {
     NSString *appPath = self.bundlePath;
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
-    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath];
+    NSMutableDictionary *info = _info;
     if (!info) {
         completetionHandler(@"Info.plist not found");
         return;
@@ -255,7 +255,7 @@
                     [NSFileManager.defaultManager removeItemAtPath:tmpExecPath error:nil];
                     
                     // Save sign ID and restore bundle ID
-                    [info writeToFile:infoPath atomically:YES];
+                    [self save];
                     
                     
                     if(error) {

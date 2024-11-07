@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <stdlib.h>
+#include "TPRO.h"
 
 static int (*appMain)(int, char**);
 static const char *dyldImageName;
@@ -22,6 +23,7 @@ NSUserDefaults *lcSharedDefaults;
 NSString *lcAppGroupPath;
 NSString* lcAppUrlScheme;
 NSBundle* lcMainBundle;
+char* dyldMainExecutablePath = 0;
 
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
@@ -124,13 +126,17 @@ static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* cont
     size_t newLen = strlen(newPath);
     // Check if it's long enough...
     assert(maxLen >= newLen);
-
-    // Make it RW and overwrite now
-    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE);
-    if (ret != KERN_SUCCESS) {
-        ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    
+    // if we don't have TPRO, we will use the old way
+    if(!os_thread_self_restrict_tpro_to_rw()) {
+        // Make it RW and overwrite now
+        kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE);
+        if (ret != KERN_SUCCESS) {
+            ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+        }
+        assert(ret == KERN_SUCCESS);
     }
-    assert(ret == KERN_SUCCESS);
+
     bzero(path, maxLen);
     strncpy(path, newPath, newLen);
 }
@@ -157,10 +163,8 @@ static void overwriteExecPath(NSString *bundlePath) {
     char currPath[PATH_MAX];
     uint32_t len = PATH_MAX;
     _NSGetExecutablePath(currPath, &len);
-    // trying to overrite config.process.mainExecutablePath will result in app crash and confuse dylb in 18.2+, so we skip it for now
-    if(@available(iOS 18.2, *)) {
 
-    } else if (strncmp(currPath, newPath, newLen)) { 
+    if (strncmp(currPath, newPath, newLen)) {
         struct sigaction sa, saOld;
         sa.sa_sigaction = overwriteExecPath_handler;
         sa.sa_flags = SA_SIGINFO;
