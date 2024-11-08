@@ -23,7 +23,6 @@ NSUserDefaults *lcSharedDefaults;
 NSString *lcAppGroupPath;
 NSString* lcAppUrlScheme;
 NSBundle* lcMainBundle;
-char* dyldMainExecutablePath = 0;
 
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
