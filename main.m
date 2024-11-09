@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <stdlib.h>
+#include "TPRO.h"
 
 static int (*appMain)(int, char**);
 static const char *dyldImageName;
@@ -124,13 +125,17 @@ static void overwriteExecPath_handler(int signum, siginfo_t* siginfo, void* cont
     size_t newLen = strlen(newPath);
     // Check if it's long enough...
     assert(maxLen >= newLen);
-
-    // Make it RW and overwrite now
-    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE);
-    if (ret != KERN_SUCCESS) {
-        ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    
+    // if we don't have TPRO, we will use the old way
+    if(!os_thread_self_restrict_tpro_to_rw()) {
+        // Make it RW and overwrite now
+        kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE);
+        if (ret != KERN_SUCCESS) {
+            ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)path, maxLen, false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+        }
+        assert(ret == KERN_SUCCESS);
     }
-    assert(ret == KERN_SUCCESS);
+
     bzero(path, maxLen);
     strncpy(path, newPath, newLen);
 }
@@ -157,6 +162,7 @@ static void overwriteExecPath(NSString *bundlePath) {
     char currPath[PATH_MAX];
     uint32_t len = PATH_MAX;
     _NSGetExecutablePath(currPath, &len);
+
     if (strncmp(currPath, newPath, newLen)) {
         struct sigaction sa, saOld;
         sa.sa_sigaction = overwriteExecPath_handler;
@@ -395,9 +401,9 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);
     argv[0] = (char *)appExecPath;
-    appMain(argc, argv);
+    int ret = appMain(argc, argv);
 
-    return nil;
+    return [NSString stringWithFormat:@"App returned from its main function with code %d.", ret];
 }
 
 static void exceptionHandler(NSException *exception) {

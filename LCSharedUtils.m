@@ -39,7 +39,7 @@ extern NSString *lcAppUrlScheme;
     if (!access(tsPath.UTF8String, F_OK)) {
         urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
     } else if (self.certificatePassword) {
-        tries = 8;
+        tries = 2;
         urlScheme = [NSString stringWithFormat:@"%@://livecontainer-relaunch", lcAppUrlScheme];
     } else {
         urlScheme = @"sidestore://sidejit-enable?bid=%@";

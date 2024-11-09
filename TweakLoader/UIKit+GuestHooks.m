@@ -85,7 +85,7 @@ void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
     NSString *message = @"lc.guestTweak.openWebPageTip".loc;
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"lc.common.ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"lc.common.ok".loc style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
         [NSClassFromString(@"LCSharedUtils") setWebPageUrlForNextLaunch:webPageUrlString];
         [NSClassFromString(@"LCSharedUtils") launchToGuestApp];
     }];

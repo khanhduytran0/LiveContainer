@@ -388,9 +388,29 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         var outputFolder = LCPath.bundlePath.appendingPathComponent(appRelativePath)
         var appToReplace : LCAppModel? = nil
         // Folder exist! show alert for user to choose which bundle to replace
-        let sameBundleIdApp = self.apps.filter { app in
+        var sameBundleIdApp = self.apps.filter { app in
             return app.appInfo.bundleIdentifier()! == newAppInfo.bundleIdentifier()
         }
+        if sameBundleIdApp.count == 0 {
+            sameBundleIdApp = self.hiddenApps.filter { app in
+                return app.appInfo.bundleIdentifier()! == newAppInfo.bundleIdentifier()
+            }
+            
+            // we found a hidden app, we need to authenticate before proceeding
+            if sameBundleIdApp.count > 0 && !sharedModel.isHiddenAppUnlocked {
+                do {
+                    if !(try await LCUtils.authenticateUser()) {
+                        return
+                    }
+                } catch {
+                    errorInfo = error.localizedDescription
+                    errorShow = true
+                    return
+                }
+            }
+            
+        }
+        
         if fm.fileExists(atPath: outputFolder.path) || sameBundleIdApp.count > 0 {
             appRelativePath = "\(newAppInfo.bundleIdentifier()!)_\(Int(CFAbsoluteTimeGetCurrent())).app"
             
@@ -407,13 +427,15 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 return
             }
             
-            outputFolder = LCPath.bundlePath.appendingPathComponent(installOptionChosen.nameOfFolderToInstall)
+            if let appToReplace = installOptionChosen.appToReplace, appToReplace.uiIsShared {
+                outputFolder = LCPath.lcGroupBundlePath.appendingPathComponent(installOptionChosen.nameOfFolderToInstall)
+            } else {
+                outputFolder = LCPath.bundlePath.appendingPathComponent(installOptionChosen.nameOfFolderToInstall)
+            }
+            appRelativePath = installOptionChosen.nameOfFolderToInstall
             appToReplace = installOptionChosen.appToReplace
             if installOptionChosen.isReplace {
                 try fm.removeItem(at: outputFolder)
-                self.apps.removeAll { appNow in
-                    return appNow.appInfo.relativeBundlePath == installOptionChosen.nameOfFolderToInstall
-                }
             }
         }
         // Move it!
@@ -440,12 +462,36 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         if let signError {
             throw signError
         }
-        // set data folder to the folder of the chosen app
-        if let appToReplace = appToReplace {
+        
+        if let appToReplace {
+            // copy previous configration to new app
+            finalNewApp.isLocked = appToReplace.appInfo.isLocked
+            finalNewApp.isHidden = appToReplace.appInfo.isHidden
+            finalNewApp.isJITNeeded = appToReplace.appInfo.isJITNeeded
+            finalNewApp.isShared = appToReplace.appInfo.isShared
+            finalNewApp.bypassAssertBarrierOnQueue = appToReplace.appInfo.bypassAssertBarrierOnQueue
+            finalNewApp.doSymlinkInbox = appToReplace.appInfo.doSymlinkInbox
             finalNewApp.setDataUUID(appToReplace.appInfo.getDataUUIDNoAssign())
+            finalNewApp.setTweakFolder(appToReplace.appInfo.tweakFolder())
         }
         DispatchQueue.main.async {
-            self.apps.append(LCAppModel(appInfo: finalNewApp))
+            if let appToReplace {
+                if appToReplace.uiIsHidden {
+                    self.hiddenApps.removeAll { appNow in
+                        return appNow == appToReplace
+                    }
+                    self.hiddenApps.append(LCAppModel(appInfo: finalNewApp, delegate: self))
+                } else {
+                    self.apps.removeAll { appNow in
+                        return appNow == appToReplace
+                    }
+                    self.apps.append(LCAppModel(appInfo: finalNewApp, delegate: self))
+                }
+
+            } else {
+                self.apps.append(LCAppModel(appInfo: finalNewApp, delegate: self))
+            }
+
             self.installprogressVisible = false
         }
     }
