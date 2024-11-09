@@ -401,9 +401,9 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);
     argv[0] = (char *)appExecPath;
-    appMain(argc, argv);
+    int ret = appMain(argc, argv);
 
-    return nil;
+    return [NSString stringWithFormat:@"App returned from its main function with code %d.", ret];
 }
 
 static void exceptionHandler(NSException *exception) {
