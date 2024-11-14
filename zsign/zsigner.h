@@ -1,0 +1,11 @@
+//
+//  zsigner.h
+//  LiveContainer
+//
+//  Created by s s on 2024/11/10.
+//
+#import <Foundation/Foundation.h>
+
+@interface ZSigner : NSObject
++ (NSProgress*)signWithAppPath:(NSString *)appPath execName:(NSString *)execName prov:(NSData *)prov key:(NSData *)key pass:(NSString *)pass completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
+@end

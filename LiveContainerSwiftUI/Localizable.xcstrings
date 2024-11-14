@@ -660,13 +660,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bundle Identifier"
+            "value" : "Bundle Folder"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "包名"
+            "value" : "包文件名"
           }
         }
       }

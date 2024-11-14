@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#import "LCUtils.h"
 
 @interface LCAppInfo : NSObject {
    NSMutableDictionary* _info;
@@ -13,6 +14,7 @@
 @property bool doSymlinkInbox;
 @property bool bypassAssertBarrierOnQueue;
 @property UIColor* cachedColor;
+@property Signer signer;
 
 - (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;
@@ -30,5 +32,5 @@
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
 - (NSDictionary *)generateWebClipConfig;
 - (void)save;
-- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* errorInfo))progressHandler  forceSign:(BOOL)forceSign;
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler  forceSign:(BOOL)forceSign;
 @end

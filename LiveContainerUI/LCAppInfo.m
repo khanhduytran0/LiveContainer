@@ -181,7 +181,7 @@
 }
 
 // return "SignNeeded" if sign is needed, other wise return an error
-- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* errorInfo))progressHandler forceSign:(BOOL)forceSign {
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign {
     NSString *appPath = self.bundlePath;
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = _info;
@@ -243,9 +243,8 @@
             info[@"CFBundleIdentifier"] = info[@"LCBundleIdentifier"];
             [info removeObjectForKey:@"LCBundleExecutable"];
             [info removeObjectForKey:@"LCBundleIdentifier"];
-
-            __block NSProgress *progress = [LCUtils signAppBundle:appPathURL
-            completionHandler:^(BOOL success, NSError *_Nullable error) {
+            
+            void (^signCompletionHandler)(BOOL success, NSError *error)  = ^(BOOL success, NSError *_Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (!error) {
                         info[@"LCJITLessSignID"] = @(signID);
@@ -267,7 +266,25 @@
                     }
 
                 });
-            }];
+            };
+            
+            __block NSProgress *progress;
+            
+            switch ([self signer]) {
+                case ZSign:
+                    NSLog(@"[LC] using ZSign");
+                    progress = [LCUtils signAppBundleWithZSign:appPathURL execName:info[@"CFBundleExecutable"] completionHandler:signCompletionHandler];
+                    break;
+                case AltSigner:
+                    NSLog(@"[LC] using AltSigner");
+                    progress = [LCUtils signAppBundle:appPathURL completionHandler:signCompletionHandler];
+                    break;
+                    
+                default:
+                    completetionHandler(@"Signer Not Found");
+                    break;
+            }
+
             if (progress) {
                 progressHandler(progress);
             }
@@ -341,6 +358,17 @@
 }
 - (void)setBypassAssertBarrierOnQueue:(bool)enabled {
     _info[@"bypassAssertBarrierOnQueue"] = [NSNumber numberWithBool:enabled];
+    [self save];
+    
+}
+
+- (Signer)signer {
+    return (Signer) [((NSNumber*) _info[@"signer"]) intValue];
+
+}
+- (void)setSigner:(Signer)newSigner {
+    _info[@"signer"] = [NSNumber numberWithInt:(int) newSigner];
+    NSLog(@"[LC] new signer = %d", (int) newSigner);
     [self save];
     
 }

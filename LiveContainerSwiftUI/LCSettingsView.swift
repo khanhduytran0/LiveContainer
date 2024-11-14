@@ -26,6 +26,7 @@ struct LCSettingsView: View {
     @State private var isAltStorePatched = false
     
     @State var isJitLessEnabled = false
+    @State var defaultSigner = Signer.ZSign
     
     @State var isAltCertIgnored = false
     @State var frameShortIcon = false
@@ -43,6 +44,8 @@ struct LCSettingsView: View {
     
     init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
+        _defaultSigner = State(initialValue: Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!)
+        
         _isAltCertIgnored = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreALTCertificate"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
@@ -95,6 +98,15 @@ struct LCSettingsView: View {
                                 }
                             }
                         }
+                        
+                        Picker(selection: $defaultSigner) {
+                            Text("ZSign").tag(Signer.ZSign)
+                            Text("AltSigner").tag(Signer.AltSigner)
+                                
+                        } label: {
+                            Text("Default Signer")
+                        }
+                        
 
                     } header: {
                         Text("lc.settings.jitLess".loc)
@@ -338,6 +350,9 @@ struct LCSettingsView: View {
             }
             .onChange(of: sideJITServerAddress) { newValue in
                 saveAppGroupItem(key: "LCSideJITServerAddress", val: newValue)
+            }
+            .onChange(of: defaultSigner) { newValue in
+                saveAppGroupItem(key: "LCDefaultSigner", val: newValue.rawValue)
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())

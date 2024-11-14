@@ -239,8 +239,11 @@ struct LCAppBanner : View {
             Text("lc.appBanner.waitForJitMsg".loc)
         }
         
-        .alert("lc.common.error".loc, isPresented: $errorShow) {
+        .alert("lc.common.error".loc, isPresented: $errorShow){
             Button("lc.common.ok".loc, action: {
+            })
+            Button("lc.common.copy".loc, action: {
+                copyError()
             })
         } message: {
             Text(errorInfo)
@@ -385,6 +388,10 @@ struct LCAppBanner : View {
         appInfo.cachedColor = UIColor(ans)
         
         return ans
+    }
+    
+    func copyError() {
+        UIPasteboard.general.string = errorInfo
     }
 
 }
