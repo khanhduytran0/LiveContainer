@@ -8,8 +8,8 @@ typedef NS_ENUM(NSInteger, Store){
 };
 
 typedef NS_ENUM(NSInteger, Signer){
-    ZSign = 0,
-    AltSigner = 1
+    AltSign = 0,
+    ZSign = 1
 };
 
 NSString *LCParseMachO(const char *path, LCParseMachOCallback callback);
@@ -26,7 +26,7 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header);
 
 @interface LCUtils : NSObject
 
-+ (NSURL *)archiveIPAWithSetupMode:(BOOL)setup error:(NSError **)error;
++ (void)validateJITLessSetupWithCompletionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 + (NSURL *)archiveIPAWithBundleName:(NSString*)newBundleName error:(NSError **)error;
 + (NSURL *)archiveTweakedAltStoreWithError:(NSError **)error;
 + (NSData *)certificateData;

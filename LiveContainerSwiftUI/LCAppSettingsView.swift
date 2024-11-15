@@ -179,11 +179,10 @@ struct LCAppSettingsView : View{
             }
 
             Picker(selection: $model.uiSigner) {
+                Text("AltSign").tag(Signer.AltSign)
                 Text("ZSign").tag(Signer.ZSign)
-                Text("AltSigner").tag(Signer.AltSigner)
-                    
             } label: {
-                Text("Signer")
+                Text("lc.appSettings.signer".loc)
             }
             .onChange(of: model.uiSigner, perform: { newValue in
                 Task { await setSigner(newValue) }

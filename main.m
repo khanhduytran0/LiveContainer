@@ -1,5 +1,4 @@
 #import <Foundation/Foundation.h>
-#import "LiveContainerUI/LCAppDelegate.h"
 #import "LCSharedUtils.h"
 #import "UIKitPrivate.h"
 #import "utils.h"

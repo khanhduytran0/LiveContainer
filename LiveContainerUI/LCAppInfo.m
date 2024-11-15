@@ -108,6 +108,10 @@
     }
     
     if(!icon) {
+        icon = [UIImage imageNamed:[_info valueForKeyPath:@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconName"] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+    }
+    
+    if(!icon) {
         icon = [UIImage imageNamed:@"DefaultIcon"];
     }
     return icon;
@@ -175,7 +179,10 @@
         // Remove PlugIns folder
         [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
         // Remove code signature from all library files
-        [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
+        if([self signer] == AltSign) {
+            [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
+        }
+
         dispatch_async(dispatch_get_main_queue(), completion);
     });
 }
@@ -272,11 +279,9 @@
             
             switch ([self signer]) {
                 case ZSign:
-                    NSLog(@"[LC] using ZSign");
                     progress = [LCUtils signAppBundleWithZSign:appPathURL execName:info[@"CFBundleExecutable"] completionHandler:signCompletionHandler];
                     break;
-                case AltSigner:
-                    NSLog(@"[LC] using AltSigner");
+                case AltSign:
                     progress = [LCUtils signAppBundle:appPathURL completionHandler:signCompletionHandler];
                     break;
                     
