@@ -7,11 +7,6 @@ typedef NS_ENUM(NSInteger, Store){
     AltStore
 };
 
-typedef NS_ENUM(NSInteger, Signer){
-    AltSign = 0,
-    ZSign = 1
-};
-
 NSString *LCParseMachO(const char *path, LCParseMachOCallback callback);
 void LCPatchAddRPath(const char *path, struct mach_header_64 *header);
 void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
@@ -42,7 +37,6 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header);
 
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL;
 + (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
-+ (NSProgress *)signAppBundleWithZSign:(NSURL *)path execName:(NSString*)execName completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 + (BOOL)isAppGroupAltStoreLike;
 + (Store)store;
 + (NSString *)appGroupID;

@@ -507,11 +507,6 @@ int LiveContainerMain(int argc, char *argv[]) {
         }
     }
     [LCSharedUtils setAppRunningByThisLC:nil];
-    void *LiveContainerUIHandle = dlopen("@executable_path/Frameworks/LiveContainerUI.framework/LiveContainerUI", RTLD_LAZY);
-    assert(LiveContainerUIHandle);
-    if([NSBundle.mainBundle.executablePath.lastPathComponent isEqualToString:@"JITLessSetup"]) {
-        return UIApplicationMain(argc, argv, nil, @"LCJITLessAppDelegate");
-    }
     void *LiveContainerSwiftUIHandle = dlopen("@executable_path/Frameworks/LiveContainerSwiftUI.framework/LiveContainerSwiftUI", RTLD_LAZY);
     assert(LiveContainerSwiftUIHandle);
     @autoreleasepool {

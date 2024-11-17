@@ -14,7 +14,6 @@
 @property bool doSymlinkInbox;
 @property bool bypassAssertBarrierOnQueue;
 @property UIColor* cachedColor;
-@property Signer signer;
 
 - (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;

@@ -177,16 +177,6 @@ struct LCAppSettingsView : View{
                         .transition(.opacity.combined(with: .slide))
                 }
             }
-
-            Picker(selection: $model.uiSigner) {
-                Text("AltSign").tag(Signer.AltSign)
-                Text("ZSign").tag(Signer.ZSign)
-            } label: {
-                Text("lc.appSettings.signer".loc)
-            }
-            .onChange(of: model.uiSigner, perform: { newValue in
-                Task { await setSigner(newValue) }
-            })
             
             Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
@@ -405,12 +395,6 @@ struct LCAppSettingsView : View{
     func setJITNeeded(_ JITNeeded: Bool) async {
         appInfo.isJITNeeded = JITNeeded
         model.uiIsJITNeeded = JITNeeded
-
-    }
-    
-    func setSigner(_ signer: Signer) async {
-        appInfo.signer = signer
-        model.uiSigner = signer
 
     }
     

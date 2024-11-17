@@ -26,8 +26,7 @@ struct LCSettingsView: View {
     @State private var isAltStorePatched = false
     
     @State var isJitLessEnabled = false
-    @State var defaultSigner = Signer.ZSign
-    
+    @State var isJITLessTestInProgress = false
     @State var isAltCertIgnored = false
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
@@ -46,7 +45,6 @@ struct LCSettingsView: View {
     
     init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
-        _defaultSigner = State(initialValue: Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!)
         
         _isAltCertIgnored = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreALTCertificate"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
@@ -96,19 +94,14 @@ struct LCSettingsView: View {
                             } label: {
                                 Text("lc.settings.testJitLess".loc)
                             }
+                            .disabled(isJITLessTestInProgress)
                         }
                         
-                        Picker(selection: $defaultSigner) {
-                            Text("AltSign").tag(Signer.AltSign)
-                            Text("ZSign").tag(Signer.ZSign)
-                        } label: {
-                            Text("lc.settings.defaultSigner")
-                        }
 
                     } header: {
                         Text("lc.settings.jitLess".loc)
                     } footer: {
-                        Text("lc.settings.jitLessDesc".loc + "\n" + "lc.settings.signer.desc".loc)
+                        Text("lc.settings.jitLessDesc".loc)
                     }
                 }
 
@@ -348,9 +341,6 @@ struct LCSettingsView: View {
             .onChange(of: sideJITServerAddress) { newValue in
                 saveAppGroupItem(key: "LCSideJITServerAddress", val: newValue)
             }
-            .onChange(of: defaultSigner) { newValue in
-                saveAppGroupItem(key: "LCDefaultSigner", val: newValue.rawValue)
-            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         
@@ -376,7 +366,7 @@ struct LCSettingsView: View {
             errorShow = true
             return;
         }
-        
+        isJITLessTestInProgress = true
         LCUtils.validateJITLessSetup { success, error in
             if success {
                 successInfo = "lc.jitlessSetup.success".loc
@@ -385,6 +375,7 @@ struct LCSettingsView: View {
                 errorInfo = "lc.jitlessSetup.error.testLibLoadFailed %@ %@ %@".localizeWithFormat(storeName, storeName, storeName) + "\n" + (error?.localizedDescription ?? "")
                 errorShow = true
             }
+            isJITLessTestInProgress = false
         }
     
     }

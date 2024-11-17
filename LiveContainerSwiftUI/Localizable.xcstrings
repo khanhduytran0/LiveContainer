@@ -943,23 +943,6 @@
         }
       }
     },
-    "lc.appSettings.signer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Signer"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "签名工具"
-          }
-        }
-      }
-    },
     "lc.appSettings.toPrivateApp" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1664,23 +1647,6 @@
         }
       }
     },
-    "lc.settings.defaultSigner" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Default Signer"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "默认签名工具"
-          }
-        }
-      }
-    },
     "lc.settings.dynamicColors" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2220,23 +2186,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新免JIT模式证书"
-          }
-        }
-      }
-    },
-    "lc.settings.signer.desc" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If AltSign reports an error during installation, please try ZSign."
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "安装App时，如果AltSign报错，可尝试使用ZSign。"
           }
         }
       }
