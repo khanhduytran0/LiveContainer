@@ -431,4 +431,15 @@ extension LCUtils {
         }
         return true
     }
+    
+    public static func getStoreName() -> String {
+        switch LCUtils.store() {
+        case .AltStore:
+            return "AltStore"
+        case .SideStore:
+            return "SideStore"
+        default:
+            return "Unknown Store"
+        }
+    }
 }

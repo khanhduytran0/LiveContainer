@@ -4,3 +4,4 @@ packages/
 LiveContainer.xcodeproj
 project.xcworkspace
 xcuserdata
+Resources/Frameworks/OpenSSL.framework

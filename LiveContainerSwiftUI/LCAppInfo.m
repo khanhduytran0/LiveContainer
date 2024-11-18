@@ -108,6 +108,10 @@
     }
     
     if(!icon) {
+        icon = [UIImage imageNamed:[_info valueForKeyPath:@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconName"] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+    }
+    
+    if(!icon) {
         icon = [UIImage imageNamed:@"DefaultIcon"];
     }
     return icon;
@@ -176,12 +180,14 @@
         [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
         // Remove code signature from all library files
         [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
+        
+
         dispatch_async(dispatch_get_main_queue(), completion);
     });
 }
 
 // return "SignNeeded" if sign is needed, other wise return an error
-- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* errorInfo))progressHandler forceSign:(BOOL)forceSign {
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign {
     NSString *appPath = self.bundlePath;
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = _info;
@@ -243,9 +249,8 @@
             info[@"CFBundleIdentifier"] = info[@"LCBundleIdentifier"];
             [info removeObjectForKey:@"LCBundleExecutable"];
             [info removeObjectForKey:@"LCBundleIdentifier"];
-
-            __block NSProgress *progress = [LCUtils signAppBundle:appPathURL
-            completionHandler:^(BOOL success, NSError *_Nullable error) {
+            
+            void (^signCompletionHandler)(BOOL success, NSError *error)  = ^(BOOL success, NSError *_Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (!error) {
                         info[@"LCJITLessSignID"] = @(signID);
@@ -267,7 +272,11 @@
                     }
 
                 });
-            }];
+            };
+            
+            __block NSProgress *progress;
+            
+            progress = [LCUtils signAppBundle:appPathURL completionHandler:signCompletionHandler];
             if (progress) {
                 progressHandler(progress);
             }

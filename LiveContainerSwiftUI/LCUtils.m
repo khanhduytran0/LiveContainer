@@ -306,42 +306,27 @@
     [data writeToURL:execPath options:0 error:error];
 }
 
-+ (NSURL *)archiveIPAWithSetupMode:(BOOL)setup error:(NSError **)error {
-    if (setup) {
-        [self writeStoreIDToSetupExecutableWithError:error];
-        if (*error) return nil;
-        [self changeMainExecutableTo:@"JITLessSetup" error:error];
-    } else {
-        [self changeMainExecutableTo:@"LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou" error:error];
-    }
-    if (*error) return nil;
++ (void)validateJITLessSetupWithCompletionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
+    // Verify that the certificate is usable
+    // Create a test app bundle
+    NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:@"CertificateValidation"];
+    [NSFileManager.defaultManager createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
+    NSString *tmpExecPath = [path stringByAppendingPathComponent:@"LiveContainer.tmp"];
+    NSString *tmpLibPath = [path stringByAppendingPathComponent:@"TestJITLess.dylib"];
+    NSString *tmpInfoPath = [path stringByAppendingPathComponent:@"Info.plist"];
+    [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
+    [NSFileManager.defaultManager copyItemAtPath:[NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"Frameworks/TestJITLess.dylib"] toPath:tmpLibPath error:nil];
+    NSMutableDictionary *info = NSBundle.mainBundle.infoDictionary.mutableCopy;
+    info[@"CFBundleExecutable"] = @"LiveContainer.tmp";
+    [info writeToFile:tmpInfoPath atomically:YES];
 
-    NSFileManager *manager = NSFileManager.defaultManager;
-    NSURL *bundlePath = [self.appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
-
-    NSURL *tmpPath = [self.appGroupPath URLByAppendingPathComponent:@"tmp"];
-    [manager removeItemAtURL:tmpPath error:nil];
-
-    NSURL *tmpPayloadPath = [tmpPath URLByAppendingPathComponent:@"Payload"];
-    NSURL *tmpIPAPath = [self.appGroupPath URLByAppendingPathComponent:@"tmp.ipa"];
-
-    [manager createDirectoryAtURL:tmpPath withIntermediateDirectories:YES attributes:nil error:error];
-    if (*error) return nil;
-
-    [manager copyItemAtURL:bundlePath toURL:tmpPayloadPath error:error];
-    if (*error) return nil;
-
-    dlopen("/System/Library/PrivateFrameworks/PassKitCore.framework/PassKitCore", RTLD_GLOBAL);
-    NSData *zipData = [[NSClassFromString(@"PKZipArchiver") new] zippedDataForURL:tmpPayloadPath.URLByDeletingLastPathComponent];
-    if (!zipData) return nil;
-
-    [manager removeItemAtURL:tmpPath error:error];
-    if (*error) return nil;
-
-    [zipData writeToURL:tmpIPAPath options:0 error:error];
-    if (*error) return nil;
-
-    return tmpIPAPath;
+    // Sign the test app bundle
+    [LCUtils signAppBundle:[NSURL fileURLWithPath:path]
+    completionHandler:^(BOOL success, NSError *_Nullable error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completionHandler(success, error);
+        });
+    }];
 }
 
 + (NSURL *)archiveIPAWithBundleName:(NSString*)newBundleName error:(NSError **)error {
@@ -421,7 +406,12 @@
     NSFileManager *manager = NSFileManager.defaultManager;
     NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
     NSURL *lcBundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
-    NSURL *bundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.rileytestut.AltStore"];
+    NSURL *bundlePath;
+    if ([self store] == SideStore) {
+        bundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore"];
+    } else {
+        bundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.rileytestut.AltStore"];
+    }
 
     NSURL *tmpPath = [appGroupPath URLByAppendingPathComponent:@"tmp"];
     [manager removeItemAtURL:tmpPath error:nil];
@@ -442,9 +432,15 @@
     }
     
     [manager copyItemAtURL:[lcBundlePath URLByAppendingPathComponent:@"App.app/Frameworks/AltStoreTweak.dylib"] toURL:tweakToURL error:error];
-    NSURL* execToPath = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/AltStore"];
-    NSString* errorPatchAltStore = LCParseMachO([execToPath.path UTF8String], ^(const char *path, struct mach_header_64 *header) {
-        LCPatchAltStore(execToPath.path.UTF8String, header);
+    NSURL* execToPatch;
+    if ([self store] == SideStore) {
+        execToPatch = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/SideStore"];
+    } else {
+        execToPatch = [tmpPayloadPath URLByAppendingPathComponent:@"App.app/AltStore"];;
+    }
+    
+    NSString* errorPatchAltStore = LCParseMachO([execToPatch.path UTF8String], ^(const char *path, struct mach_header_64 *header) {
+        LCPatchAltStore(execToPatch.path.UTF8String, header);
     });
     if (errorPatchAltStore) {
         NSMutableDictionary* details = [NSMutableDictionary dictionary];

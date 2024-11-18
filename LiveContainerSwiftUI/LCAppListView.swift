@@ -194,8 +194,14 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .alert(isPresented: $errorShow){
-            Alert(title: Text("lc.common.error".loc), message: Text(errorInfo))
+        .alert("lc.common.error".loc, isPresented: $errorShow){
+            Button("lc.common.ok".loc, action: {
+            })
+            Button("lc.common.copy".loc, action: {
+                copyError()
+            })
+        } message: {
+            Text(errorInfo)
         }
         .fileImporter(isPresented: $choosingIPA, allowedContentTypes: [.ipa]) { result in
             Task { await startInstallApp(result) }
@@ -400,11 +406,13 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             if sameBundleIdApp.count > 0 && !sharedModel.isHiddenAppUnlocked {
                 do {
                     if !(try await LCUtils.authenticateUser()) {
+                        self.installprogressVisible = false
                         return
                     }
                 } catch {
                     errorInfo = error.localizedDescription
                     errorShow = true
+                    self.installprogressVisible = false
                     return
                 }
             }
@@ -601,5 +609,9 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     func closeNavigationView() {
         isNavigationActive = false
         navigateTo = nil
+    }
+    
+    func copyError() {
+        UIPasteboard.general.string = errorInfo
     }
 }

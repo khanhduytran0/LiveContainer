@@ -177,7 +177,6 @@ struct LCAppSettingsView : View{
                         .transition(.opacity.combined(with: .slide))
                 }
             }
-
             
             Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {

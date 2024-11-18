@@ -26,7 +26,7 @@ struct LCSettingsView: View {
     @State private var isAltStorePatched = false
     
     @State var isJitLessEnabled = false
-    
+    @State var isJITLessTestInProgress = false
     @State var isAltCertIgnored = false
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
@@ -37,12 +37,15 @@ struct LCSettingsView: View {
     @State var sideJITServerAddress : String
     @State var deviceUDID: String
     
-    @State var isSideStore : Bool
+    @State var isSideStore : Bool = true
     
     @EnvironmentObject private var sharedModel : SharedModel
     
+    let storeName = LCUtils.getStoreName()
+    
     init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
+        
         _isAltCertIgnored = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreALTCertificate"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
@@ -74,27 +77,26 @@ struct LCSettingsView: View {
             Form {
                 if sharedModel.multiLCStatus != 2 {
                     Section{
+                        
                         Button {
-                            setupJitLess()
+                            Task { await patchAltStore() }
                         } label: {
-                            if isJitLessEnabled {
-                                Text("lc.settings.renewJitLess".loc)
+                            if isAltStorePatched {
+                                Text("lc.settings.patchStoreAgain %@".localizeWithFormat(storeName))
                             } else {
-                                Text("lc.settings.setupJitLess".loc)
+                                Text("lc.settings.patchStore %@".localizeWithFormat(storeName))
                             }
                         }
                         
-                        if !isSideStore {
+                        if isAltStorePatched {
                             Button {
-                                Task { await patchAltStore() }
+                            testJITLessMode()
                             } label: {
-                                if isAltStorePatched {
-                                    Text("lc.settings.patchAltstoreAgain".loc)
-                                } else {
-                                    Text("lc.settings.patchAltstore".loc)
-                                }
+                                Text("lc.settings.testJitLess".loc)
                             }
+                            .disabled(isJITLessTestInProgress)
                         }
+                        
 
                     } header: {
                         Text("lc.settings.jitLess".loc)
@@ -305,7 +307,7 @@ struct LCSettingsView: View {
             } message: {
                 Text("lc.settings.cleanKeychainDesc".loc)
             }
-            .alert("lc.settings.patchAltstore".loc, isPresented: $patchAltStoreAlert.show) {
+            .alert("lc.settings.patchStore %@".localizeWithFormat(LCUtils.getStoreName()), isPresented: $patchAltStoreAlert.show) {
                 Button(role: .destructive) {
                     patchAltStoreAlert.close(result: true)
                 } label: {
@@ -316,7 +318,7 @@ struct LCSettingsView: View {
                     patchAltStoreAlert.close(result: false)
                 }
             } message: {
-                Text("lc.settings.patchAltstoreDesc".loc)
+                Text("lc.settings.patchStoreDesc %@ %@ %@".localizeWithFormat(storeName, storeName, storeName))
             }
             .onChange(of: isAltCertIgnored) { newValue in
                 saveItem(key: "LCIgnoreALTCertificate", val: newValue)
@@ -352,26 +354,28 @@ struct LCSettingsView: View {
         LCUtils.appGroupUserDefault.setValue(val, forKey: key)
     }
     
-    func setupJitLess() {
+    func testJITLessMode() {
         if !LCUtils.isAppGroupAltStoreLike() {
             errorInfo = "lc.settings.unsupportedInstallMethod".loc
             errorShow = true
             return;
         }
         
-        if LCUtils.store() == .AltStore && !isAltStorePatched {
-            errorInfo = "lc.settings.error.altstoreNotPatched".loc
+        if !isAltStorePatched {
+            errorInfo = "lc.settings.error.storeNotPatched %@".localizeWithFormat(storeName)
             errorShow = true
             return;
         }
-        
-        do {
-            let packedIpaUrl = try LCUtils.archiveIPA(withSetupMode: true)
-            let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), packedIpaUrl.absoluteString)
-            UIApplication.shared.open(URL(string: storeInstallUrl)!)
-        } catch {
-            errorInfo = error.localizedDescription
-            errorShow = true
+        isJITLessTestInProgress = true
+        LCUtils.validateJITLessSetup { success, error in
+            if success {
+                successInfo = "lc.jitlessSetup.success".loc
+                successShow = true
+            } else {
+                errorInfo = "lc.jitlessSetup.error.testLibLoadFailed %@ %@ %@".localizeWithFormat(storeName, storeName, storeName) + "\n" + (error?.localizedDescription ?? "")
+                errorShow = true
+            }
+            isJITLessTestInProgress = false
         }
     
     }
@@ -584,16 +588,19 @@ struct LCSettingsView: View {
     
     func updateSideStorePatchStatus() {
         let fm = FileManager()
-        if LCUtils.store() == .SideStore {
-            isAltStorePatched = true
-            return
-        }
         
         guard let appGroupPath = LCUtils.appGroupPath() else {
             isAltStorePatched = false
             return
         }
-        if(fm.fileExists(atPath: appGroupPath.appendingPathComponent("Apps/com.rileytestut.AltStore/App.app/Frameworks/AltStoreTweak.dylib").path)) {
+        var patchDylibPath : String;
+        if (LCUtils.store() == .AltStore) {
+            patchDylibPath = appGroupPath.appendingPathComponent("Apps/com.rileytestut.AltStore/App.app/Frameworks/AltStoreTweak.dylib").path
+        } else {
+            patchDylibPath = appGroupPath.appendingPathComponent("Apps/com.SideStore.SideStore/App.app/Frameworks/AltStoreTweak.dylib").path
+        }
+        
+        if(fm.fileExists(atPath: patchDylibPath)) {
             isAltStorePatched = true
         } else {
             isAltStorePatched = false

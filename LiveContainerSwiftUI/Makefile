@@ -5,15 +5,20 @@ include $(THEOS)/makefiles/common.mk
 FRAMEWORK_NAME = LiveContainerSwiftUI
 
 LiveContainerSwiftUI_FILES = \
-$(shell find ./ -name '*.swift') \
-./LCSwiftBridge.m \
-../LiveContainerUI/LCAppInfo.m \
-../LiveContainerUI/LCUtils.m \
-../LiveContainerUI/LCMachOUtils.m \
-../LiveContainerUI/unarchive.m
+$(shell find . -name '*.swift') \
+LCSwiftBridge.m \
+LCAppInfo.m \
+LCAppDelegateSwiftUI.m \
+LCVersionInfo.m \
+LCUtils.m \
+LCMachOUtils.m \
+unarchive.m
 LiveContainerSwiftUI_SWIFTFLAGS = -I../LiveContainerUI
 LiveContainerSwiftUI_CFLAGS = \
-  -fobjc-arc
+  -fobjc-arc \
+  -DCONFIG_TYPE=\"$(CONFIG_TYPE)\" \
+  -DCONFIG_BRANCH=\"$(CONFIG_BRANCH)\" \
+  -DCONFIG_COMMIT=\"$(CONFIG_COMMIT)\"
 LiveContainerSwiftUI_LIBRARIES = archive
 LiveContainerSwiftUI_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 

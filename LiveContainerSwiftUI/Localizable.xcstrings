@@ -660,13 +660,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bundle Identifier"
+            "value" : "Bundle Folder"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "包名"
+            "value" : "包文件名"
           }
         }
       }
@@ -1402,19 +1402,19 @@
         }
       }
     },
-    "lc.jitlessSetup.error.testLibLoadFailed" : {
+    "lc.jitlessSetup.error.testLibLoadFailed %@ %@ %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The test library has failed to load. This means your certificate may be having issue. LiveContainer will try to repair it. SideStore will refresh LiveContainer and then you will try again. Press OK to continue."
+            "value" : "The test library has failed to load. This means your certificate may be having issue. Please try to: 1. Reopen %@; 2. Refresh all apps in %@; 3. Re-patch %@ and try again."
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法加载测试动态链接库，这可能是由于证书出现问题。可通过刷新LiveContainer解决。点击按钮进行刷新。"
+            "value" : "无法加载测试动态链接库，这可能是由于证书出现问题。请尝试：1. 重新打开%@；2. 刷新%@；3. 如果仍有问题，请尝试重新给%@打补丁。"
           }
         }
       }
@@ -1425,13 +1425,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Done. Press OK to finish setting up."
+            "value" : "JIT-Less Mode Test Passed"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "设置成功，点击按钮继续。"
+            "value" : "免JIT模式测试通过。"
           }
         }
       }
@@ -1681,19 +1681,19 @@
         }
       }
     },
-    "lc.settings.error.altstoreNotPatched" : {
+    "lc.settings.error.storeNotPatched %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You must patch AltStore before setting up JIT-Less mode."
+            "value" : "You must patch %@ before testing JIT-Less mode."
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在设置免JIT模式前，你必须要先给AltStore打补丁。"
+            "value" : "在设测试JIT模式前，你必须要先给%@打补丁。"
           }
         }
       }
@@ -1874,13 +1874,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "JIT-less allows you to use LiveContainer without having to enable JIT. Requires AltStore or SideStore."
+            "value" : "JIT-less allows you to use LiveContainer without having to enable JIT. Patch AltStore or SideStore to enable."
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "配置免JIT模式后，LiveContainer无需JIT即可使用。需要SideStore或AltStore。"
+            "value" : "配置免JIT模式后，LiveContainer无需JIT即可使用。给SideStore或AltStore打补丁后即可使用。"
           }
         }
       }
@@ -2122,53 +2122,53 @@
         }
       }
     },
-    "lc.settings.patchAltstore" : {
+    "lc.settings.patchStore %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Patch AltStore"
+            "value" : "Patch %@"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "给AltStore打补丁"
+            "value" : "给%@打补丁"
           }
         }
       }
     },
-    "lc.settings.patchAltstoreAgain" : {
+    "lc.settings.patchStoreAgain %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Patch AltStore Again"
+            "value" : "Patch %@ Again"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "重新给AltStore打补丁"
+            "value" : "重新给%@打补丁"
           }
         }
       }
     },
-    "lc.settings.patchAltstoreDesc" : {
+    "lc.settings.patchStoreDesc %@ %@ %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To use JIT-Less mode with AltStore, you must patch AltStore in order to retrive keychain. AltStore's functions will not be affected. Continue?"
+            "value" : "To use JIT-Less mode with %@, you must patch %@ in order to retrieve certificate. %@’s functions will not be affected. Continue?"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为了通过AltStore获取证书以配置免JIT模式，你必须要给AltStore打补丁。AltStore的功能不会受到任何影响。要继续吗？"
+            "value" : "为了通过%@获取证书以配置免JIT模式，你必须要给%@打补丁。%@的功能不会受到任何影响。要继续吗？"
           }
         }
       }
@@ -2186,23 +2186,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新免JIT模式证书"
-          }
-        }
-      }
-    },
-    "lc.settings.setupJitLess" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Setup JIT-less certificate"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置免JIT模式证书"
           }
         }
       }
@@ -2271,6 +2254,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "启用后，将只能从App选择界面启动App。"
+          }
+        }
+      }
+    },
+    "lc.settings.testJitLess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test JIT-Less Mode"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试免JIT模式"
           }
         }
       }

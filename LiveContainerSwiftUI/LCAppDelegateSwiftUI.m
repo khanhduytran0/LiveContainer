@@ -1,7 +1,7 @@
 #import "LCAppDelegateSwiftUI.h"
 #import <UIKit/UIKit.h>
 #import "LCUtils.h"
-#import "LCSharedUtils.h"
+#import "../LCSharedUtils.h"
 
 @implementation LCAppDelegateSwiftUI
 

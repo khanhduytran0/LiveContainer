@@ -21,7 +21,7 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header);
 
 @interface LCUtils : NSObject
 
-+ (NSURL *)archiveIPAWithSetupMode:(BOOL)setup error:(NSError **)error;
++ (void)validateJITLessSetupWithCompletionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 + (NSURL *)archiveIPAWithBundleName:(NSString*)newBundleName error:(NSError **)error;
 + (NSURL *)archiveTweakedAltStoreWithError:(NSError **)error;
 + (NSData *)certificateData;
@@ -37,7 +37,6 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header);
 
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL;
 + (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
-
 + (BOOL)isAppGroupAltStoreLike;
 + (Store)store;
 + (NSString *)appGroupID;
