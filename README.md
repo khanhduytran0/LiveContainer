@@ -17,9 +17,10 @@ Requires AltStore or SideStore
 Without JIT, guest apps need to be codesigned, which requires retrieving the certificate and password from SideStore or AltStore. This process involves applying a tweak to SideStore/AltStore, allowing it to expose the certificate to LiveContainer.
 - Open Settings in LiveContainer, tap "Patch SideStore/AltStore", and the app will switch to SideStore/AltStore to reinstall it with the tweak applied. If you use AltWidget, select "Keep Extension."
 - Wait for the installation to finish, then **reopen SideStore/AltStore**.
-- Return to LiveContainer and press "Test JIT-Less Mode." If it says "Test Passed," JIT-less mode is ready..
+- Return to LiveContainer and press "Test JIT-Less Mode." If it says "Test Passed," JIT-less mode is ready.
 - Install your app via the "Apps" tab.
 - Tap the run icon, it will attempt to restart LiveContainer with guest app loaded.
+
 Note: If you update or reinstall SideStore/AltStore, you'll need to reapply the patch.
 
 ### With JIT (requires SideStore)
@@ -58,6 +59,12 @@ LiveContainer comes with its own TweakLoader, which automatically load CydiaSubs
 .dylib files in `Tweaks` folder are global, they are loaded to all apps. You can create app-specific tweaks folder and switch between them instantly.
 
 To install tweaks, you can use the built-in tweak manager in LiveContainer, which will automatically sign tweaks as you import. Otherwise, you can manually add them and then use the tweak manager to sign them.
+
+### Hiding Apps
+LiveContainer offers three levels of app hiding:
+- **Lock Apps**: In the app-specific settings, you can lock an app, requiring Face ID or a password to launch it.
+- **Hide Locked Apps**: Once locked, you can hide the app. It will appear as a placeholder in the "Hidden Apps" section, and authentication is needed to view or launch it.
+- **Strict Hiding Mode**: For complete invisibility, enable "Strict Hiding Mode" in LiveContainer's settings after authentication. Hidden apps will no longer appear in the interface. To access them, triple-tap the "x Apps in total" text on the main screen and authenticate to unlock the apps when you relaunch LiveContainer.
 
 ## Building
 ```
