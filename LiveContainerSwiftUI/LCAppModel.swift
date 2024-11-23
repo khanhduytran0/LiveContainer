@@ -90,7 +90,10 @@ class LCAppModel: ObservableObject, Hashable {
         }
         isAppRunning = true
         defer {
-            isAppRunning = false
+            DispatchQueue.main.async {
+                self.isAppRunning = false
+            }
+
         }
         try await signApp(force: true)
     }

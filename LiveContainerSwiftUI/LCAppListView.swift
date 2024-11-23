@@ -451,12 +451,13 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         let finalNewApp = LCAppInfo(bundlePath: outputFolder.path)
         finalNewApp?.relativeBundlePath = appRelativePath
         
-        // patch it
         guard let finalNewApp else {
             errorInfo = "lc.appList.appInfoInitError".loc
             errorShow = true
             return
         }
+        
+        // patch and sign it
         var signError : String? = nil
         await withCheckedContinuation({ c in
             finalNewApp.signer = Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!
@@ -468,8 +469,10 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             }, forceSign: false)
         })
         
+        // we leave it unsigned even if signing failed
         if let signError {
-            throw signError
+            errorInfo = signError
+            errorShow = true
         }
         
         if let appToReplace {
