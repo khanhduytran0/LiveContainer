@@ -21,6 +21,7 @@ public:
 	string m_strSubjectCN;
 	string m_strProvisionData;
 	string m_strEntitlementsData;
+    time_t expirationDate;
 
 private:
 	void *m_evpPKey;

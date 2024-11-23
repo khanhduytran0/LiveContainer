@@ -9,7 +9,6 @@
 #include <openssl/pkcs12.h>
 #include <openssl/conf.h>
 
-#include <openssl/md5.h>
 #include <sstream>
 #include <iomanip>
 
@@ -843,6 +842,7 @@ bool ZSignAsset::InitSimple(const void* strSignerPKeyData, int strSignerPKeyData
             {
                 jvProv["Entitlements"].writePList(m_strEntitlementsData);
             }
+            expirationDate = jvProv["ExpirationDate"].asDate();
         }
     }
 
@@ -854,14 +854,7 @@ bool ZSignAsset::InitSimple(const void* strSignerPKeyData, int strSignerPKeyData
 
     X509 *x509Cert = NULL;
     EVP_PKEY *evpPKey = NULL;
-    
-    // BIO *bioPKey = BIO_new_file(strSignerPKeyFile.c_str(), "r");
-    char* digest = new char[16];
-    MD5((unsigned char*) strSignerPKeyData, strSignerPKeyDataSize, (unsigned char*)digest);
-    ZLog::Error(binary_to_hex(digest, 16).data());
-    delete[] digest;
 
-    
     BIO *bioPKey = BIO_new_mem_buf(strSignerPKeyData, strSignerPKeyDataSize);
     if (NULL != bioPKey)
     {

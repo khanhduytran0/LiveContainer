@@ -7,5 +7,5 @@
 #import <Foundation/Foundation.h>
 
 @interface ZSigner : NSObject
-+ (NSProgress*)signWithAppPath:(NSString *)appPath execName:(NSString *)execName prov:(NSData *)prov key:(NSData *)key pass:(NSString *)pass completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
++ (NSProgress*)signWithAppPath:(NSString *)appPath execName:(NSString *)execName prov:(NSData *)prov key:(NSData *)key pass:(NSString *)pass completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler;
 @end

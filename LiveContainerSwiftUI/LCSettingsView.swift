@@ -39,11 +39,8 @@ struct LCSettingsView: View {
     @State var deviceUDID: String
     
     @State var isSideStore : Bool = true
-    @State var isSideStore : Bool = true
     
     @EnvironmentObject private var sharedModel : SharedModel
-    
-    let storeName = LCUtils.getStoreName()
     
     let storeName = LCUtils.getStoreName()
     

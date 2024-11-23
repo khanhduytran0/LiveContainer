@@ -161,7 +161,7 @@ void zsign(NSString *appPath,
           NSData *key,
           NSString *pass,
           NSProgress* progress,
-          void(^completionHandler)(BOOL success, NSError *error)
+          void(^completionHandler)(BOOL success, NSDate* expirationDate, NSError *error)
           )
 {
     ZTimer gtimer;
@@ -193,11 +193,12 @@ void zsign(NSString *appPath,
 	__block ZSignAsset zSignAsset;
 	
     if (!zSignAsset.InitSimple(strPKeyFileData, (int)[key length], strProvFileData, (int)[prov length], strPassword)) {
-        completionHandler(NO, makeErrorFromLog(ZLog::logs));
+        completionHandler(NO, nil, makeErrorFromLog(ZLog::logs));
         bool _ = ZLog::logs.empty();
 		return;
 	}
-	
+    NSDate *date = [NSDate dateWithTimeIntervalSince1970:zSignAsset.expirationDate];
+    
 	bool bEnableCache = true;
 	string strFolder = strPath;
 	
@@ -205,7 +206,7 @@ void zsign(NSString *appPath,
 	bool success = bundle.ConfigureFolderSign(&zSignAsset, strFolder, execNameStr, "", "", "", strDyLibFile, bForce, bWeakInject, bEnableCache, bDontGenerateEmbeddedMobileProvision);
 
     if(!success) {
-        completionHandler(NO, makeErrorFromLog(ZLog::logs));
+        completionHandler(NO, nil, makeErrorFromLog(ZLog::logs));
         bool _ = ZLog::logs.empty();
         return;
     }
@@ -223,7 +224,7 @@ void zsign(NSString *appPath,
     bool bRet = bundle.StartSign(bEnableCache);
     timer.PrintResult(bRet, ">>> Signed %s!", bRet ? "OK" : "Failed");
     gtimer.Print(">>> Done.");
-    completionHandler(YES, nil);
+    completionHandler(YES, date, nil);
     _ = ZLog::logs.empty();
     
 	return;

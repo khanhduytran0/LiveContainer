@@ -224,7 +224,7 @@
     return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:signCompletionHandler];
 }
 
-+ (NSProgress *)signAppBundleWithZSign:(NSURL *)path execName:(NSString*)execName completionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
++ (NSProgress *)signAppBundleWithZSign:(NSURL *)path execName:(NSString*)execName completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
     NSError *error;
 
     // use zsign as our signer~
@@ -234,7 +234,7 @@
     [self loadStoreFrameworksWithError2:&error];
 
     if (error) {
-        completionHandler(NO, error);
+        completionHandler(NO, nil, error);
         return nil;
     }
 

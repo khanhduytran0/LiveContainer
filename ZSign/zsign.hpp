@@ -33,7 +33,7 @@ void zsign(NSString *appPath,
           NSData *key,
           NSString *pass,
           NSProgress* progress,
-          void(^completionHandler)(BOOL success, NSError *error)
+          void(^completionHandler)(BOOL success, NSDate* expirationDate, NSError *error)
           );
 
 

@@ -220,7 +220,7 @@
     int signRevision = 1;
 
     NSDate* expirationDate = info[@"LCExpirationDate"];
-    if(expirationDate && [[[NSUserDefaults alloc] initWithSuiteName:[LCUtils appGroupID]] boolForKey:@"LCSignOnlyOnExpiration"]) {
+    if(expirationDate && [[[NSUserDefaults alloc] initWithSuiteName:[LCUtils appGroupID]] boolForKey:@"LCSignOnlyOnExpiration"] && !forceSign) {
         if([expirationDate laterDate:[NSDate now]] == expirationDate) {
             // not expired yet, don't sign again
             completetionHandler(nil);

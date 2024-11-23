@@ -2190,6 +2190,23 @@
         }
       }
     },
+    "lc.settings.signer.desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If ZSign reports an error, please try AltSign. Please restart LiveContainer after switching Signer."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "若ZSign签名遇到问题，可尝试使用AltSign。切换签名工具后请重启LiveContainer。"
+          }
+        }
+      }
+    },
     "lc.settings.signOnlyOnExpiration" : {
       "extractionState" : "manual",
       "localizations" : {
