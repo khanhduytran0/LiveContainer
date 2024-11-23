@@ -179,8 +179,9 @@
         // Remove PlugIns folder
         [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
         // Remove code signature from all library files
-        [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
-        
+        if([self signer] == AltSign) {
+            [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
+        }
 
         dispatch_async(dispatch_get_main_queue(), completion);
     });
@@ -288,7 +289,19 @@
             
             __block NSProgress *progress;
             
-            progress = [LCUtils signAppBundle:appPathURL completionHandler:signCompletionHandler];
+            switch ([self signer]) {
+                case ZSign:
+                    progress = [LCUtils signAppBundleWithZSign:appPathURL execName:info[@"CFBundleExecutable"] completionHandler:signCompletionHandler];
+                    break;
+                case AltSign:
+                    progress = [LCUtils signAppBundle:appPathURL completionHandler:signCompletionHandler];
+                    break;
+                    
+                default:
+                    completetionHandler(@"Signer Not Found");
+                    break;
+            }
+
             if (progress) {
                 progressHandler(progress);
             }
@@ -362,6 +375,17 @@
 }
 - (void)setBypassAssertBarrierOnQueue:(bool)enabled {
     _info[@"bypassAssertBarrierOnQueue"] = [NSNumber numberWithBool:enabled];
+    [self save];
+    
+}
+
+- (Signer)signer {
+    return (Signer) [((NSNumber*) _info[@"signer"]) intValue];
+
+}
+- (void)setSigner:(Signer)newSigner {
+    _info[@"signer"] = [NSNumber numberWithInt:(int) newSigner];
+    NSLog(@"[LC] new signer = %d", (int) newSigner);
     [self save];
     
 }

@@ -459,6 +459,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         }
         var signError : String? = nil
         await withCheckedContinuation({ c in
+            finalNewApp.signer = Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!
             finalNewApp.patchExecAndSignIfNeed(completionHandler: { error in
                 signError = error
                 c.resume()
@@ -481,6 +482,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             finalNewApp.doSymlinkInbox = appToReplace.appInfo.doSymlinkInbox
             finalNewApp.setDataUUID(appToReplace.appInfo.getDataUUIDNoAssign())
             finalNewApp.setTweakFolder(appToReplace.appInfo.tweakFolder())
+            finalNewApp.signer = appToReplace.appInfo.signer
         }
         DispatchQueue.main.async {
             if let appToReplace {

@@ -943,6 +943,23 @@
         }
       }
     },
+    "lc.appSettings.signer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signer"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "签名工具"
+          }
+        }
+      }
+    },
     "lc.appSettings.toPrivateApp" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1643,6 +1660,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "某些App的账户不能在LiveContainer间同步的原因可能是其Keychain还存储在本地。清理Keychain可能能解决此问题，但可能会导致你登出某些账户。要继续吗？"
+          }
+        }
+      }
+    },
+    "lc.settings.defaultSigner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Signer"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认签名工具"
           }
         }
       }

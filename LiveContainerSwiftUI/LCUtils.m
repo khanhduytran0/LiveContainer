@@ -5,6 +5,7 @@
 #import "AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
 #import "LCVersionInfo.h"
+#import "../ZSign/zsigner.h"
 
 @implementation LCUtils
 
@@ -110,6 +111,16 @@
     loaded = YES;
 }
 
++ (void)loadStoreFrameworksWithError2:(NSError **)error {
+    // too lazy to use dispatch_once
+    static BOOL loaded = NO;
+    if (loaded) return;
+
+    dlopen("@executable_path/Frameworks/ZSign.dylib", RTLD_GLOBAL);
+    
+    loaded = YES;
+}
+
 + (NSString *)storeBundleID {
     // Assuming this format never changes...
     // group.BUNDLEID.YOURTEAMID
@@ -211,6 +222,27 @@
     };
 
     return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:signCompletionHandler];
+}
+
++ (NSProgress *)signAppBundleWithZSign:(NSURL *)path execName:(NSString*)execName completionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
+    NSError *error;
+
+    // use zsign as our signer~
+    NSURL *profilePath = [NSBundle.mainBundle URLForResource:@"embedded" withExtension:@"mobileprovision"];
+    NSData *profileData = [NSData dataWithContentsOfURL:profilePath];
+    // Load libraries from Documents, yeah
+    [self loadStoreFrameworksWithError2:&error];
+
+    if (error) {
+        completionHandler(NO, error);
+        return nil;
+    }
+
+    NSLog(@"[LC] starting signing...");
+    
+    NSProgress* ans = [NSClassFromString(@"ZSigner") signWithAppPath:[path path] execName:execName prov:profileData key: self.certificateData pass:self.certificatePassword completionHandler:completionHandler];
+    
+    return ans;
 }
 
 #pragma mark Setup

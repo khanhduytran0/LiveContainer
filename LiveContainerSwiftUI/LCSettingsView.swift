@@ -26,6 +26,7 @@ struct LCSettingsView: View {
     @State private var isAltStorePatched = false
     
     @State var isJitLessEnabled = false
+    @State var defaultSigner = Signer.ZSign
     @State var isJITLessTestInProgress = false
     @State var isSignOnlyOnExpiration = true
     @State var frameShortIcon = false
@@ -38,8 +39,11 @@ struct LCSettingsView: View {
     @State var deviceUDID: String
     
     @State var isSideStore : Bool = true
+    @State var isSideStore : Bool = true
     
     @EnvironmentObject private var sharedModel : SharedModel
+    
+    let storeName = LCUtils.getStoreName()
     
     let storeName = LCUtils.getStoreName()
     
@@ -49,6 +53,8 @@ struct LCSettingsView: View {
         if(LCUtils.appGroupUserDefault.object(forKey: "LCSignOnlyOnExpiration") == nil) {
             LCUtils.appGroupUserDefault.set(true, forKey: "LCSignOnlyOnExpiration")
         }
+        _defaultSigner = State(initialValue: Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!)
+        
         _isSignOnlyOnExpiration = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCSignOnlyOnExpiration"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
@@ -109,11 +115,17 @@ struct LCSettingsView: View {
 //                            Text("export cert")
 //                        }
                         
+                        Picker(selection: $defaultSigner) {
+                            Text("AltSign").tag(Signer.AltSign)
+                            Text("ZSign").tag(Signer.ZSign)
+                        } label: {
+                            Text("lc.settings.defaultSigner")
+                        }
 
                     } header: {
                         Text("lc.settings.jitLess".loc)
                     } footer: {
-                        Text("lc.settings.jitLessDesc".loc)
+                        Text("lc.settings.jitLessDesc".loc + "\n" + "lc.settings.signer.desc".loc)
                     }
                 }
 
@@ -341,6 +353,9 @@ struct LCSettingsView: View {
             }
             .onChange(of: sideJITServerAddress) { newValue in
                 saveAppGroupItem(key: "LCSideJITServerAddress", val: newValue)
+            }
+            .onChange(of: defaultSigner) { newValue in
+                saveAppGroupItem(key: "LCDefaultSigner", val: newValue.rawValue)
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
