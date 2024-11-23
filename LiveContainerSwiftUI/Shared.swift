@@ -306,7 +306,7 @@ struct SiteAssociation : Codable {
 }
 
 extension LCUtils {
-    public static let appGroupUserDefault = UserDefaults.init(suiteName: LCUtils.appGroupID())!
+    public static let appGroupUserDefault = UserDefaults.init(suiteName: LCUtils.appGroupID()) ?? UserDefaults.standard
     
     public static func signFilesInFolder(url: URL, onProgressCreated: (Progress) -> Void) async -> String? {
         let fm = FileManager()
@@ -326,7 +326,7 @@ extension LCUtils {
         }
         
         await withCheckedContinuation { c in
-            let progress = LCUtils.signAppBundle(url) { success, error in
+            let progress = LCUtils.signAppBundle(url) { success, expirationDate, error in
                 do {
                     if let error = error {
                         ans = error.localizedDescription

@@ -218,6 +218,15 @@
 
     int signRevision = 1;
 
+    NSDate* expirationDate = info[@"LCExpirationDate"];
+    if(expirationDate && [[[NSUserDefaults alloc] initWithSuiteName:[LCUtils appGroupID]] boolForKey:@"LCSignOnlyOnExpiration"]) {
+        if([expirationDate laterDate:[NSDate now]] == expirationDate) {
+            // not expired yet, don't sign again
+            completetionHandler(nil);
+            return;
+        }
+    }
+    
     // We're only getting the first 8 bytes for comparison
     NSUInteger signID;
     if (LCUtils.certificateData) {
@@ -225,7 +234,7 @@
         CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
         signID = *(uint64_t *)digest + signRevision;
     } else {
-        completetionHandler(@"Failed to find ALTCertificate.p12. Please refresh your store and try again.");
+        completetionHandler(@"Failed to find signing certificate. Please refresh your store and try again.");
         return;
     }
     
@@ -250,7 +259,7 @@
             [info removeObjectForKey:@"LCBundleExecutable"];
             [info removeObjectForKey:@"LCBundleIdentifier"];
             
-            void (^signCompletionHandler)(BOOL success, NSError *error)  = ^(BOOL success, NSError *_Nullable error) {
+            void (^signCompletionHandler)(BOOL success, NSDate* expirationDate, NSError *error)  = ^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (!error) {
                         info[@"LCJITLessSignID"] = @(signID);
@@ -259,9 +268,12 @@
                     // Remove fake main executable
                     [NSFileManager.defaultManager removeItemAtPath:tmpExecPath error:nil];
                     
+
+                    if(!error && expirationDate) {
+                        info[@"LCExpirationDate"] = expirationDate;
+                    }
                     // Save sign ID and restore bundle ID
                     [self save];
-                    
                     
                     if(error) {
                         completetionHandler(error.localizedDescription);

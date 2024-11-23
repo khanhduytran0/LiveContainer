@@ -1732,40 +1732,6 @@
         }
       }
     },
-    "lc.settings.ignoreAltCert" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ignore ALTCertificate.p12"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "忽略ALTCertificate.p12"
-          }
-        }
-      }
-    },
-    "lc.settings.ignoreAltCertDesc" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If you see frequent re-sign, enable this option."
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "如果App重新签名过于频繁，可尝试启用此项。"
-          }
-        }
-      }
-    },
     "lc.settings.injectLCItself" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2156,19 +2122,19 @@
         }
       }
     },
-    "lc.settings.patchStoreDesc %@ %@ %@" : {
+    "lc.settings.patchStoreDesc %@ %@ %@ %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To use JIT-Less mode with %@, you must patch %@ in order to retrieve certificate. %@’s functions will not be affected. Continue?"
+            "value" : "To use JIT-Less mode with %@, you must patch %@ in order to retrieve certificate. %@’s functions will not be affected. Please confirm that you can refresh %@ before applying the patch. Continue?"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为了通过%@获取证书以配置免JIT模式，你必须要给%@打补丁。%@的功能不会受到任何影响。要继续吗？"
+            "value" : "为了通过%@获取证书以配置免JIT模式，你必须要给%@打补丁。%@的功能不会受到任何影响。请确保在打补丁前%@可以正常刷新。要继续吗？"
           }
         }
       }
@@ -2186,6 +2152,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新免JIT模式证书"
+          }
+        }
+      }
+    },
+    "lc.settings.signOnlyOnExpiration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-Sign Only on Certificate Expires"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在证书过期时重新签名"
+          }
+        }
+      }
+    },
+    "lc.settings.signOnlyOnExpirationDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you see frequent re-sign, enable this option."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果App重新签名过于频繁，可尝试启用此项。"
           }
         }
       }

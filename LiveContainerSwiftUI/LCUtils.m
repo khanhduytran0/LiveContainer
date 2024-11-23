@@ -43,21 +43,7 @@
     }
 }
 
-+ (void)setCertificateData:(NSData *)certData {
-    [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] setObject:certData forKey:@"LCCertificateData"];
-    [NSUserDefaults.standardUserDefaults setObject:certData forKey:@"LCCertificateData"];
-}
-
-+ (NSData *)certificateDataFile {
-    // it seems that alstore never changes its ALTCertificate.p12 and the one it shipped with is invalid so we ignore it anyhow.
-    if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCIgnoreALTCertificate"] || [self store] == AltStore) {
-        return nil;
-    }
-    NSURL *url = [self.storeBundlePath URLByAppendingPathComponent:@"ALTCertificate.p12"];
-    return [NSData dataWithContentsOfURL:url];
-}
-
-+ (NSData *)certificateDataProperty {
++ (NSData *)certificateData {
     NSData* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
     if(ans) {
         return ans;
@@ -67,19 +53,9 @@
     
 }
 
-+ (NSData *)certificateData {
-    // Prefer certificate file over keychain data
-    return self.certificateDataFile ?: self.certificateDataProperty;
-}
-
 + (NSString *)certificatePassword {
-    if (self.certificateDataFile) {
-        NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
-        if(ans) {
-            return ans;
-        }
-        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
-    } else if (self.certificateDataProperty) {
+    // password of cert retrieved from the store tweak is always @"". We just keep this function so we can check if certificate presents without changing codes.
+    if([[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"]) {
         return @"";
     } else {
         return nil;
@@ -199,7 +175,7 @@
     }
 }
 
-+ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
++ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
     NSError *error;
 
     // I'm too lazy to reimplement signer, so let's borrow everything from SideStore
@@ -209,28 +185,32 @@
     // Load libraries from Documents, yeah
     [self loadStoreFrameworksWithError:&error];
     if (error) {
-        completionHandler(NO, error);
+        completionHandler(NO, nil, error);
         return nil;
     }
 
     ALTCertificate *cert = [[NSClassFromString(@"ALTCertificate") alloc] initWithP12Data:self.certificateData password:self.certificatePassword];
     if (!cert) {
-        error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTCertificate"}];
-        completionHandler(NO, error);
+        error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTCertificate. Please try: 1. make sure your store is patched 2. reopen your store 3. refresh all apps"}];
+        completionHandler(NO, nil, error);
         return nil;
     }
     ALTProvisioningProfile *profile = [[NSClassFromString(@"ALTProvisioningProfile") alloc] initWithURL:profilePath];
     if (!profile) {
-        error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:2 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTProvisioningProfile"}];
-        completionHandler(NO, error);
+        error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:2 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTProvisioningProfile. Please try: 1. make sure your store is patched 2. reopen your store 3. refresh all apps"}];
+        completionHandler(NO, nil, error);
         return nil;
     }
 
     ALTAccount *account = [NSClassFromString(@"ALTAccount") new];
     ALTTeam *team = [[NSClassFromString(@"ALTTeam") alloc] initWithName:@"" identifier:@"" /*profile.teamIdentifier*/ type:ALTTeamTypeUnknown account:account];
     ALTSigner *signer = [[NSClassFromString(@"ALTSigner") alloc] initWithTeam:team certificate:cert];
+    
+    void (^signCompletionHandler)(BOOL success, NSError *error)  = ^(BOOL success, NSError *_Nullable error) {
+        completionHandler(success, [profile expirationDate], error);
+    };
 
-    return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:completionHandler];
+    return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:signCompletionHandler];
 }
 
 #pragma mark Setup
@@ -322,7 +302,7 @@
 
     // Sign the test app bundle
     [LCUtils signAppBundle:[NSURL fileURLWithPath:path]
-    completionHandler:^(BOOL success, NSError *_Nullable error) {
+    completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
         dispatch_async(dispatch_get_main_queue(), ^{
             completionHandler(success, error);
         });

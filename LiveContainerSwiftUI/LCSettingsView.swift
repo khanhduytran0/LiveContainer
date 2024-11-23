@@ -27,7 +27,7 @@ struct LCSettingsView: View {
     
     @State var isJitLessEnabled = false
     @State var isJITLessTestInProgress = false
-    @State var isAltCertIgnored = false
+    @State var isSignOnlyOnExpiration = true
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
     @State var injectToLCItelf = false
@@ -46,7 +46,10 @@ struct LCSettingsView: View {
     init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
         
-        _isAltCertIgnored = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreALTCertificate"))
+        if(LCUtils.appGroupUserDefault.object(forKey: "LCSignOnlyOnExpiration") == nil) {
+            LCUtils.appGroupUserDefault.set(true, forKey: "LCSignOnlyOnExpiration")
+        }
+        _isSignOnlyOnExpiration = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCSignOnlyOnExpiration"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
         _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
@@ -95,7 +98,16 @@ struct LCSettingsView: View {
                                 Text("lc.settings.testJitLess".loc)
                             }
                             .disabled(isJITLessTestInProgress)
+                            Toggle(isOn: $isSignOnlyOnExpiration) {
+                                Text("lc.settings.signOnlyOnExpiration".loc)
+                            }
                         }
+                        
+//                        Button {
+//                            export()
+//                        } label: {
+//                            Text("export cert")
+//                        }
                         
 
                     } header: {
@@ -124,17 +136,6 @@ struct LCSettingsView: View {
                 } footer: {
                     Text("lc.settings.multiLCDesc".loc)
                 }
-                
-                if(isSideStore) {
-                    Section {
-                        Toggle(isOn: $isAltCertIgnored) {
-                            Text("lc.settings.ignoreAltCert".loc)
-                        }
-                    } footer: {
-                        Text("lc.settings.ignoreAltCertDesc".loc)
-                    }
-                }
-
                 
                 Section {
                     HStack {
@@ -318,10 +319,10 @@ struct LCSettingsView: View {
                     patchAltStoreAlert.close(result: false)
                 }
             } message: {
-                Text("lc.settings.patchStoreDesc %@ %@ %@".localizeWithFormat(storeName, storeName, storeName))
+                Text("lc.settings.patchStoreDesc %@ %@ %@ %@".localizeWithFormat(storeName, storeName, storeName, storeName))
             }
-            .onChange(of: isAltCertIgnored) { newValue in
-                saveItem(key: "LCIgnoreALTCertificate", val: newValue)
+            .onChange(of: isSignOnlyOnExpiration) { newValue in
+                saveAppGroupItem(key: "LCSignOnlyOnExpiration", val: newValue)
             }
             .onChange(of: silentSwitchApp) { newValue in
                 saveItem(key: "LCSwitchAppWithoutAsking", val: newValue)
@@ -622,4 +623,48 @@ struct LCSettingsView: View {
         }
         
     }
+    
+//    func export() {
+//        let fileManager = FileManager.default
+//        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+//        
+//        // 1. Copy embedded.mobileprovision from the main bundle to Documents
+//        if let embeddedURL = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision") {
+//            let destinationURL = documentsURL.appendingPathComponent("embedded.mobileprovision")
+//            do {
+//                try fileManager.copyItem(at: embeddedURL, to: destinationURL)
+//                print("Successfully copied embedded.mobileprovision to Documents.")
+//            } catch {
+//                print("Error copying embedded.mobileprovision: \(error)")
+//            }
+//        } else {
+//            print("embedded.mobileprovision not found in the main bundle.")
+//        }
+//        
+//        // 2. Read "certData" from UserDefaults and save to cert.p12 in Documents
+//        if let certData = LCUtils.certificateData() {
+//            let certFileURL = documentsURL.appendingPathComponent("cert.p12")
+//            do {
+//                try certData.write(to: certFileURL)
+//                print("Successfully wrote certData to cert.p12 in Documents.")
+//            } catch {
+//                print("Error writing certData to cert.p12: \(error)")
+//            }
+//        } else {
+//            print("certData not found in UserDefaults.")
+//        }
+//        
+//        // 3. Read "certPassword" from UserDefaults and save to pass.txt in Documents
+//        if let certPassword = LCUtils.certificatePassword() {
+//            let passwordFileURL = documentsURL.appendingPathComponent("pass.txt")
+//            do {
+//                try certPassword.write(to: passwordFileURL, atomically: true, encoding: .utf8)
+//                print("Successfully wrote certPassword to pass.txt in Documents.")
+//            } catch {
+//                print("Error writing certPassword to pass.txt: \(error)")
+//            }
+//        } else {
+//            print("certPassword not found in UserDefaults.")
+//        }
+//    }
 }

@@ -26,8 +26,6 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header);
 + (NSURL *)archiveTweakedAltStoreWithError:(NSError **)error;
 + (NSData *)certificateData;
 + (NSString *)certificatePassword;
-+ (void)setCertificateData:(NSData *)data;
-+ (void)setCertificatePassword:(NSString *)password;
 + (BOOL)deleteKeychainItem:(NSString *)key ofStore:(NSString *)store;
 + (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store;
 
@@ -36,7 +34,7 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header);
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url;
 
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL;
-+ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
++ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler;
 + (BOOL)isAppGroupAltStoreLike;
 + (Store)store;
 + (NSString *)appGroupID;
