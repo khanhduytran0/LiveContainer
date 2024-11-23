@@ -5,7 +5,7 @@
 #import "AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
 #import "LCVersionInfo.h"
-#import "../zsign/zsigner.h"
+#import "../ZSign/zsigner.h"
 
 @implementation LCUtils
 
@@ -70,21 +70,11 @@
 
 + (NSData *)certificateData {
     // Prefer certificate file over keychain data
-    return self.certificateDataFile ?: self.certificateDataProperty;
+    return [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
 }
 
 + (NSString *)certificatePassword {
-    if (self.certificateDataFile) {
-        NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
-        if(ans) {
-            return ans;
-        }
-        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
-    } else if (self.certificateDataProperty) {
-        return @"";
-    } else {
-        return nil;
-    }
+    return @"";
 }
 
 + (void)setCertificatePassword:(NSString *)certPassword {
