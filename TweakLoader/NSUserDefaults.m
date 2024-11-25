@@ -10,8 +10,12 @@
 #import "UIKitPrivate.h"
 #import "utils.h"
 #import "LCSharedUtils.h"
+#import "dispatch_cancelable_block_t.h"
 
 NSMutableDictionary* LCPreferences = 0;
+NSMutableDictionary<NSString*, dispatch_cancelable_block_t>* LCPreferencesDispatchBlock = 0;
+BOOL LCIsTerminateFlushHappened = NO;
+dispatch_semaphore_t LCPreferencesDispatchBlockSemaphore;
 
 __attribute__((constructor))
 static void UIKitGuestHooksInit() {
@@ -25,6 +29,8 @@ static void UIKitGuestHooksInit() {
     swizzle(NSUserDefaults.class, @selector(persistentDomainForName:), @selector(hook_persistentDomainForName:));
     swizzle(NSUserDefaults.class, @selector(removePersistentDomainForName:), @selector(hook_removePersistentDomainForName:));
     LCPreferences = [[NSMutableDictionary alloc] init];
+    LCPreferencesDispatchBlock = [[NSMutableDictionary alloc] init];
+    LCPreferencesDispatchBlockSemaphore = dispatch_semaphore_create(1);
     NSFileManager* fm = NSFileManager.defaultManager;
     NSURL* libraryPath = [fm URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
     NSURL* preferenceFolderPath = [libraryPath URLByAppendingPathComponent:@"Preferences"];
@@ -32,6 +38,37 @@ static void UIKitGuestHooksInit() {
         NSError* error;
         [fm createDirectoryAtPath:preferenceFolderPath.path withIntermediateDirectories:YES attributes:@{} error:&error];
     }
+    
+    // flush any scheduled write to disk now
+    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationWillTerminateNotification
+                                                      object:nil
+                                                       queue:[NSOperationQueue mainQueue]
+                                                  usingBlock:^(NSNotification * _Nonnull notification) {
+        LCIsTerminateFlushHappened = YES;
+        dispatch_semaphore_wait(LCPreferencesDispatchBlockSemaphore, DISPATCH_TIME_FOREVER);
+        for(NSString* key in LCPreferencesDispatchBlock) {
+            if(LCPreferencesDispatchBlock[key]) {
+                run_block_now(LCPreferencesDispatchBlock[key]);
+            }
+        }
+        dispatch_semaphore_signal(LCPreferencesDispatchBlockSemaphore);
+    }];
+    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidEnterBackgroundNotification
+                                                      object:nil
+                                                       queue:[NSOperationQueue mainQueue]
+                                                  usingBlock:^(NSNotification * _Nonnull notification) {
+        dispatch_semaphore_wait(LCPreferencesDispatchBlockSemaphore, DISPATCH_TIME_FOREVER);
+        for(NSString* key in LCPreferencesDispatchBlock) {
+            LCIsTerminateFlushHappened = YES;
+            if(LCPreferencesDispatchBlock[key]) {
+                run_block_now(LCPreferencesDispatchBlock[key]);
+            }
+        }
+        [LCPreferencesDispatchBlock removeAllObjects];
+        LCIsTerminateFlushHappened = NO;
+        dispatch_semaphore_signal(LCPreferencesDispatchBlockSemaphore);
+    }];
+    
     
 }
 
@@ -49,32 +86,59 @@ NSMutableDictionary* LCGetPreference(NSString* identifier) {
     NSURL* preferenceFilePath = LCGetPreferencePath(identifier);
     if([NSFileManager.defaultManager fileExistsAtPath:preferenceFilePath.path]) {
         LCPreferences[identifier] = [NSMutableDictionary dictionaryWithContentsOfFile:preferenceFilePath.path];
+        return LCPreferences[identifier];
     } else {
-        LCPreferences[identifier] = [[NSMutableDictionary alloc] init];
+        return nil;
     }
-    return LCPreferences[identifier];
+    
 }
 
-
+void LCScheduleWriteBack(NSString* identifier) {
+    // debounce, write to disk if no write takes place after 2s
+    dispatch_cancelable_block_t task = dispatch_after_delay(2, ^{
+        NSURL* preferenceFilePath = LCGetPreferencePath(identifier);
+        [LCPreferences[identifier] writeToURL:preferenceFilePath atomically:YES];
+        if(!LCIsTerminateFlushHappened) {
+            LCPreferencesDispatchBlock[identifier] = nil;
+        }
+    });
+    if(LCIsTerminateFlushHappened) {
+        // flush now
+        run_block_now(task);
+        return;
+    }
+    
+    if(LCPreferencesDispatchBlock[identifier]) {
+        cancel_block(LCPreferencesDispatchBlock[identifier]);
+    }
+    dispatch_semaphore_wait(LCPreferencesDispatchBlockSemaphore, DISPATCH_TIME_FOREVER);
+    LCPreferencesDispatchBlock[identifier] = task;
+    dispatch_semaphore_signal(LCPreferencesDispatchBlockSemaphore);
+}
 
 @implementation NSUserDefaults(LiveContainerHooks)
 
 - (id)hook_objectForKey:(NSString*)key {
-    // let LiveContainer itself and Apple stuff bypass
+    // let LiveContainer itself bypass
     NSString* identifier = [self _identifier];
-    NSLog(@"[LC] hook_objectForKey key = %@, identifier = %@", key, identifier);
-    id ans = [self hook_objectForKey:key];
-    if(ans || [identifier isEqualToString:(__bridge id)kCFPreferencesCurrentApplication]) {
-        return ans;
+    if([identifier isEqualToString:(__bridge id)kCFPreferencesCurrentApplication]) {
+        return [self hook_objectForKey:key];
     }
+    
+    // priortize local preference file over values in native NSUserDefaults
     NSMutableDictionary* preferenceDict = LCGetPreference(identifier);
-    return preferenceDict[key];
+    if(preferenceDict && preferenceDict[key]) {
+        return preferenceDict[key];
+    } else {
+        return [self hook_objectForKey:key];
+    }
 }
 
 - (BOOL)hook_boolForKey:(NSString*)key {
     id obj = [self objectForKey:key];
-    
-    if ([obj isKindOfClass:[NSNumber class]]) {
+    if(!obj) {
+        return NO;
+    } else if ([obj isKindOfClass:[NSNumber class]]) {
         return [(NSNumber*)obj boolValue];
     } else if([obj isKindOfClass:[NSString class]]) {
         if([[(NSString*)obj lowercaseString] isEqualToString:@"yes"] || [[(NSString*)obj lowercaseString] isEqualToString:@"true"]) {
@@ -90,7 +154,9 @@ NSMutableDictionary* LCGetPreference(NSString* identifier) {
 
 - (NSInteger)hook_integerForKey:(NSString*)key {
     id obj = [self objectForKey:key];
-    if([obj isKindOfClass:[NSString class]]) {
+    if(!obj) {
+        return 0;
+    } else if([obj isKindOfClass:[NSString class]]) {
         return [(NSString*)obj integerValue];
     } else if ([obj isKindOfClass:[NSNumber class]]) {
         return [(NSNumber*)obj integerValue];
@@ -99,19 +165,18 @@ NSMutableDictionary* LCGetPreference(NSString* identifier) {
 }
 
 - (void)hook_setObject:(id)obj forKey:(NSString*)key {
-    // let apple bypass
+    // let LiveContainer itself bypess
     NSString* identifier = [self _identifier];
-    NSLog(@"[LC] hook_setObjectForKey key = %@, identifier = %@", key, identifier);
-    if([self hook_objectForKey:key]) {
-        [self hook_setObject:obj forKey:key];
-        return;
+    if([identifier isEqualToString:(__bridge id)kCFPreferencesCurrentApplication]) {
+        return [self hook_setObject:obj forKey:key];
     }
-
     NSMutableDictionary* preferenceDict = LCGetPreference(identifier);
+    if(!preferenceDict) {
+        preferenceDict = [[NSMutableDictionary alloc] init];
+        LCPreferences[identifier] = preferenceDict;
+    }
     preferenceDict[key] = obj;
-    NSURL* preferenceFilePath = LCGetPreferencePath(identifier);
-    [preferenceDict writeToURL:preferenceFilePath atomically:YES];
-
+    LCScheduleWriteBack(identifier);
     
 }
 
@@ -122,9 +187,13 @@ NSMutableDictionary* LCGetPreference(NSString* identifier) {
         return;
     }
     NSMutableDictionary* preferenceDict = LCGetPreference(identifier);
+    if(!preferenceDict) {
+        return;
+    }
+
     [preferenceDict removeObjectForKey:key];
-    NSURL* preferenceFilePath = LCGetPreferencePath(identifier);
-    [preferenceDict writeToURL:preferenceFilePath atomically:YES];
+    // debounce, write to disk if no write takes place after 3s
+    LCScheduleWriteBack(identifier);
 }
 
 - (NSDictionary*) hook_dictionaryRepresentation {
@@ -156,6 +225,13 @@ NSMutableDictionary* LCGetPreference(NSString* identifier) {
         [self hook_removePersistentDomainForName:domainName];
     } else {
         [LCPreferences removeObjectForKey:domainName];
+        // delete NOW
+        if(LCPreferencesDispatchBlock[domainName]) {
+            cancel_block(LCPreferencesDispatchBlock[domainName]);
+            dispatch_semaphore_wait(LCPreferencesDispatchBlockSemaphore, DISPATCH_TIME_FOREVER);
+            LCPreferencesDispatchBlock[domainName] = nil;
+            dispatch_semaphore_signal(LCPreferencesDispatchBlockSemaphore);
+        }
     }
     NSURL* preferenceFilePath = LCGetPreferencePath(domainName);
     NSFileManager* fm = NSFileManager.defaultManager;

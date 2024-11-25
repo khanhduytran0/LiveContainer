@@ -9,8 +9,6 @@
 + (void)setWebPageUrlForNextLaunch:(NSString*)urlString;
 + (NSString*)getAppRunningLCSchemeWithBundleId:(NSString*)bundleId;
 + (void)setAppRunningByThisLC:(NSString*)bundleId;
-+ (void)movePreferencesFromPath:(NSString*) plistLocationFrom toPath:(NSString*)plistLocationTo;
-+ (void)loadPreferencesFromPath:(NSString*) plistLocationFrom;
 + (void)moveSharedAppFolderBack;
 + (void)removeAppRunningByLC:(NSString*)LCScheme;
 + (NSBundle*)findBundleWithBundleId:(NSString*)bundleId;
