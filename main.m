@@ -342,7 +342,7 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         NSString *dirPath = [newHomePath stringByAppendingPathComponent:dir];
         [fm createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:nil];
     }
-    [LCSharedUtils loadPreferencesFromPath:[newHomePath stringByAppendingPathComponent:@"Library/Preferences"]];
+
     [lcUserDefaults setObject:dataUUID forKey:@"lastLaunchDataUUID"];
     if(isSharedBundle) {
         [lcUserDefaults setObject:@"Shared" forKey:@"lastLaunchType"];
@@ -419,21 +419,9 @@ int LiveContainerMain(int argc, char *argv[]) {
     lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
     lcAppGroupPath = [[NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[NSClassFromString(@"LCSharedUtils") appGroupID]] path];
     lcMainBundle = [NSBundle mainBundle];
-    // move preferences first then the entire folder
     
-
     NSString* lastLaunchDataUUID = [lcUserDefaults objectForKey:@"lastLaunchDataUUID"];
     if(lastLaunchDataUUID) {
-        NSString* lastLaunchType = [lcUserDefaults objectForKey:@"lastLaunchType"];
-        NSString* preferencesTo;
-        NSURL *libraryPathUrl = [NSFileManager.defaultManager URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
-        NSURL *docPathUrl = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject;
-        if([lastLaunchType isEqualToString:@"Shared"]) {
-            preferencesTo = [libraryPathUrl.path stringByAppendingPathComponent:[NSString stringWithFormat:@"SharedDocuments/%@/Library/Preferences", lastLaunchDataUUID]];
-        } else {
-            preferencesTo = [docPathUrl.path stringByAppendingPathComponent:[NSString stringWithFormat:@"Data/Application/%@/Library/Preferences", lastLaunchDataUUID]];
-        }
-        [LCSharedUtils movePreferencesFromPath:[NSString stringWithFormat:@"%@/Preferences", libraryPathUrl.path] toPath:preferencesTo];
         [lcUserDefaults removeObjectForKey:@"lastLaunchDataUUID"];
         [lcUserDefaults removeObjectForKey:@"lastLaunchType"];
     }

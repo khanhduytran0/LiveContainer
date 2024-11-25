@@ -181,67 +181,6 @@ extern NSString *lcAppUrlScheme;
 
 }
 
-// move all plists file from fromPath to toPath
-+ (void)movePreferencesFromPath:(NSString*) plistLocationFrom toPath:(NSString*)plistLocationTo {
-    NSFileManager* fm = [[NSFileManager alloc] init];
-    NSError* error1;
-    NSArray<NSString *> * plists = [fm contentsOfDirectoryAtPath:plistLocationFrom error:&error1];
-
-    // remove all plists in toPath first
-    NSArray *directoryContents = [fm contentsOfDirectoryAtPath:plistLocationTo error:&error1];
-    for (NSString *item in directoryContents) {
-        // Check if the item is a plist and does not contain "LiveContainer"
-        if(![item hasSuffix:@".plist"] || [item containsString:@"livecontainer"]) {
-            continue;
-        }
-        NSString *itemPath = [plistLocationTo stringByAppendingPathComponent:item];
-        // Attempt to delete the file
-        [fm removeItemAtPath:itemPath error:&error1];
-    }
-    
-    [fm createDirectoryAtPath:plistLocationTo withIntermediateDirectories:YES attributes:@{} error:&error1];
-    // move all plists in fromPath to toPath
-    for (NSString* item in plists) {
-        if(![item hasSuffix:@".plist"] || [item containsString:@"livecontainer"]) {
-            continue;
-        }
-        NSString* toPlistPath = [NSString stringWithFormat:@"%@/%@", plistLocationTo, item];
-        NSString* fromPlistPath = [NSString stringWithFormat:@"%@/%@", plistLocationFrom, item];
-        
-        [fm moveItemAtPath:fromPlistPath toPath:toPlistPath error:&error1];
-        if(error1) {
-            NSLog(@"[LC] error1 = %@", error1.description);
-        }
-        
-    }
-
-}
-
-// to make apple happy and prevent, we have to load all preferences into NSUserDefault so that guest app can read them
-+ (void)loadPreferencesFromPath:(NSString*) plistLocationFrom {
-    NSFileManager* fm = [[NSFileManager alloc] init];
-    NSError* error1;
-    NSArray<NSString *> * plists = [fm contentsOfDirectoryAtPath:plistLocationFrom error:&error1];
-    
-    // move all plists in fromPath to toPath
-    for (NSString* item in plists) {
-        if(![item hasSuffix:@".plist"] || [item containsString:@"livecontainer"]) {
-            continue;
-        }
-        NSString* fromPlistPath = [NSString stringWithFormat:@"%@/%@", plistLocationFrom, item];
-        // load, the file and sync
-        NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithContentsOfFile:fromPlistPath];
-        NSUserDefaults* nud = [[NSUserDefaults alloc] initWithSuiteName: [item substringToIndex:[item length]-6]];
-        for(NSString* key in dict) {
-            [nud setObject:dict[key] forKey:key];
-        }
-        
-        [nud synchronize];
-        
-    }
-
-}
-
 // move app data to private folder to prevent 0xdead10cc https://forums.developer.apple.com/forums/thread/126438
 + (void)moveSharedAppFolderBack {
     NSFileManager *fm = NSFileManager.defaultManager;

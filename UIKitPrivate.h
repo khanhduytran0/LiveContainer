@@ -6,6 +6,7 @@
 
 @interface NSUserDefaults(private)
 + (void)setStandardUserDefaults:(id)defaults;
+- (NSString*)_identifier;
 @end
 
 @interface UIImage(private)
