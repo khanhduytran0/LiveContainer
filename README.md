@@ -39,6 +39,7 @@ To install a second LiveContainer, go to Settings and tap "Install Another LiveC
 
 The first LiveContainer (blue icon) always launches by default.
 If an app is already running in the first container, you'll be prompted to either open it in the second LiveContainer (gray icon) or terminate the current app and relaunch it in the first. If the app is already running in the second container, it will switch automatically.
+To use an app in the second container, you must convert this app to a shared app. You can do that by opening the first LiveContainer (blue), long press on your app, open the settings of your app and then "Convert to Shared App". After that, you can launch your app using LiveContainer2 (grey)
 
 ### Fix File Picker
 Some apps may experience issues with their file pickers in LiveContainer. To resolve this, enable "Fix File Picker" in the app-specific settings.
