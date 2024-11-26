@@ -308,7 +308,7 @@ struct SiteAssociation : Codable {
 extension LCUtils {
     public static let appGroupUserDefault = UserDefaults.init(suiteName: LCUtils.appGroupID()) ?? UserDefaults.standard
     
-    public static func signFilesInFolder(url: URL, onProgressCreated: (Progress) -> Void) async -> String? {
+    public static func signFilesInFolder(url: URL, signer:Signer, onProgressCreated: (Progress) -> Void) async -> (String?, Date?) {
         let fm = FileManager()
         var ans : String? = nil
         let codesignPath = url.appendingPathComponent("_CodeSignature")
@@ -322,23 +322,35 @@ extension LCUtils {
         do {
             try fm.copyItem(at: Bundle.main.executableURL!, to: tmpExecPath)
         } catch {
-            return nil
+            return (nil, nil)
         }
-        
+        var ansDate : Date? = nil
         await withCheckedContinuation { c in
-            let progress = LCUtils.signAppBundle(url) { success, expirationDate, error in
+            func compeletionHandler(success: Bool, expirationDate: Date?, error: Error?){
                 do {
                     if let error = error {
                         ans = error.localizedDescription
                     }
-                    try fm.removeItem(at: codesignPath)
-                    try fm.removeItem(at: provisionPath)
+                    if(fm.fileExists(atPath: codesignPath.path)) {
+                        try fm.removeItem(at: codesignPath)
+                    }
+                    if(fm.fileExists(atPath: provisionPath.path)) {
+                        try fm.removeItem(at: provisionPath)
+                    }
+
                     try fm.removeItem(at: tmpExecPath)
                     try fm.removeItem(at: tmpInfoPath)
+                    ansDate = expirationDate
                 } catch {
                     ans = error.localizedDescription
                 }
                 c.resume()
+            }
+            let progress : Progress?
+            if signer == .AltSign {
+                progress = LCUtils.signAppBundle(url, completionHandler: compeletionHandler)
+            } else {
+                progress = LCUtils.signAppBundle(withZSign: url, execName: "LiveContainer.tmp", completionHandler: compeletionHandler)
             }
             guard let progress = progress else {
                 ans = "lc.utils.initSigningError".loc
@@ -347,8 +359,107 @@ extension LCUtils {
             }
             onProgressCreated(progress)
         }
-        return ans
+        return (ans, ansDate)
 
+    }
+    
+    public static func signTweaks(tweakFolderUrl: URL, force : Bool = false, signer:Signer, progressHandler : ((Progress) -> Void)? = nil) async throws {
+        guard LCUtils.certificatePassword() != nil else {
+            return
+        }
+        let fm = FileManager.default
+        var isFolder :ObjCBool = false
+        if(fm.fileExists(atPath: tweakFolderUrl.path, isDirectory: &isFolder) && !isFolder.boolValue) {
+            return
+        }
+        
+        // check if re-sign is needed
+        // if sign is expired, or inode number of any file changes, we need to re-sign
+        let tweakSignInfo = NSMutableDictionary(contentsOf: tweakFolderUrl.appendingPathComponent("TweakInfo.plist")) ?? NSMutableDictionary()
+        let expirationDate = tweakSignInfo["expirationDate"] as? Date
+        var signNeeded = false
+        if let expirationDate, expirationDate.compare(Date.now) == .orderedDescending, !force {
+            
+            let tweakFileINodeRecord = tweakSignInfo["files"] as? [String:NSNumber] ?? [String:NSNumber]()
+            let fileURLs = try fm.contentsOfDirectory(at: tweakFolderUrl, includingPropertiesForKeys: nil)
+            for fileURL in fileURLs {
+                if(fileURL.lastPathComponent == "TweakInfo.plist"){
+                    continue
+                }
+                let inodeNumber = try fm.attributesOfItem(atPath: fileURL.path)[.systemFileNumber] as? NSNumber
+                if let fileInodeNumber = tweakFileINodeRecord[fileURL.lastPathComponent] {
+                    if(fileInodeNumber != inodeNumber) {
+                        signNeeded = true
+                        break
+                    }
+                } else {
+                    signNeeded = true
+                    break
+                }
+                
+                print(fileURL.lastPathComponent) // Prints the file name
+            }
+            
+        } else {
+            signNeeded = true
+        }
+        
+        guard signNeeded else {
+            return
+        }
+        // sign start
+        
+        let tweakItems : [String] = []
+        let tmpDir = fm.temporaryDirectory.appendingPathComponent("TweakTmp.app")
+        if fm.fileExists(atPath: tmpDir.path) {
+            try fm.removeItem(at: tmpDir)
+        }
+        try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        
+        var tmpPaths : [URL] = []
+        // copy items to tmp folders
+        let fileURLs = try fm.contentsOfDirectory(at: tweakFolderUrl, includingPropertiesForKeys: nil)
+        for fileURL in fileURLs {
+            if(fileURL.lastPathComponent == "TweakInfo.plist"){
+                continue
+            }
+            
+            let tmpPath = tmpDir.appendingPathComponent(fileURL.lastPathComponent)
+            tmpPaths.append(tmpPath)
+            try fm.copyItem(at: fileURL, to: tmpPath)
+        }
+        
+        
+        let (error, expirationDate2) = await LCUtils.signFilesInFolder(url: tmpDir, signer: signer) { p in
+            if let progressHandler {
+                progressHandler(p)
+            }
+        }
+        if let error = error {
+            throw error
+        }
+        
+        // move signed files back and rebuild TweakInfo.plist
+        tweakSignInfo.removeAllObjects()
+        tweakSignInfo["expirationDate"] = expirationDate2
+        var fileInodes = [String:NSNumber]()
+        for tmpFile in tmpPaths {
+            let toPath = tweakFolderUrl.appendingPathComponent(tmpFile.lastPathComponent)
+            // remove original item and move the signed ones back
+            if fm.fileExists(atPath: toPath.path) {
+                try fm.removeItem(at: toPath)
+                
+            }
+            try fm.moveItem(at: tmpFile, to: toPath)
+            if let inodeNumber = try fm.attributesOfItem(atPath: toPath.path)[.systemFileNumber] as? NSNumber {
+                fileInodes[tmpFile.lastPathComponent] = inodeNumber
+            }
+        }
+        try fm.removeItem(at: tmpDir)
+
+        tweakSignInfo["files"] = fileInodes
+        try tweakSignInfo.write(to: tweakFolderUrl.appendingPathComponent("TweakInfo.plist"))
+        
     }
     
     public static func getAppRunningLCScheme(bundleId: String) -> String? {

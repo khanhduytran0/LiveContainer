@@ -100,6 +100,12 @@ class LCAppModel: ObservableObject, Hashable {
     
     func signApp(force: Bool = false) async throws {
         var signError : String? = nil
+        defer {
+            DispatchQueue.main.async {
+                self.isSigningInProgress = false
+            }
+        }
+        
         await withCheckedContinuation({ c in
             appInfo.patchExecAndSignIfNeed(completionHandler: { error in
                 signError = error;
@@ -116,10 +122,28 @@ class LCAppModel: ObservableObject, Hashable {
                 }
             }, forceSign: force)
         })
-        self.isSigningInProgress = false
         if let signError {
             throw signError
         }
+        
+        // sign its tweak
+        guard let tweakFolder = appInfo.tweakFolder() else {
+            return
+        }
+        
+        let tweakFolderUrl : URL
+        if(appInfo.isShared) {
+            tweakFolderUrl = LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder)
+        } else {
+            tweakFolderUrl = LCPath.tweakPath.appendingPathComponent(tweakFolder)
+        }
+        try await LCUtils.signTweaks(tweakFolderUrl: tweakFolderUrl, force: force, signer: self.appInfo.signer) { p in
+            DispatchQueue.main.async {
+                self.isSigningInProgress = true
+            }
+        }
+        
+        
     }
     
     func jitLaunch() async {

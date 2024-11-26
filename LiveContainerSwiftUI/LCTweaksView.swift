@@ -42,6 +42,9 @@ struct LCTweakFolderView : View {
         do {
             let files = try fm.contentsOfDirectory(atPath: baseUrl.path)
             for fileName in files {
+                if(fileName == "TweakInfo.plist"){
+                    continue
+                }
                 let fileUrl = baseUrl.appendingPathComponent(fileName)
                 var isFolder : ObjCBool = false
                 fm.fileExists(atPath: fileUrl.path, isDirectory: &isFolder)
@@ -188,7 +191,7 @@ struct LCTweakFolderView : View {
                 renameFileInput.close(result: "")
             }
         )
-        .fileImporter(isPresented: $choosingTweak, allowedContentTypes: [.dylib, .lcFramework, .deb], allowsMultipleSelection: true) { result in
+        .fileImporter(isPresented: $choosingTweak, allowedContentTypes: [.dylib, .lcFramework, /*.deb*/], allowsMultipleSelection: true) { result in
             Task { await startInstallTweak(result) }
         }
     }
@@ -282,42 +285,14 @@ struct LCTweakFolderView : View {
     
     func signAllTweaks() async {
         do {
-            let fm = FileManager()
-            let tmpDir = fm.temporaryDirectory.appendingPathComponent("TweakTmp")
-            if fm.fileExists(atPath: tmpDir.path) {
-                try fm.removeItem(at: tmpDir)
-            }
-            try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
-            
-            var tmpPaths : [URL] = []
-            // copy items to tmp folders
-            for item in tweakItems {
-                let tmpPath = tmpDir.appendingPathComponent(item.fileUrl.lastPathComponent)
-                tmpPaths.append(tmpPath)
-                try fm.copyItem(at: item.fileUrl, to: tmpPath)
-            }
-            
-            if (LCUtils.certificatePassword() != nil) {
-                // if in jit-less mode, we need to sign
-                isTweakSigning = true
-                let error = await LCUtils.signFilesInFolder(url: tmpDir) { p in
-                    
-                }
+            defer {
                 isTweakSigning = false
-                if let error = error {
-                    throw error
-                }
             }
             
-            for tmpFile in tmpPaths {
-                let toPath = self.baseUrl.appendingPathComponent(tmpFile.lastPathComponent)
-                // remove original item and move the signed ones back
-                if fm.fileExists(atPath: toPath.path) {
-                    try fm.removeItem(at: toPath)
-                    try fm.moveItem(at: tmpFile, to: toPath)
-                }
+            try await LCUtils.signTweaks(tweakFolderUrl: self.baseUrl, force: true, signer:Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!) { p in
+                isTweakSigning = true
             }
-            
+
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
@@ -348,13 +323,7 @@ struct LCTweakFolderView : View {
         do {
             let fm = FileManager()
             let urls = try result.get()
-            var tmpPaths : [URL] = []
-            // copy selected tweaks to tmp dir first
-            let tmpDir = fm.temporaryDirectory.appendingPathComponent("TweakTmp")
-            if fm.fileExists(atPath: tmpDir.path) {
-                try fm.removeItem(at: tmpDir)
-            }
-            try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+            // we will sign later before app launch
             
             for fileUrl in urls {
                 // handle deb file
@@ -364,48 +333,23 @@ struct LCTweakFolderView : View {
                 if(!fileUrl.isFileURL) {
                     throw "lc.tweakView.notFileError %@".localizeWithFormat(fileUrl.lastPathComponent)
                 }
-                let toPath = tmpDir.appendingPathComponent(fileUrl.lastPathComponent)
+                let toPath = self.baseUrl.appendingPathComponent(fileUrl.lastPathComponent)
                 try fm.copyItem(at: fileUrl, to: toPath)
-                tmpPaths.append(toPath)
                 LCParseMachO((toPath.path as NSString).utf8String) { path, header in
                     LCPatchAddRPath(path, header);
                 }
                 fileUrl.stopAccessingSecurityScopedResource()
-            }
-            
-            if (LCUtils.certificatePassword() != nil) {
-                // if in jit-less mode, we need to sign
-                isTweakSigning = true
-                let error = await LCUtils.signFilesInFolder(url: tmpDir) { p in
-                    
-                }
-                isTweakSigning = false
-                if let error = error {
-                    throw error
-                }
-            }
 
-
-            for tmpFile in tmpPaths {
-                let toPath = self.baseUrl.appendingPathComponent(tmpFile.lastPathComponent)
-                try fm.moveItem(at: tmpFile, to: toPath)
 
                 let isFramework = toPath.lastPathComponent.hasSuffix(".framework")
                 let isTweak = toPath.lastPathComponent.hasSuffix(".dylib")
                 self.tweakItems.append(LCTweakItem(fileUrl: toPath, isFolder: false, isFramework: isFramework, isTweak: isTweak))
             }
-            
-            // clean up
-            try fm.removeItem(at: tmpDir)
-            
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true            
             return
         }
-
-
-        
     }
 }
 
