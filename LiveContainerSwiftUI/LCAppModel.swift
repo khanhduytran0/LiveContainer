@@ -143,6 +143,13 @@ class LCAppModel: ObservableObject, Hashable {
             }
         }
         
+        // sign global tweak
+        try await LCUtils.signTweaks(tweakFolderUrl: LCPath.tweakPath, force: force, signer: self.appInfo.signer) { p in
+            DispatchQueue.main.async {
+                self.isSigningInProgress = true
+            }
+        }
+        
         
     }
     

@@ -383,6 +383,18 @@ extension LCUtils {
             let tweakFileINodeRecord = tweakSignInfo["files"] as? [String:NSNumber] ?? [String:NSNumber]()
             let fileURLs = try fm.contentsOfDirectory(at: tweakFolderUrl, includingPropertiesForKeys: nil)
             for fileURL in fileURLs {
+                let attributes = try fm.attributesOfItem(atPath: fileURL.path)
+                let fileType = attributes[.type] as? FileAttributeType
+                if(fileType != FileAttributeType.typeDirectory && fileType != FileAttributeType.typeRegular) {
+                    continue
+                }
+                if(fileType == FileAttributeType.typeDirectory && !fileURL.lastPathComponent.hasSuffix(".framework")) {
+                    continue
+                }
+                if(fileType == FileAttributeType.typeRegular && !fileURL.lastPathComponent.hasSuffix(".dylib")) {
+                    continue
+                }
+                
                 if(fileURL.lastPathComponent == "TweakInfo.plist"){
                     continue
                 }
@@ -420,7 +432,15 @@ extension LCUtils {
         // copy items to tmp folders
         let fileURLs = try fm.contentsOfDirectory(at: tweakFolderUrl, includingPropertiesForKeys: nil)
         for fileURL in fileURLs {
-            if(fileURL.lastPathComponent == "TweakInfo.plist"){
+            let attributes = try fm.attributesOfItem(atPath: fileURL.path)
+            let fileType = attributes[.type] as? FileAttributeType
+            if(fileType != FileAttributeType.typeDirectory && fileType != FileAttributeType.typeRegular) {
+                continue
+            }
+            if(fileType == FileAttributeType.typeDirectory && !fileURL.lastPathComponent.hasSuffix(".framework")) {
+                continue
+            }
+            if(fileType == FileAttributeType.typeRegular && !fileURL.lastPathComponent.hasSuffix(".dylib")) {
                 continue
             }
             
@@ -429,6 +449,10 @@ extension LCUtils {
             try fm.copyItem(at: fileURL, to: tmpPath)
         }
         
+        if tmpPaths.isEmpty {
+            try fm.removeItem(at: tmpDir)
+            return
+        }
         
         let (error, expirationDate2) = await LCUtils.signFilesInFolder(url: tmpDir, signer: signer) { p in
             if let progressHandler {
