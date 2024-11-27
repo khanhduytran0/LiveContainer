@@ -93,6 +93,20 @@
     [self save];
 }
 
+- (NSString*)selectedLanguage {
+    return _info[@"LCSelectedLanguage"];
+}
+
+- (void)setSelectedLanguage:(NSString *)selectedLanguage {
+    if([selectedLanguage isEqualToString: @""]) {
+        _info[@"LCSelectedLanguage"] = nil;
+    } else {
+        _info[@"LCSelectedLanguage"] = selectedLanguage;
+    }
+    
+    [self save];
+}
+
 - (NSString*)bundlePath {
     return _bundlePath;
 }

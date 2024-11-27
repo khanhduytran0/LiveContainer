@@ -52,6 +52,13 @@ static void UIKitGuestHooksInit() {
             }
         }
         dispatch_semaphore_signal(LCPreferencesDispatchBlockSemaphore);
+        
+        // restore language if needed
+
+        NSArray* savedLaunguage = [NSUserDefaults.lcUserDefaults objectForKey:@"LCLastLanguages"];
+        if(savedLaunguage) {
+            [NSUserDefaults.lcUserDefaults setObject:savedLaunguage forKey:@"AppleLanguages"];
+        }
     }];
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidEnterBackgroundNotification
                                                       object:nil

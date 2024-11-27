@@ -23,6 +23,8 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var uiDoSymlinkInbox : Bool
     @Published var uiBypassAssertBarrierOnQueue : Bool
     @Published var uiSigner : Signer
+    @Published var uiSelectedLanguage : String
+    @Published var supportedLanaguages : [String]?
     
     var jitAlert : YesNoHelper? = nil
     
@@ -40,6 +42,7 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiIsHidden = appInfo.isHidden
         self.uiIsLocked = appInfo.isLocked
         self.uiIsShared = appInfo.isShared
+        self.uiSelectedLanguage = appInfo.selectedLanguage ?? ""
         self.uiDataFolder = appInfo.getDataUUIDNoAssign()
         self.uiTweakFolder = appInfo.tweakFolder()
         self.uiDoSymlinkInbox = appInfo.doSymlinkInbox
@@ -203,5 +206,22 @@ class LCAppModel: ObservableObject, Hashable {
             uiIsHidden = true
         }
         delegate?.changeAppVisibility(app: self)
+    }
+    
+    func loadSupportedLanguages() throws {
+        let fm = FileManager.default
+        if supportedLanaguages != nil {
+            return
+        }
+        supportedLanaguages = []
+        let fileURLs = try fm.contentsOfDirectory(at: URL(fileURLWithPath: appInfo.bundlePath()!) , includingPropertiesForKeys: nil)
+        for fileURL in fileURLs {
+            let attributes = try fm.attributesOfItem(atPath: fileURL.path)
+            let fileType = attributes[.type] as? FileAttributeType
+            if(fileType == .typeDirectory && fileURL.lastPathComponent.hasSuffix(".lproj")) {
+                supportedLanaguages?.append(fileURL.deletingPathExtension().lastPathComponent)
+            }
+        }
+        
     }
 }

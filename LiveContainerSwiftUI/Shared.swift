@@ -116,12 +116,12 @@ class InputHelper : AlertHelper<String> {
 extension String: LocalizedError {
     public var errorDescription: String? { return self }
         
-    private static var enBundle : Bundle? {
+    private static var enBundle : Bundle? = {
         let language = "en"
         let path = Bundle.main.path(forResource:language, ofType: "lproj")
         let bundle = Bundle(path: path!)
         return bundle
-    }
+    }()
     
     var loc: String {
         let message = NSLocalizedString(self, comment: "")

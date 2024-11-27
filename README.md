@@ -90,6 +90,12 @@ make package
 ### AltStoreTweak
 - The tweak that got injected into SideStore/AltStore to retrieve certificate from it everytime it launches.
 
+### ZSign
+- The app signer shipped with LiveContainer.
+- Originally made by [zhlynn](https://github.com/zhlynn/zsign).
+- Referenced from [Feather](https://github.com/khcrysalis/Feather) by hcrysalis who adopted ZSign to iOS.
+- Changes are made to meet LiveContainer's need.
+
 ## How does it work?
 
 ### Patching guest executable

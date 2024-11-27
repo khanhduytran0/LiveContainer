@@ -189,6 +189,58 @@ struct LCAppSettingsView : View{
             })
             
             Section {
+                NavigationLink {
+                    if let supportedLanguage = model.supportedLanaguages {
+                        Form {
+                            Picker(selection: $model.uiSelectedLanguage) {
+                                Text("lc.common.auto".loc).tag("")
+                                
+                                ForEach(supportedLanguage, id:\.self) { language in
+                                    if language != "Base" {
+                                        VStack(alignment: .leading) {
+                                            Text(Locale(identifier: language).localizedString(forIdentifier: language) ?? language)
+                                            Text("\(Locale.current.localizedString(forIdentifier: language) ?? "") - \(language)")
+                                                .font(.footnote)
+                                                .foregroundStyle(.gray)
+                                        }
+                                        .tag(language)
+                                    }
+
+                                }
+                            } label: {
+                                Text("lc.common.language".loc)
+                            }
+                            .pickerStyle(.inline)
+                            .onChange(of: model.uiSelectedLanguage, perform: { newValue in
+                                Task { await setLanguage(newValue) }
+                            })
+                        }
+
+                    } else {
+                        Text("lc.appSettings.languageLoading".loc)
+                            .onAppear() {
+                                Task{ loadSupportedLanguages() }
+                            }
+                    }
+                } label: {
+                    HStack {
+                        Text("lc.common.language".loc)
+                        Spacer()
+                        if model.uiSelectedLanguage == "" {
+                            Text("lc.common.auto".loc)
+                                .foregroundStyle(.gray)
+                        } else {
+                            Text(Locale.current.localizedString(forIdentifier: model.uiSelectedLanguage) ?? model.uiSelectedLanguage)
+                                .foregroundStyle(.gray)
+                        }
+                    }
+                    
+                }
+            }
+            
+
+            
+            Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
                     Text("lc.appSettings.fixFilePicker".loc)
                 }
@@ -411,13 +463,27 @@ struct LCAppSettingsView : View{
     func setSigner(_ signer: Signer) async {
         appInfo.signer = signer
         model.uiSigner = signer
-
+    }
+    
+    func setLanguage(_ lang: String) async {
+        appInfo.selectedLanguage = lang
+        model.uiSelectedLanguage = lang
     }
     
     func setSimlinkInbox(_ simlinkInbox : Bool) async {
         appInfo.doSymlinkInbox = simlinkInbox
         model.uiDoSymlinkInbox = simlinkInbox
 
+    }
+    
+    func loadSupportedLanguages() {
+        do {
+            try model.loadSupportedLanguages()
+        } catch {
+            errorShow = true
+            errorInfo = error.localizedDescription
+            return
+        }
     }
     
     func setBypassAssertBarrierOnQueue(_ enabled : Bool) async {

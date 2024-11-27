@@ -269,6 +269,18 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     const char *appExecPath = appBundle.executablePath.UTF8String;
     *path = appExecPath;
     overwriteExecPath(appBundle.bundlePath);
+    
+    // save livecontainer's own language
+    NSArray* savedLaunguage = [lcUserDefaults objectForKey:@"LCLastLanguages"];
+    if(!savedLaunguage) {
+        [lcUserDefaults setObject:[lcUserDefaults objectForKey:@"AppleLanguages"] forKey:@"LCLastLanguages"];
+    }
+    // set user selected language
+    NSString* selectedLanguage = [appBundle infoDictionary][@"LCSelectedLanguage"];
+    if(selectedLanguage) {
+        [lcUserDefaults setObject:@[selectedLanguage] forKey:@"AppleLanguages"];
+    }
+
 
     // Overwrite NSUserDefaults
     NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
@@ -495,6 +507,14 @@ int LiveContainerMain(int argc, char *argv[]) {
         }
     }
     [LCSharedUtils setAppRunningByThisLC:nil];
+    
+    // recover language before reaching UI
+    NSArray* savedLaunguage = [lcUserDefaults objectForKey:@"LCLastLanguages"];
+    if(savedLaunguage) {
+        [lcUserDefaults setObject:savedLaunguage forKey:@"AppleLanguages"];
+        [lcUserDefaults removeObjectForKey:@"LCLastLanguages"];
+        [lcUserDefaults synchronize];
+    }
     void *LiveContainerSwiftUIHandle = dlopen("@executable_path/Frameworks/LiveContainerSwiftUI.framework/LiveContainerSwiftUI", RTLD_LAZY);
     assert(LiveContainerSwiftUIHandle);
     @autoreleasepool {
