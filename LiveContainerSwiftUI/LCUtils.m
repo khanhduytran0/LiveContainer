@@ -7,6 +7,14 @@
 #import "LCVersionInfo.h"
 #import "../ZSign/zsigner.h"
 
+// make SFSafariView happy and open data: URLs
+@implementation NSURL(hack)
+- (BOOL)safari_isHTTPFamilyURL {
+    // Screw it, Apple
+    return YES;
+}
+@end
+
 @implementation LCUtils
 
 #pragma mark Certificate & password

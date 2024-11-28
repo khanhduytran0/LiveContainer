@@ -260,8 +260,8 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             app.delegate = self
         }
         
-        LCObjcBridge.setLaunchAppFunc(handler: launchAppWithBundleId)
-        LCObjcBridge.setOpenUrlStrFunc(handler: openWebView)
+        AppDelegate.setLaunchAppFunc(handler: launchAppWithBundleId)
+        AppDelegate.setOpenUrlStrFunc(handler: openWebView)
     }
     
     

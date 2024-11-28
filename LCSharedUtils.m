@@ -236,4 +236,27 @@ extern NSString *lcAppUrlScheme;
     return appBundle;
 }
 
++ (void)dumpPreferenceToPath:(NSString*)plistLocationTo dataUUID:(NSString*)dataUUID {
+    NSFileManager* fm = [[NSFileManager alloc] init];
+    NSError* error1;
+    
+    NSDictionary* preferences = [lcUserDefaults objectForKey:dataUUID];
+    if(!preferences) {
+        return;
+    }
+    
+    [fm createDirectoryAtPath:plistLocationTo withIntermediateDirectories:YES attributes:@{} error:&error1];
+    for(NSString* identifier in preferences) {
+        NSDictionary* preference = preferences[identifier];
+        NSString *itemPath = [plistLocationTo stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", identifier]];
+        if([preference count] == 0) {
+            // Attempt to delete the file
+            [fm removeItemAtPath:itemPath error:&error1];
+            continue;
+        }
+        [preference writeToFile:itemPath atomically:YES];
+    }
+    [lcUserDefaults removeObjectForKey:dataUUID];
+}
+
 @end

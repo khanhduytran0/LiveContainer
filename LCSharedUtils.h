@@ -12,4 +12,5 @@
 + (void)moveSharedAppFolderBack;
 + (void)removeAppRunningByLC:(NSString*)LCScheme;
 + (NSBundle*)findBundleWithBundleId:(NSString*)bundleId;
++ (void)dumpPreferenceToPath:(NSString*)plistLocationTo dataUUID:(NSString*)dataUUID;
 @end

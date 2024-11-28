@@ -434,6 +434,17 @@ int LiveContainerMain(int argc, char *argv[]) {
     
     NSString* lastLaunchDataUUID = [lcUserDefaults objectForKey:@"lastLaunchDataUUID"];
     if(lastLaunchDataUUID) {
+        NSString* lastLaunchType = [lcUserDefaults objectForKey:@"lastLaunchType"];
+        NSString* preferencesTo;
+        NSURL *libraryPathUrl = [NSFileManager.defaultManager URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
+        NSURL *docPathUrl = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject;
+        if([lastLaunchType isEqualToString:@"Shared"]) {
+            preferencesTo = [libraryPathUrl.path stringByAppendingPathComponent:[NSString stringWithFormat:@"SharedDocuments/%@/Library/Preferences", lastLaunchDataUUID]];
+        } else {
+            preferencesTo = [docPathUrl.path stringByAppendingPathComponent:[NSString stringWithFormat:@"Data/Application/%@/Library/Preferences", lastLaunchDataUUID]];
+        }
+        // recover preferences
+        [LCSharedUtils dumpPreferenceToPath:preferencesTo dataUUID:lastLaunchDataUUID];
         [lcUserDefaults removeObjectForKey:@"lastLaunchDataUUID"];
         [lcUserDefaults removeObjectForKey:@"lastLaunchType"];
     }
@@ -521,7 +532,7 @@ int LiveContainerMain(int argc, char *argv[]) {
         if ([lcUserDefaults boolForKey:@"LCLoadTweaksToSelf"]) {
             dlopen("@executable_path/Frameworks/TweakLoader.dylib", RTLD_LAZY);
         }
-        return UIApplicationMain(argc, argv, nil, @"LCAppDelegateSwiftUI");
+        return UIApplicationMain(argc, argv, nil, @"LiveContainerSwiftUI.AppDelegate");
     }
 }
 
