@@ -212,12 +212,42 @@
     }
     
     // Update patch
-    int currentPatchRev = 5;
+    int currentPatchRev = 6;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
+        // we must re-sign after upgrading patch version
+        forceSign = YES;
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
         NSString *error = LCParseMachO(execPath.UTF8String, ^(const char *path, struct mach_header_64 *header) {
             LCPatchExecSlice(path, header);
         });
+        // patch all libraries
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        NSString* frameworksPath = [appPath stringByAppendingPathComponent:@"Frameworks"];
+        NSArray *contents = [fileManager contentsOfDirectoryAtPath:frameworksPath error:nil];
+        for (NSString *path in contents) {
+            NSString *fullPath = [frameworksPath stringByAppendingPathComponent:path];
+            BOOL isDirectory;
+            [fileManager fileExistsAtPath:fullPath isDirectory:&isDirectory];
+            if (isDirectory && [path hasSuffix:@".framework"] && ![[path lastPathComponent] isEqualToString:@"CydiaSubstrate.framework"]) {
+                NSString *frameworkBinary = [fullPath stringByAppendingPathComponent:path.lastPathComponent.stringByDeletingPathExtension];
+                NSString *error = LCParseMachO(frameworkBinary.UTF8String, ^(const char *path, struct mach_header_64 *header) {
+                    LCPatchLibrary(path, header);
+                });
+                if (error) {
+                    completetionHandler(error);
+                    return;
+                }
+            } else if ([path hasSuffix:@".dylib"] && ![[path lastPathComponent] isEqualToString:@"YouTubeDislikeReturn.dylib"]){
+                NSString *error = LCParseMachO(fullPath.UTF8String, ^(const char *path, struct mach_header_64 *header) {
+                    LCPatchLibrary(path, header);
+                });
+                if (error) {
+                    completetionHandler(error);
+                    return;
+                }
+            }
+        }
+        
         if (error) {
             completetionHandler(error);
             return;

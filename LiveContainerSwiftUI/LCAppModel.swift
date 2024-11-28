@@ -77,6 +77,13 @@ class LCAppModel: ObservableObject, Hashable {
         try await signApp(force: false)
         
         UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
+        if let selectedLanguage = self.appInfo.selectedLanguage {
+            // save livecontainer's own language
+            UserDefaults.standard.set(UserDefaults.standard.object(forKey: "AppleLanguages"), forKey:"LCLastLanguages")
+            // set user selected language
+            UserDefaults.standard.set([selectedLanguage], forKey: "AppleLanguages")
+        }
+        
         if appInfo.isJITNeeded {
             await self.jitLaunch()
         } else {

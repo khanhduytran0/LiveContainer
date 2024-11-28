@@ -409,13 +409,14 @@ bool ZAppBundle::SignNode(JValue &jvNode)
 		jvCodeRes.readPListFile(strCodeResFile.c_str());
 	}
 
+    // LiveContainer don't need it
 	if (m_bForceSign || jvCodeRes.isNull())
 	{ //create
-		if (!GenerateCodeResources(strBaseFolder, jvCodeRes))
-		{
-			ZLog::ErrorV(">>> Create CodeResources Failed! %s\n", strBaseFolder.c_str());
-			return false;
-		}
+//		if (!GenerateCodeResources(strBaseFolder, jvCodeRes))
+//		{
+//			ZLog::ErrorV(">>> Create CodeResources Failed! %s\n", strBaseFolder.c_str());
+//			return false;
+//		}
 	}
 	else if (jvNode.has("changed"))
 	{ //use existsed

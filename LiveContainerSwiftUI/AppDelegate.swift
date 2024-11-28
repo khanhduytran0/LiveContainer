@@ -82,6 +82,12 @@ import SwiftUI
     func applicationWillTerminate(_ application: UIApplication) {
         // Fix launching app if user opens JIT waiting dialog and kills the app. Won't trigger normally.
         UserDefaults.standard.removeObject(forKey: "selected")
+        
+        if (UserDefaults.standard.object(forKey: "LCLastLanguages") != nil) {
+            // recover livecontainer's own language
+            UserDefaults.standard.set(UserDefaults.standard.object(forKey: "LCLastLanguages"), forKey: "AppleLanguages")
+            UserDefaults.standard.removeObject(forKey: "LCLastLanguages")
+        }
     }
     
 }

@@ -270,18 +270,6 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     *path = appExecPath;
     overwriteExecPath(appBundle.bundlePath);
     
-    // save livecontainer's own language
-    NSArray* savedLaunguage = [lcUserDefaults objectForKey:@"LCLastLanguages"];
-    if(!savedLaunguage) {
-        [lcUserDefaults setObject:[lcUserDefaults objectForKey:@"AppleLanguages"] forKey:@"LCLastLanguages"];
-    }
-    // set user selected language
-    NSString* selectedLanguage = [appBundle infoDictionary][@"LCSelectedLanguage"];
-    if(selectedLanguage) {
-        [lcUserDefaults setObject:@[selectedLanguage] forKey:@"AppleLanguages"];
-    }
-
-
     // Overwrite NSUserDefaults
     NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
     
