@@ -23,6 +23,8 @@ NSString *lcAppGroupPath;
 NSString* lcAppUrlScheme;
 NSBundle* lcMainBundle;
 
+void NUDGuestHooksInit();
+
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
     return lcUserDefaults;
@@ -363,6 +365,10 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
     NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
     *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
+    
+    // hook NSUserDefault before running libraries' initializers
+    NUDGuestHooksInit();
+    
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);

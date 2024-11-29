@@ -2,7 +2,7 @@
 //  NSUserDefaults.m
 //  LiveContainer
 //
-//  Created by s s on 2024/11/23.
+//  Created by s s on 2024/11/29.
 //
 
 #import <Foundation/Foundation.h>
@@ -11,10 +11,20 @@
 #import "utils.h"
 #import "LCSharedUtils.h"
 
+void swizzle(Class class, SEL originalAction, SEL swizzledAction) {
+    method_exchangeImplementations(class_getInstanceMethod(class, originalAction), class_getInstanceMethod(class, swizzledAction));
+}
+@interface NSUserDefaults(LiveContainer)
++ (instancetype)lcSharedDefaults;
++ (instancetype)lcUserDefaults;
++ (NSString *)lcAppUrlScheme;
++ (NSString *)lcAppGroupPath;
+@end
+
+
 NSMutableDictionary* LCPreferences = 0;
 
-__attribute__((constructor))
-static void UIKitGuestHooksInit() {
+void NUDGuestHooksInit() {
     NSLog(@"[LC] hook init");
     swizzle(NSUserDefaults.class, @selector(objectForKey:), @selector(hook_objectForKey:));
     swizzle(NSUserDefaults.class, @selector(boolForKey:), @selector(hook_boolForKey:));
@@ -33,13 +43,11 @@ static void UIKitGuestHooksInit() {
         [fm createDirectoryAtPath:preferenceFolderPath.path withIntermediateDirectories:YES attributes:@{} error:&error];
     }
     
-    // flush any scheduled write to disk now
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationWillTerminateNotification
                                                       object:nil
                                                        queue:[NSOperationQueue mainQueue]
                                                   usingBlock:^(NSNotification * _Nonnull notification) {
         // restore language if needed
-
         NSArray* savedLaunguage = [NSUserDefaults.lcUserDefaults objectForKey:@"LCLastLanguages"];
         if(savedLaunguage) {
             [NSUserDefaults.lcUserDefaults setObject:savedLaunguage forKey:@"AppleLanguages"];
