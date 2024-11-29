@@ -445,6 +445,7 @@ struct LCSettingsView: View {
             let fm = FileManager()
             for folder in foldersToDelete {
                 try fm.removeItem(at: LCPath.dataPath.appendingPathComponent(folder))
+                LCUtils.removeAppKeychain(dataUUID: folder)
                 self.appDataFolderNames.removeAll(where: { s in
                     return s == folder
                 })

@@ -6,7 +6,7 @@ include $(THEOS)/makefiles/common.mk
 
 LIBRARY_NAME = TweakLoader
 
-TweakLoader_FILES = TweakLoader.m NSBundle+FixCydiaSubstrate.m NSFileManager+GuestHooks.m UIKit+GuestHooks.m utils.m DocumentPicker.m FBSSerialQueue.m ../Localization.m
+TweakLoader_FILES = SecItem.m TweakLoader.m NSBundle+FixCydiaSubstrate.m NSFileManager+GuestHooks.m UIKit+GuestHooks.m utils.m DocumentPicker.m FBSSerialQueue.m ../Localization.m ../fishhook/fishhook.c
 TweakLoader_CFLAGS = -objc-arc
 TweakLoader_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 

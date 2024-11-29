@@ -9,6 +9,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import LocalAuthentication
 import SafariServices
+import Security
 
 struct LCPath {
     public static let docPath = {
@@ -577,4 +578,18 @@ extension LCUtils {
             return "Unknown Store"
         }
     }
+    
+    public static func removeAppKeychain(dataUUID label: String) {
+        [kSecClassGenericPassword, kSecClassInternetPassword, kSecClassCertificate, kSecClassKey, kSecClassIdentity].forEach {
+          let status = SecItemDelete([
+            kSecClass as String: $0,
+            kSecAttrLabel as String: label,
+          ] as CFDictionary)
+          if status != errSecSuccess && status != errSecItemNotFound {
+              //Error while removing class $0
+              NSLog("[LC] Failed to find keychain items: \(status)")
+          }
+        }
+    }
+
 }
