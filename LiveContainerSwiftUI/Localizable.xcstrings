@@ -2207,6 +2207,40 @@
         }
       }
     },
+    "lc.settings.patchStoreArchiveOnly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive Only"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅打包"
+          }
+        }
+      }
+    },
+    "lc.settings.patchStoreArchiveSuccess %@ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patched %@ has been saved to LiveContainer's document folder. Please install it with the %@ that LiveContainer is installed with."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打包的%@已经保存到LiveContainer的“文件”文件夹，请将其手动安装到安装了LiveContainer的那个%@中。"
+          }
+        }
+      }
+    },
     "lc.settings.patchStoreDesc %@ %@ %@ %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2220,6 +2254,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "为了通过%@获取证书以配置免JIT模式，你必须要给%@打补丁。%@的功能不会受到任何影响。请确保在打补丁前%@可以正常刷新。要继续吗？"
+          }
+        }
+      }
+    },
+    "lc.settings.patchStoreMultipleHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you have multiple SideStore installed, please select “Archive Only” and install the tweaked IPA manually."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果你安装了多个SideStore，请选择“仅打包”并手动安装打过补丁的IPA。"
           }
         }
       }

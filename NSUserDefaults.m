@@ -25,7 +25,6 @@ void swizzle(Class class, SEL originalAction, SEL swizzledAction) {
 NSMutableDictionary* LCPreferences = 0;
 
 void NUDGuestHooksInit() {
-    NSLog(@"[LC] hook init");
     swizzle(NSUserDefaults.class, @selector(objectForKey:), @selector(hook_objectForKey:));
     swizzle(NSUserDefaults.class, @selector(boolForKey:), @selector(hook_boolForKey:));
     swizzle(NSUserDefaults.class, @selector(integerForKey:), @selector(hook_integerForKey:));

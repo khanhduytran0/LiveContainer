@@ -8,6 +8,12 @@
 import Foundation
 import SwiftUI
 
+enum PatchChoice {
+    case cancel
+    case autoPath
+    case archiveOnly
+}
+
 struct LCSettingsView: View {
     @State var errorShow = false
     @State var errorInfo = ""
@@ -22,7 +28,7 @@ struct LCSettingsView: View {
     @State private var folderRemoveCount = 0
     
     @StateObject private var keyChainRemovalAlert = YesNoHelper()
-    @StateObject private var patchAltStoreAlert = YesNoHelper()
+    @StateObject private var patchAltStoreAlert = AlertHelper<PatchChoice>()
     @State private var isAltStorePatched = false
     
     @State var isJitLessEnabled = false
@@ -319,16 +325,29 @@ struct LCSettingsView: View {
             }
             .alert("lc.settings.patchStore %@".localizeWithFormat(LCUtils.getStoreName()), isPresented: $patchAltStoreAlert.show) {
                 Button(role: .destructive) {
-                    patchAltStoreAlert.close(result: true)
+                    patchAltStoreAlert.close(result: .autoPath)
                 } label: {
                     Text("lc.common.ok".loc)
                 }
+                if(isSideStore) {
+                    Button {
+                        patchAltStoreAlert.close(result: .archiveOnly)
+                    } label: {
+                        Text("lc.settings.patchStoreArchiveOnly".loc)
+                    }
+                }
+
 
                 Button("lc.common.cancel".loc, role: .cancel) {
-                    patchAltStoreAlert.close(result: false)
+                    patchAltStoreAlert.close(result: .cancel)
                 }
             } message: {
-                Text("lc.settings.patchStoreDesc %@ %@ %@ %@".localizeWithFormat(storeName, storeName, storeName, storeName))
+                if(isSideStore) {
+                    Text("lc.settings.patchStoreDesc %@ %@ %@ %@".localizeWithFormat(storeName, storeName, storeName, storeName) + "\n\n" + "lc.settings.patchStoreMultipleHint".loc)
+                } else {
+                    Text("lc.settings.patchStoreDesc %@ %@ %@ %@".localizeWithFormat(storeName, storeName, storeName, storeName))
+                }
+
             }
             .onChange(of: isSignOnlyOnExpiration) { newValue in
                 saveAppGroupItem(key: "LCSignOnlyOnExpiration", val: newValue)
@@ -622,14 +641,23 @@ struct LCSettingsView: View {
     }
     
     func patchAltStore() async {
-        guard let result = await patchAltStoreAlert.open(), result else {
+        guard let result = await patchAltStoreAlert.open(), result != .cancel else {
             return
         }
         
         do {
             let altStoreIpa = try LCUtils.archiveTweakedAltStore()
             let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), altStoreIpa.absoluteString)
-            await UIApplication.shared.open(URL(string: storeInstallUrl)!)
+            if(result == .archiveOnly) {
+                let movedAltStoreIpaUrl = LCPath.docPath.appendingPathComponent("Patched\(isSideStore ? "SideStore" : "AltStore").ipa")
+                try FileManager.default.moveItem(at: altStoreIpa, to: movedAltStoreIpaUrl)
+                successInfo = "lc.settings.patchStoreArchiveSuccess %@ %@".localizeWithFormat(storeName, storeName)
+                successShow = true
+            } else {
+                await UIApplication.shared.open(URL(string: storeInstallUrl)!)
+            }
+            
+
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
