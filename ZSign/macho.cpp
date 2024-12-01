@@ -4,6 +4,7 @@
 #include "openssl.h"
 #include "signing.h"
 #include "macho.h"
+#include "Utils.hpp"
 
 ZMachO::ZMachO()
 {
@@ -119,6 +120,7 @@ bool ZMachO::CloseFile()
 		ZLog::ErrorV(">>> CodeSign Write(munmap) Failed! Error: %p, %lu, %s\n", m_pBase, m_sSize, strerror(errno));
 		return false;
 	}
+    refreshFile(m_strFile.c_str());
 	return true;
 }
 

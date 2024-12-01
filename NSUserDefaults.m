@@ -33,6 +33,7 @@ void NUDGuestHooksInit() {
     swizzle(NSUserDefaults.class, @selector(dictionaryRepresentation), @selector(hook_dictionaryRepresentation));
     swizzle(NSUserDefaults.class, @selector(persistentDomainForName:), @selector(hook_persistentDomainForName:));
     swizzle(NSUserDefaults.class, @selector(removePersistentDomainForName:), @selector(hook_removePersistentDomainForName:));
+    swizzle(NSUserDefaults.class, @selector(registerDefaults:), @selector(hook_registerDefaults:));
     LCPreferences = [[NSMutableDictionary alloc] init];
     NSFileManager* fm = NSFileManager.defaultManager;
     NSURL* libraryPath = [fm URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
@@ -108,7 +109,8 @@ void LCSavePreference(void) {
     } else if ([obj isKindOfClass:[NSNumber class]]) {
         return [(NSNumber*)obj boolValue];
     } else if([obj isKindOfClass:[NSString class]]) {
-        if([[(NSString*)obj lowercaseString] isEqualToString:@"yes"] || [[(NSString*)obj lowercaseString] isEqualToString:@"true"]) {
+        NSString* lowered = [(NSString*)obj lowercaseString];
+        if([lowered isEqualToString:@"yes"] || [lowered isEqualToString:@"true"] || [lowered boolValue]) {
             return YES;
         } else {
             return NO;
@@ -159,7 +161,6 @@ void LCSavePreference(void) {
         if(!preferenceDict) {
             return;
         }
-        
         [preferenceDict removeObjectForKey:key];
         LCSavePreference();
     }
@@ -169,7 +170,9 @@ void LCSavePreference(void) {
     NSString* identifier = [self _identifier];
     NSMutableDictionary* ans = [[self hook_dictionaryRepresentation] mutableCopy];
     if(ans) {
-        [ans addEntriesFromDictionary:LCGetPreference(identifier)];
+        @synchronized (LCPreferences) {
+            [ans addEntriesFromDictionary:LCGetPreference(identifier)];
+        }
     } else {
         ans = LCGetPreference(identifier);
     }
@@ -180,7 +183,9 @@ void LCSavePreference(void) {
 - (NSDictionary*) hook_persistentDomainForName:(NSString*)domainName {
     NSMutableDictionary* ans = [[self hook_persistentDomainForName:domainName] mutableCopy];
     if(ans) {
-        [ans addEntriesFromDictionary:LCGetPreference(domainName)];
+        @synchronized (LCPreferences) {
+            [ans addEntriesFromDictionary:LCGetPreference(domainName)];
+        }
     } else {
         ans = LCGetPreference(domainName);
     }
@@ -204,6 +209,19 @@ void LCSavePreference(void) {
             NSError* error;
             [fm removeItemAtURL:preferenceFilePath error:&error];
         }
+    }
+}
+
+- (void) hook_registerDefaults:(NSDictionary<NSString *,id> *)registrationDictionary {
+    NSString* identifier = [self _identifier];
+    @synchronized (LCPreferences) {
+        NSMutableDictionary* preferenceDict = LCGetPreference(identifier);
+        if(!preferenceDict) {
+            preferenceDict = [[NSMutableDictionary alloc] init];
+            LCPreferences[identifier] = preferenceDict;
+        }
+        [preferenceDict addEntriesFromDictionary:registrationDictionary];
+        LCSavePreference();
     }
 }
 
