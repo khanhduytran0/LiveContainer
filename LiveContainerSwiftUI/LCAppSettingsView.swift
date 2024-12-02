@@ -241,14 +241,25 @@ struct LCAppSettingsView : View{
 
             
             Section {
+                Toggle(isOn: $model.uiUseLCBundleId) {
+                    Text("lc.appSettings.useLCBundleId".loc)
+                }
+                .onChange(of: model.uiUseLCBundleId, perform: { newValue in
+                    Task { await setDoUseLCBundleId(newValue) }
+                })
+            } header: {
+                Text("lc.appSettings.fixes".loc)
+            } footer: {
+                Text("lc.appSettings.useLCBundleIdDesc".loc)
+            }
+            
+            Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
                     Text("lc.appSettings.fixFilePicker".loc)
                 }
                 .onChange(of: model.uiDoSymlinkInbox, perform: { newValue in
                     Task { await setSimlinkInbox(newValue) }
                 })
-            } header: {
-                Text("lc.appSettings.fixes".loc)
             } footer: {
                 Text("lc.appSettings.fixFilePickerDesc".loc)
             }
@@ -473,7 +484,11 @@ struct LCAppSettingsView : View{
     func setSimlinkInbox(_ simlinkInbox : Bool) async {
         appInfo.doSymlinkInbox = simlinkInbox
         model.uiDoSymlinkInbox = simlinkInbox
-
+    }
+    
+    func setDoUseLCBundleId(_ doUseLCBundleId : Bool) async {
+        appInfo.doUseLCBundleId = doUseLCBundleId
+        model.uiUseLCBundleId = doUseLCBundleId
     }
     
     func loadSupportedLanguages() {

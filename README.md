@@ -21,7 +21,7 @@ Without JIT, guest apps need to be codesigned, which requires retrieving the cer
 - Install your app via the "Apps" tab.
 - Tap the run icon, it will attempt to restart LiveContainer with guest app loaded.
 
-Note: If you update or reinstall SideStore/AltStore, you'll need to reapply the patch.
+Note: If you update or reinstall SideStore/AltStore, you'll need to reapply the patch. Re-patch is not needed when you refresh your store.
 
 ### With JIT (requires SideStore)
 - Tap the play icon, it will jump to SideStore and exit.
@@ -41,8 +41,8 @@ The first LiveContainer (blue icon) always launches by default.
 If an app is already running in the first container, you'll be prompted to either open it in the second LiveContainer (gray icon) or terminate the current app and relaunch it in the first. If the app is already running in the second container, it will switch automatically.
 To use an app in the second container, you must convert this app to a shared app. You can do that by opening the first LiveContainer (blue), long press on your app, open the settings of your app and then "Convert to Shared App". After that, you can launch your app using LiveContainer2 (grey).
 
-### Fix File Picker
-Some apps may experience issues with their file pickers in LiveContainer. To resolve this, enable "Fix File Picker" in the app-specific settings.
+### Fix File Picker & Local Notification
+Some apps may experience issues with their file pickers or not be able to apply for notification permission in LiveContainer. To resolve this, enable "Fix File Picker & Local Notification" in the app-specific settings.
 
 ### "Open In App" Support
 - Tap the link icon in the top-right corner of the "Apps" tab and input the URL. LiveContainer will detect the appropriate app and ask if you want to launch it.

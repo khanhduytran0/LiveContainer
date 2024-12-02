@@ -273,7 +273,12 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     overwriteExecPath(appBundle.bundlePath);
     
     // Overwrite NSUserDefaults
-    NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
+    if([appBundle.infoDictionary[@"doUseLCBundleId"] boolValue]) {
+        NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.infoDictionary[@"LCOrignalBundleIdentifier"]];
+    } else {
+        NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
+    }
+
     
     // Set & save the folder it it does not exist in Info.plist
     NSString* dataUUID = appBundle.infoDictionary[@"LCDataUUID"];

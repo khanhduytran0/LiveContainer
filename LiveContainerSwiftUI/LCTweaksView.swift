@@ -191,9 +191,11 @@ struct LCTweakFolderView : View {
                 renameFileInput.close(result: "")
             }
         )
-        .fileImporter(isPresented: $choosingTweak, allowedContentTypes: [.dylib, .lcFramework, /*.deb*/], allowsMultipleSelection: true) { result in
-            Task { await startInstallTweak(result) }
-        }
+        .betterFileImporter(isPresented: $choosingTweak, types: [.dylib, .lcFramework, /*.deb*/], multiple: true, callback: { fileUrls in
+            Task { await startInstallTweak(fileUrls) }
+        }, onDismiss: {
+            choosingTweak = false
+        })
     }
     
     func deleteTweakItem(indexSet: IndexSet) {
@@ -319,27 +321,21 @@ struct LCTweakFolderView : View {
         }
     }
     
-    func startInstallTweak(_ result: Result<[URL], any Error>) async {
+    func startInstallTweak(_ urls: [URL]) async {
         do {
             let fm = FileManager()
-            let urls = try result.get()
             // we will sign later before app launch
             
             for fileUrl in urls {
                 // handle deb file
-                if(!fileUrl.startAccessingSecurityScopedResource()) {
-                    throw "lc.tweakView.permissionDenied %@".localizeWithFormat(fileUrl.lastPathComponent)
-                }
                 if(!fileUrl.isFileURL) {
                     throw "lc.tweakView.notFileError %@".localizeWithFormat(fileUrl.lastPathComponent)
                 }
                 let toPath = self.baseUrl.appendingPathComponent(fileUrl.lastPathComponent)
-                try fm.copyItem(at: fileUrl, to: toPath)
+                try fm.moveItem(at: fileUrl, to: toPath)
                 LCParseMachO((toPath.path as NSString).utf8String) { path, header in
                     LCPatchAddRPath(path, header);
                 }
-                fileUrl.stopAccessingSecurityScopedResource()
-
 
                 let isFramework = toPath.lastPathComponent.hasSuffix(".framework")
                 let isTweak = toPath.lastPathComponent.hasSuffix(".dylib")

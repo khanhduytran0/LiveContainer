@@ -168,16 +168,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                     if sharedModel.multiLCStatus != 2 {
                         if !installprogressVisible {
                             Button("Add".loc, systemImage: "plus", action: {
-                                if choosingIPA {
-                                    choosingIPA = false
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
-                                        choosingIPA = true
-                                    })
-                                } else {
-                                    choosingIPA = true
-                                }
-
-                                
+                                choosingIPA = true
                             })
                         } else {
                             ProgressView().progressViewStyle(.circular)
@@ -203,9 +194,11 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         } message: {
             Text(errorInfo)
         }
-        .fileImporter(isPresented: $choosingIPA, allowedContentTypes: [.ipa]) { result in
-            Task { await startInstallApp(result) }
-        }
+        .betterFileImporter(isPresented: $choosingIPA, types: [.ipa], multiple: false, callback: { fileUrls in
+            Task { await startInstallApp(fileUrls[0]) }
+        }, onDismiss: {
+            choosingIPA = false
+        })
         .alert("lc.appList.installation".loc, isPresented: $installReplaceAlert.show) {
             ForEach(installOptions, id: \.self) { installOption in
                 Button(role: installOption.isReplace ? .destructive : nil, action: {
@@ -332,9 +325,8 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
 
 
     
-    func startInstallApp(_ result:Result<URL, any Error>) async {
+    func startInstallApp(_ fileUrl:URL) async {
         do {
-            let fileUrl = try result.get()
             self.installprogressVisible = true
             try await installIpaFile(fileUrl)
         } catch {
@@ -349,9 +341,6 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     }
     
     func installIpaFile(_ url:URL) async throws {
-        if(!url.startAccessingSecurityScopedResource()) {
-            throw "lc.appList.ipaAccessError".loc;
-        }
         let fm = FileManager()
         
         let installProgress = Progress.discreteProgress(totalUnitCount: 100)
@@ -370,7 +359,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         
         // decompress
         await decompress(url.path, fm.temporaryDirectory.path, decompressProgress)
-        url.stopAccessingSecurityScopedResource()
+        try fm.removeItem(at: url)
         
         let payloadContents = try fm.contentsOfDirectory(atPath: payloadPath.path)
         var appBundleName : String? = nil

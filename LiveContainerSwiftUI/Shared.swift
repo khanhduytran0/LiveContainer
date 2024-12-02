@@ -176,6 +176,16 @@ extension View {
         self.modifier(TextFieldAlertModifier(isPresented: isPresented, title: title, text: text, placeholder: placeholder, action: action, actionCancel: actionCancel))
     }
     
+    public func betterFileImporter(
+        isPresented: Binding<Bool>,
+        types : [UTType],
+        multiple : Bool = false,
+        callback: @escaping ([URL]) -> (),
+        onDismiss: @escaping () -> Void
+    ) -> some View {
+        self.modifier(DocModifier(isPresented: isPresented, types: types, multiple: multiple, callback: callback, onDismiss: onDismiss))
+    }
+    
     func onBackground(_ f: @escaping () -> Void) -> some View {
         self.onReceive(
             NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification),
@@ -190,6 +200,70 @@ extension View {
         )
     }
     
+}
+
+public struct DocModifier: ViewModifier {
+
+    @State private var docController: UIDocumentPickerViewController?
+    @State private var delegate : UIDocumentPickerDelegate
+    
+    @Binding var isPresented: Bool
+
+    var callback: ([URL]) -> ()
+    private let onDismiss: () -> Void
+    private let types : [UTType]
+    private let multiple : Bool
+    
+    init(isPresented : Binding<Bool>, types : [UTType], multiple : Bool, callback: @escaping ([URL]) -> (), onDismiss: @escaping () -> Void) {
+        self.callback = callback
+        self.onDismiss = onDismiss
+        self.types = types
+        self.multiple = multiple
+        self.delegate = Coordinator(callback: callback, onDismiss: onDismiss)
+        self._isPresented = isPresented
+    }
+
+    public func body(content: Content) -> some View {
+        content.onChange(of: isPresented) { isPresented in
+            if isPresented, docController == nil {
+                let controller = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: true)
+                controller.allowsMultipleSelection = multiple
+                controller.delegate = delegate
+                self.docController = controller
+                guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+                    return
+                }
+                scene.windows.first?.rootViewController?.present(controller, animated: true)
+            } else if !isPresented, let docController = docController {
+                docController.dismiss(animated: true)
+                self.docController = nil
+            }
+        }
+    }
+
+    private func shutdown() {
+        isPresented = false
+        docController = nil
+    }
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        var callback: ([URL]) -> ()
+        private let onDismiss: () -> Void
+        
+        init(callback: @escaping ([URL]) -> Void, onDismiss: @escaping () -> Void) {
+            self.callback = callback
+            self.onDismiss = onDismiss
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            callback(urls)
+            onDismiss()
+        }
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            onDismiss()
+        }
+    }
+
 }
 
 public struct TextFieldAlertModifier: ViewModifier {

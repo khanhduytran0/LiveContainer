@@ -102,7 +102,7 @@ struct LCSettingsView: View {
                         
                         if isAltStorePatched {
                             Button {
-                            testJITLessMode()
+                                testJITLessMode()
                             } label: {
                                 Text("lc.settings.testJitLess".loc)
                             }

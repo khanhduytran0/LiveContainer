@@ -15,6 +15,7 @@
 @property bool bypassAssertBarrierOnQueue;
 @property UIColor* cachedColor;
 @property Signer signer;
+@property bool doUseLCBundleId;
 @property NSString* selectedLanguage;
 
 - (void)setBundlePath:(NSString*)newBundlePath;

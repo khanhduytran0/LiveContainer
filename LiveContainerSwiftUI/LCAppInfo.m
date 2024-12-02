@@ -65,7 +65,11 @@
 }
 
 - (NSString*)bundleIdentifier {
-    return _info[@"CFBundleIdentifier"];
+    if([self doUseLCBundleId]) {
+        return _info[@"LCOrignalBundleIdentifier"];
+    } else {
+        return _info[@"CFBundleIdentifier"];
+    }
 }
 
 - (NSString*)dataUUID {
@@ -378,6 +382,25 @@
     _info[@"doSymlinkInbox"] = [NSNumber numberWithBool:doSymlinkInbox];
     [self save];
     
+}
+
+- (bool)doUseLCBundleId {
+    if(_info[@"doUseLCBundleId"] != nil) {
+        return [_info[@"doUseLCBundleId"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDoUseLCBundleId:(bool)doUseLCBundleId {
+    _info[@"doUseLCBundleId"] = [NSNumber numberWithBool:doUseLCBundleId];
+    if(doUseLCBundleId) {
+        _info[@"LCOrignalBundleIdentifier"] = _info[@"CFBundleIdentifier"];
+        _info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+    } else if (_info[@"LCOrignalBundleIdentifier"]) {
+        _info[@"CFBundleIdentifier"] = _info[@"LCOrignalBundleIdentifier"];
+        [_info removeObjectForKey:@"LCOrignalBundleIdentifier"];
+    }
+    [self save];
 }
 
 - (bool)bypassAssertBarrierOnQueue {

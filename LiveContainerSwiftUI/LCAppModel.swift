@@ -21,6 +21,7 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var uiDataFolder : String?
     @Published var uiTweakFolder : String?
     @Published var uiDoSymlinkInbox : Bool
+    @Published var uiUseLCBundleId : Bool
     @Published var uiBypassAssertBarrierOnQueue : Bool
     @Published var uiSigner : Signer
     @Published var uiSelectedLanguage : String
@@ -48,6 +49,7 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiDoSymlinkInbox = appInfo.doSymlinkInbox
         self.uiBypassAssertBarrierOnQueue = appInfo.bypassAssertBarrierOnQueue
         self.uiSigner = appInfo.signer
+        self.uiUseLCBundleId = appInfo.doUseLCBundleId
     }
     
     static func == (lhs: LCAppModel, rhs: LCAppModel) -> Bool {

@@ -745,13 +745,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fix File Picker"
+            "value" : "(Legacy) Fix File Picker"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "修复文件导入"
+            "value" : "(旧方法)修复文件导入"
           }
         }
       }
@@ -1058,6 +1058,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模块文件夹"
+          }
+        }
+      }
+    },
+    "lc.appSettings.useLCBundleId" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix File Picker & Local Notification"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复文件导入和本地通知"
+          }
+        }
+      }
+    },
+    "lc.appSettings.useLCBundleIdDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixes these issues by using LiveContainer’s bundle identifier when overwriting main bundle."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过使用LiveContainer的包名解决上述问题。"
           }
         }
       }
