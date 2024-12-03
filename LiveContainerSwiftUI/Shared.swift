@@ -657,7 +657,7 @@ extension LCUtils {
         [kSecClassGenericPassword, kSecClassInternetPassword, kSecClassCertificate, kSecClassKey, kSecClassIdentity].forEach {
           let status = SecItemDelete([
             kSecClass as String: $0,
-            kSecAttrLabel as String: label,
+            "alis": label,
           ] as CFDictionary)
           if status != errSecSuccess && status != errSecItemNotFound {
               //Error while removing class $0

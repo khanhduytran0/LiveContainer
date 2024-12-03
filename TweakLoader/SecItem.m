@@ -16,31 +16,20 @@ OSStatus (*orig_SecItemDelete)(CFDictionaryRef query);
 
 OSStatus new_SecItemAdd(CFDictionaryRef attributes, CFTypeRef *result) {
     NSMutableDictionary *attributesCopy = ((__bridge NSDictionary *)attributes).mutableCopy;
-    NSString *label = attributesCopy[(__bridge id)kSecAttrLabel];
-    NSString* newLabel;
-    if(label) {
-        newLabel = [NSString stringWithFormat:@"%@.%@", SecItemLabelPrefix, label];
-    } else {
-        newLabel = SecItemLabelPrefix;
-    }
-    attributesCopy[(__bridge id)kSecAttrLabel] = newLabel;
+    attributesCopy[@"alis"] = SecItemLabelPrefix;
 
     OSStatus status = orig_SecItemAdd((__bridge CFDictionaryRef)attributesCopy, result);
-    
-    if(status == errSecSuccess && result) {
+    if(status == errSecSuccess && result && *result) {
         id objcResult = (__bridge id)(*result);
-        // recover original label
-        if([objcResult isKindOfClass:[NSDictionary class]]) {
+        if(CFGetTypeID(*result) == CFDictionaryGetTypeID()) {
             NSMutableDictionary* finalQueryResult = [objcResult mutableCopy];
-            NSString* origLabel = finalQueryResult[(__bridge id)kSecAttrLabel];
-            finalQueryResult[(__bridge id)kSecAttrLabel] = [origLabel substringFromIndex:[SecItemLabelPrefix length]];
+            finalQueryResult[@"alis"] = @"";
             *result = (__bridge CFTypeRef)finalQueryResult;
-        } else if ([objcResult isKindOfClass:[NSArray class]]) {
+        } else if (CFGetTypeID(*result) == CFArrayGetTypeID()) {
             NSMutableArray* finalQueryResult = [objcResult mutableCopy];
             for(id item in finalQueryResult) {
                 if([item isKindOfClass:[NSDictionary class]]) {
-                    NSString* origLabel = item[(__bridge id)kSecAttrLabel];
-                    item[(__bridge id)kSecAttrLabel] = [origLabel substringFromIndex:[SecItemLabelPrefix length]];
+                    item[@"alis"] = @"";
                 }
 
             }
@@ -53,30 +42,20 @@ OSStatus new_SecItemAdd(CFDictionaryRef attributes, CFTypeRef *result) {
 
 OSStatus new_SecItemCopyMatching(CFDictionaryRef query, CFTypeRef *result) {
     NSMutableDictionary *queryCopy = ((__bridge NSDictionary *)query).mutableCopy;
-    NSString *label = queryCopy[(__bridge id)kSecAttrLabel];
-    NSString* newLabel;
-    if(label) {
-        newLabel = [NSString stringWithFormat:@"%@.%@", SecItemLabelPrefix, label];
-    } else {
-        newLabel = SecItemLabelPrefix;
-    }
-    queryCopy[(__bridge id)kSecAttrLabel] = newLabel;
+    queryCopy[@"alis"] = SecItemLabelPrefix;
 
     OSStatus status = orig_SecItemCopyMatching((__bridge CFDictionaryRef)queryCopy, result);
-    if(status == errSecSuccess && result) {
+    if(status == errSecSuccess && result && *result) {
         id objcResult = (__bridge id)(*result);
-        // recover original label
         if([objcResult isKindOfClass:[NSDictionary class]]) {
             NSMutableDictionary* finalQueryResult = [objcResult mutableCopy];
-            NSString* origLabel = finalQueryResult[(__bridge id)kSecAttrLabel];
-            finalQueryResult[(__bridge id)kSecAttrLabel] = [origLabel substringFromIndex:[SecItemLabelPrefix length]];
+            finalQueryResult[@"alis"] = @"";
             *result = (__bridge CFTypeRef)finalQueryResult;
         } else if ([objcResult isKindOfClass:[NSArray class]]) {
             NSMutableArray* finalQueryResult = [objcResult mutableCopy];
             for(id item in finalQueryResult) {
                 if([item isKindOfClass:[NSDictionary class]]) {
-                    NSString* origLabel = item[(__bridge id)kSecAttrLabel];
-                    item[(__bridge id)kSecAttrLabel] = [origLabel substringFromIndex:[SecItemLabelPrefix length]];
+                    item[@"alis"] = @"";
                 }
 
             }
@@ -85,52 +64,44 @@ OSStatus new_SecItemCopyMatching(CFDictionaryRef query, CFTypeRef *result) {
         return status;
     }
     
-    if(status != errSecItemNotFound) {
-        // return other error
+    if(status != errSecParam) {
         return status;
     }
     
-    // try to find result in original keychain
+    // if this search don't support comment, we just use the original search
     status = orig_SecItemCopyMatching(query, result);
     return status;
 }
 
 OSStatus new_SecItemUpdate(CFDictionaryRef query, CFDictionaryRef attributesToUpdate) {
     NSMutableDictionary *queryCopy = ((__bridge NSDictionary *)query).mutableCopy;
-    NSString *queryLabel = queryCopy[(__bridge id)kSecAttrLabel];
-    NSString* newQueryLabel;
-    if(queryLabel) {
-        newQueryLabel = [NSString stringWithFormat:@"%@.%@", SecItemLabelPrefix, queryLabel];
-    } else {
-        newQueryLabel = SecItemLabelPrefix;
-    }
-    queryCopy[(__bridge id)kSecAttrLabel] = newQueryLabel;
+    queryCopy[@"alis"] = SecItemLabelPrefix;
     
     NSMutableDictionary *attrCopy = ((__bridge NSDictionary *)attributesToUpdate).mutableCopy;
-    NSString *attrLabel = attrCopy[(__bridge id)kSecAttrLabel];
-    NSString* newAttrLabel;
-    if(attrLabel) {
-        newAttrLabel = [NSString stringWithFormat:@"%@.%@", SecItemLabelPrefix, queryLabel];
-    } else {
-        newAttrLabel = SecItemLabelPrefix;
-    }
-    queryCopy[(__bridge id)kSecAttrLabel] = newAttrLabel;
+    attrCopy[@"alis"] = SecItemLabelPrefix;
 
-    return orig_SecItemUpdate((__bridge CFDictionaryRef)queryCopy, (__bridge CFDictionaryRef)attrCopy);
+    OSStatus status = orig_SecItemUpdate((__bridge CFDictionaryRef)queryCopy, (__bridge CFDictionaryRef)attrCopy);
+    if(status != errSecParam) {
+        return status;
+    }
+    
+    // if this search don't support comment, we just use the original search
+    status = orig_SecItemUpdate(query, attributesToUpdate);
+    return status;
 }
 
 OSStatus new_SecItemDelete(CFDictionaryRef query){
     NSMutableDictionary *queryCopy = ((__bridge NSDictionary *)query).mutableCopy;
-    NSString *queryLabel = queryCopy[(__bridge id)kSecAttrLabel];
-    NSString* newQueryLabel;
-    if(queryLabel) {
-        newQueryLabel = [NSString stringWithFormat:@"%@.%@", SecItemLabelPrefix, queryLabel];
-    } else {
-        newQueryLabel = SecItemLabelPrefix;
-    }
-    queryCopy[(__bridge id)kSecAttrLabel] = newQueryLabel;
+    queryCopy[@"alis"] = SecItemLabelPrefix;
 
-    return orig_SecItemDelete((__bridge CFDictionaryRef)queryCopy);
+    OSStatus status = orig_SecItemDelete((__bridge CFDictionaryRef)queryCopy);
+    if(status != errSecParam) {
+        return status;
+    }
+    
+    // if this search don't support comment, we just use the original search
+    status = orig_SecItemDelete(query);
+    return status;
 }
 
 __attribute__((constructor))
