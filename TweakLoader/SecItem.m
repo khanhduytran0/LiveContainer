@@ -17,7 +17,8 @@ OSStatus (*orig_SecItemDelete)(CFDictionaryRef query);
 OSStatus new_SecItemAdd(CFDictionaryRef attributes, CFTypeRef *result) {
     NSMutableDictionary *attributesCopy = ((__bridge NSDictionary *)attributes).mutableCopy;
     attributesCopy[@"alis"] = SecItemLabelPrefix;
-
+    [attributesCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
+    
     OSStatus status = orig_SecItemAdd((__bridge CFDictionaryRef)attributesCopy, result);
     if(status == errSecSuccess && result && *result) {
         id objcResult = (__bridge id)(*result);
@@ -43,6 +44,7 @@ OSStatus new_SecItemAdd(CFDictionaryRef attributes, CFTypeRef *result) {
 OSStatus new_SecItemCopyMatching(CFDictionaryRef query, CFTypeRef *result) {
     NSMutableDictionary *queryCopy = ((__bridge NSDictionary *)query).mutableCopy;
     queryCopy[@"alis"] = SecItemLabelPrefix;
+    [queryCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
 
     OSStatus status = orig_SecItemCopyMatching((__bridge CFDictionaryRef)queryCopy, result);
     if(status == errSecSuccess && result && *result) {
@@ -67,7 +69,7 @@ OSStatus new_SecItemCopyMatching(CFDictionaryRef query, CFTypeRef *result) {
     if(status != errSecParam) {
         return status;
     }
-    
+
     // if this search don't support comment, we just use the original search
     status = orig_SecItemCopyMatching(query, result);
     return status;
@@ -76,9 +78,11 @@ OSStatus new_SecItemCopyMatching(CFDictionaryRef query, CFTypeRef *result) {
 OSStatus new_SecItemUpdate(CFDictionaryRef query, CFDictionaryRef attributesToUpdate) {
     NSMutableDictionary *queryCopy = ((__bridge NSDictionary *)query).mutableCopy;
     queryCopy[@"alis"] = SecItemLabelPrefix;
+    [queryCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
     
     NSMutableDictionary *attrCopy = ((__bridge NSDictionary *)attributesToUpdate).mutableCopy;
     attrCopy[@"alis"] = SecItemLabelPrefix;
+    [attrCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
 
     OSStatus status = orig_SecItemUpdate((__bridge CFDictionaryRef)queryCopy, (__bridge CFDictionaryRef)attrCopy);
     if(status != errSecParam) {
@@ -93,7 +97,8 @@ OSStatus new_SecItemUpdate(CFDictionaryRef query, CFDictionaryRef attributesToUp
 OSStatus new_SecItemDelete(CFDictionaryRef query){
     NSMutableDictionary *queryCopy = ((__bridge NSDictionary *)query).mutableCopy;
     queryCopy[@"alis"] = SecItemLabelPrefix;
-
+    [queryCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
+    
     OSStatus status = orig_SecItemDelete((__bridge CFDictionaryRef)queryCopy);
     if(status != errSecParam) {
         return status;
