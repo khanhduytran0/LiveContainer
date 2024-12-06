@@ -88,7 +88,7 @@ struct LCAppBanner : View {
                     }
 
                     Text("\(appInfo.version()) - \(appInfo.bundleIdentifier())").font(.system(size: 12)).foregroundColor(dynamicColors ? mainColor : Color("FontColor"))
-                    Text(LocalizedStringKey(model.uiDataFolder == nil ? "lc.appBanner.noDataFolder".loc : model.uiDataFolder!)).font(.system(size: 8)).foregroundColor(dynamicColors ? mainColor : Color("FontColor"))
+                    Text(model.uiSelectedContainer?.name ?? "lc.appBanner.noDataFolder".loc).font(.system(size: 8)).foregroundColor(dynamicColors ? mainColor : Color("FontColor"))
                 })
             }
             Spacer()
@@ -141,6 +141,15 @@ struct LCAppBanner : View {
             
         })
         .contextMenu{
+            if model.uiContainers.count > 1 {
+                Picker(selection: $model.uiSelectedContainer , label: Text("Containers")) {
+                    ForEach(model.uiContainers, id:\.self) { container in
+                        Text(container.name).tag(container)
+                    }
+                }
+            }
+
+            
             Section(appInfo.relativeBundlePath) {
                 if #available(iOS 16.0, *){
                     
@@ -148,7 +157,7 @@ struct LCAppBanner : View {
                     Text(appInfo.relativeBundlePath)
                 }
                 if !model.uiIsShared {
-                    if model.uiDataFolder != nil {
+                    if let container = model.uiSelectedContainer {
                         Button {
                             openDataFolder()
                         } label: {
@@ -283,7 +292,7 @@ struct LCAppBanner : View {
     
     
     func openDataFolder() {
-        let url = URL(string:"shareddocuments://\(LCPath.docPath.path)/Data/Application/\(appInfo.dataUUID()!)")
+        let url = URL(string:"shareddocuments://\(LCPath.docPath.path)/Data/Application/\(model.uiSelectedContainer!.folderName)")
         UIApplication.shared.open(url!)
     }
     
@@ -296,7 +305,8 @@ struct LCAppBanner : View {
             }
             
             var doRemoveAppFolder = false
-            if self.appInfo.getDataUUIDNoAssign() != nil {
+            let containers = appInfo.containers
+            if !containers.isEmpty {
                 if let result = await appFolderRemovalAlert.open() {
                     doRemoveAppFolder = result
                 }
@@ -307,16 +317,17 @@ struct LCAppBanner : View {
             try fm.removeItem(atPath: self.appInfo.bundlePath()!)
             self.delegate.removeApp(app: self.model)
             if doRemoveAppFolder {
-                let dataUUID = appInfo.dataUUID()!
-                let dataFolderPath = LCPath.dataPath.appendingPathComponent(dataUUID)
-                try fm.removeItem(at: dataFolderPath)
-                
-                LCUtils.removeAppKeychain(dataUUID: dataUUID)
-                
-                DispatchQueue.main.async {
-                    self.appDataFolders.removeAll(where: { f in
-                        return f == dataUUID
-                    })
+                for container in containers {
+                    let dataUUID = container.folderName
+                    let dataFolderPath = LCPath.dataPath.appendingPathComponent(dataUUID)
+                    try fm.removeItem(at: dataFolderPath)
+                    LCUtils.removeAppKeychain(dataUUID: dataUUID)
+                    
+                    DispatchQueue.main.async {
+                        self.appDataFolders.removeAll(where: { f in
+                            return f == dataUUID
+                        })
+                    }
                 }
             }
             
@@ -328,12 +339,17 @@ struct LCAppBanner : View {
 
     
     func copyLaunchUrl() {
-        UIPasteboard.general.string = "livecontainer://livecontainer-launch?bundle-name=\(appInfo.relativeBundlePath!)"
+        if let fn = model.uiSelectedContainer?.folderName {
+            UIPasteboard.general.string = "livecontainer://livecontainer-launch?bundle-name=\(appInfo.relativeBundlePath!)&container-folder-name=\(fn)"
+        } else {
+            UIPasteboard.general.string = "livecontainer://livecontainer-launch?bundle-name=\(appInfo.relativeBundlePath!)"
+        }
+        
     }
     
     func openSafariViewToCreateAppClip() {
         do {
-            let data = try PropertyListSerialization.data(fromPropertyList: appInfo.generateWebClipConfig()!, format: .xml, options: 0)
+            let data = try PropertyListSerialization.data(fromPropertyList: appInfo.generateWebClipConfig(withContainerId: model.uiSelectedContainer?.folderName)!, format: .xml, options: 0)
             delegate.installMdm(data: data)
         } catch  {
             errorShow = true
@@ -343,7 +359,7 @@ struct LCAppBanner : View {
     }
     
     func saveIcon() {
-        let img = appInfo.icon()!
+        let img = appInfo.generateLiveContainerWrappedIcon()!
         self.saveIconFile = ImageDocument(uiImage: img)
         self.saveIconExporterShow = true
     }

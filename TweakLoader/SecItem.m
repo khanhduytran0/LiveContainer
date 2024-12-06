@@ -7,111 +7,83 @@
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
 #import "../fishhook/fishhook.h"
+#import "utils.h"
+#import <CommonCrypto/CommonDigest.h>
 
-NSString* SecItemLabelPrefix = 0;
 OSStatus (*orig_SecItemAdd)(CFDictionaryRef attributes, CFTypeRef *result);
 OSStatus (*orig_SecItemCopyMatching)(CFDictionaryRef query, CFTypeRef *result);
 OSStatus (*orig_SecItemUpdate)(CFDictionaryRef query, CFDictionaryRef attributesToUpdate);
 OSStatus (*orig_SecItemDelete)(CFDictionaryRef query);
 
+NSString* accessGroup = nil;
+NSString* containerId = nil;
+
 OSStatus new_SecItemAdd(CFDictionaryRef attributes, CFTypeRef *result) {
     NSMutableDictionary *attributesCopy = ((__bridge NSDictionary *)attributes).mutableCopy;
-    attributesCopy[@"alis"] = SecItemLabelPrefix;
-    [attributesCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
+    attributesCopy[(__bridge id)kSecAttrAccessGroup] = accessGroup;
+    // for keychain deletion in LCUI
+    attributesCopy[@"alis"] = containerId;
     
     OSStatus status = orig_SecItemAdd((__bridge CFDictionaryRef)attributesCopy, result);
-    if(status == errSecSuccess && result && *result) {
-        id objcResult = (__bridge id)(*result);
-        if(CFGetTypeID(*result) == CFDictionaryGetTypeID()) {
-            NSMutableDictionary* finalQueryResult = [objcResult mutableCopy];
-            finalQueryResult[@"alis"] = @"";
-            *result = (__bridge CFTypeRef)finalQueryResult;
-        } else if (CFGetTypeID(*result) == CFArrayGetTypeID()) {
-            NSMutableArray* finalQueryResult = [objcResult mutableCopy];
-            for(id item in finalQueryResult) {
-                if([item isKindOfClass:[NSDictionary class]]) {
-                    item[@"alis"] = @"";
-                }
-
-            }
-            *result = (__bridge CFTypeRef)finalQueryResult;
-        }
-        return status;
+    if(status == errSecParam) {
+        return orig_SecItemAdd(attributes, result);
     }
+    
     return status;
 }
 
 OSStatus new_SecItemCopyMatching(CFDictionaryRef query, CFTypeRef *result) {
     NSMutableDictionary *queryCopy = ((__bridge NSDictionary *)query).mutableCopy;
-    queryCopy[@"alis"] = SecItemLabelPrefix;
-    [queryCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
-
+    queryCopy[(__bridge id)kSecAttrAccessGroup] = accessGroup;
     OSStatus status = orig_SecItemCopyMatching((__bridge CFDictionaryRef)queryCopy, result);
-    if(status == errSecSuccess && result && *result) {
-        id objcResult = (__bridge id)(*result);
-        if([objcResult isKindOfClass:[NSDictionary class]]) {
-            NSMutableDictionary* finalQueryResult = [objcResult mutableCopy];
-            finalQueryResult[@"alis"] = @"";
-            *result = (__bridge CFTypeRef)finalQueryResult;
-        } else if ([objcResult isKindOfClass:[NSArray class]]) {
-            NSMutableArray* finalQueryResult = [objcResult mutableCopy];
-            for(id item in finalQueryResult) {
-                if([item isKindOfClass:[NSDictionary class]]) {
-                    item[@"alis"] = @"";
-                }
-
-            }
-            *result = (__bridge CFTypeRef)finalQueryResult;
-        }
-        return status;
+    if(status == errSecParam) {
+        // if this search don't support kSecAttrAccessGroup, we just use the original search
+        return orig_SecItemCopyMatching(query, result);
     }
     
-    if(status != errSecParam) {
-        return status;
-    }
-
-    // if this search don't support comment, we just use the original search
-    status = orig_SecItemCopyMatching(query, result);
     return status;
 }
 
 OSStatus new_SecItemUpdate(CFDictionaryRef query, CFDictionaryRef attributesToUpdate) {
     NSMutableDictionary *queryCopy = ((__bridge NSDictionary *)query).mutableCopy;
-    queryCopy[@"alis"] = SecItemLabelPrefix;
-    [queryCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
+    queryCopy[(__bridge id)kSecAttrAccessGroup] = accessGroup;
     
     NSMutableDictionary *attrCopy = ((__bridge NSDictionary *)attributesToUpdate).mutableCopy;
-    attrCopy[@"alis"] = SecItemLabelPrefix;
-    [attrCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
+    attrCopy[(__bridge id)kSecAttrAccessGroup] = accessGroup;
 
     OSStatus status = orig_SecItemUpdate((__bridge CFDictionaryRef)queryCopy, (__bridge CFDictionaryRef)attrCopy);
-    if(status != errSecParam) {
-        return status;
+
+    if(status == errSecParam) {
+        return orig_SecItemUpdate(query, attributesToUpdate);
     }
     
-    // if this search don't support comment, we just use the original search
-    status = orig_SecItemUpdate(query, attributesToUpdate);
     return status;
 }
 
 OSStatus new_SecItemDelete(CFDictionaryRef query){
     NSMutableDictionary *queryCopy = ((__bridge NSDictionary *)query).mutableCopy;
-    queryCopy[@"alis"] = SecItemLabelPrefix;
-    [queryCopy removeObjectForKey:(__bridge id)kSecAttrAccessGroup];
-    
+    queryCopy[(__bridge id)kSecAttrAccessGroup] = accessGroup;
     OSStatus status = orig_SecItemDelete((__bridge CFDictionaryRef)queryCopy);
-    if(status != errSecParam) {
-        return status;
+    if(status == errSecParam) {
+        return new_SecItemDelete(query);
     }
     
-    // if this search don't support comment, we just use the original search
-    status = orig_SecItemDelete(query);
     return status;
 }
 
 __attribute__((constructor))
 static void SecItemGuestHooksInit()  {
-    SecItemLabelPrefix = [NSString stringWithUTF8String:getenv("HOME")].lastPathComponent;
+    containerId = [NSString stringWithUTF8String:getenv("HOME")].lastPathComponent;
+    NSString* containerInfoPath = [[NSString stringWithUTF8String:getenv("HOME")] stringByAppendingPathComponent:@"LCContainerInfo.plist"];
+    NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:containerInfoPath];
+    int keychainGroupId = [infoDict[@"keychainGroupId"] intValue];
+    NSString* groupId = [[NSUserDefaults.lcMainBundle.bundleIdentifier componentsSeparatedByString:@"."] lastObject];
+    if(keychainGroupId == 0) {
+        accessGroup = [NSString stringWithFormat:@"%@.com.kdt.livecontainer.shared", groupId];
+    } else {
+        accessGroup = [NSString stringWithFormat:@"%@.com.kdt.livecontainer.shared.%d", groupId, keychainGroupId];
+    }
+
     rebind_symbols((struct rebinding[1]){{"SecItemAdd", (void *)new_SecItemAdd, (void **)&orig_SecItemAdd}},1);
     rebind_symbols((struct rebinding[1]){{"SecItemCopyMatching", (void *)new_SecItemCopyMatching, (void **)&orig_SecItemCopyMatching}},1);
     rebind_symbols((struct rebinding[1]){{"SecItemUpdate", (void *)new_SecItemUpdate, (void **)&orig_SecItemUpdate}},1);

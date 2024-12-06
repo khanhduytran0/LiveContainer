@@ -17,6 +17,8 @@
 @property Signer signer;
 @property bool doUseLCBundleId;
 @property NSString* selectedLanguage;
+@property NSString* dataUUID;
+@property NSArray<NSDictionary*>* containerInfo;
 
 - (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;
@@ -25,14 +27,12 @@
 - (NSString*)bundlePath;
 - (NSString*)bundleIdentifier;
 - (NSString*)version;
-- (NSString*)dataUUID;
-- (NSString*)getDataUUIDNoAssign;
 - (NSString*)tweakFolder;
 - (NSMutableArray*) urlSchemes;
-- (void)setDataUUID:(NSString *)uuid;
 - (void)setTweakFolder:(NSString *)tweakFolder;
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
-- (NSDictionary *)generateWebClipConfig;
+- (UIImage *)generateLiveContainerWrappedIcon;
+- (NSDictionary *)generateWebClipConfigWithContainerId:(NSString*)containerId;
 - (void)save;
 - (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler  forceSign:(BOOL)forceSign;
 @end

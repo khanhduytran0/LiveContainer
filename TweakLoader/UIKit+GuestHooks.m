@@ -11,6 +11,24 @@ static void UIKitGuestHooksInit() {
     swizzle(UIScene.class, @selector(scene:didReceiveActions:fromTransitionContext:), @selector(hook_scene:didReceiveActions:fromTransitionContext:));
 }
 
+NSString* findDefaultContainerWithBundleId(NSString* bundleId) {
+    // find app's default container
+    NSString *appGroupPath = [NSUserDefaults lcAppGroupPath];
+    NSString* appGroupFolder = [appGroupPath stringByAppendingPathComponent:@"LiveContainer"];
+    
+    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", appGroupFolder, bundleId];
+    NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
+    if(!infoDict) {
+        NSString* lcDocFolder = [[NSString stringWithUTF8String:getenv("LC_HOME_PATH")] stringByAppendingPathComponent:@"Documents"];
+        
+        bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", lcDocFolder, bundleId];
+        infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
+    }
+    
+    return infoDict[@"LCDataUUID"];
+}
+
+
 void LCShowSwitchAppConfirmation(NSURL *url, NSString* bundleId) {
     if ([NSUserDefaults.lcUserDefaults boolForKey:@"LCSwitchAppWithoutAsking"]) {
         [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
@@ -150,6 +168,7 @@ void handleLiveContainerLaunch(NSURL* url) {
     // check if there are other LCs is running this app
     NSString* bundleName = nil;
     NSString* openUrl = nil;
+    NSString* containerFolderName = nil;
     NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
     for (NSURLQueryItem* queryItem in components.queryItems) {
         if ([queryItem.name isEqualToString:@"bundle-name"]) {
@@ -157,17 +176,22 @@ void handleLiveContainerLaunch(NSURL* url) {
         } else if ([queryItem.name isEqualToString:@"open-url"]) {
             NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:queryItem.value options:0];
             openUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
+        } else if ([queryItem.name isEqualToString:@"container-folder-name"]) {
+            containerFolderName = queryItem.value;
         }
     }
-    
-    if ([bundleName isEqualToString:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
+    NSString* containerId = [NSString stringWithUTF8String:getenv("HOME")].lastPathComponent;
+    if(!containerFolderName) {
+        containerFolderName = findDefaultContainerWithBundleId(bundleName);
+    }
+    if ([bundleName isEqualToString:NSBundle.mainBundle.bundlePath.lastPathComponent] && [containerId isEqualToString:containerFolderName]) {
         if(openUrl) {
             openUniversalLink(openUrl);
         }
     } else {
-        NSString* runningLC = [NSClassFromString(@"LCSharedUtils") getAppRunningLCSchemeWithBundleId:bundleName];
+        NSString* runningLC = [NSClassFromString(@"LCSharedUtils") getContainerUsingLCSchemeWithFolderName:containerFolderName];
         if(runningLC) {
-            NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, bundleName];
+            NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@&container-folder-name=%@", runningLC, bundleName, containerFolderName];
             [UIApplication.sharedApplication openURL:[NSURL URLWithString:urlStr] options:@{} completionHandler:nil];
             return;
         }

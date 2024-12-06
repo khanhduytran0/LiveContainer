@@ -57,6 +57,9 @@ class SharedModel: ObservableObject {
     // 0= not installed, 1= is installed, 2=current liveContainer is the second one
     @Published var multiLCStatus = 0
     
+    @Published var apps : [LCAppModel] = []
+    @Published var hiddenApps : [LCAppModel] = []
+    
     func updateMultiLCStatus() {
         if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {
             multiLCStatus = 2
@@ -571,6 +574,26 @@ extension LCUtils {
         // Iterate over the dictionary to find the matching bundle ID
         for (key, value) in info {
             if value == bundleId {
+                if key == LCUtils.appUrlScheme() {
+                    return nil
+                }
+                return key
+            }
+        }
+        
+        return nil
+    }
+    
+    public static func getContainerUsingLCScheme(containerName: String) -> String? {
+        // Retrieve the app group path using the app group ID
+        let infoPath = LCPath.lcGroupDocPath.appendingPathComponent("containerLock.plist")
+        // Read the plist file into a dictionary
+        guard let info = NSDictionary(contentsOf: infoPath) as? [String: String] else {
+            return nil
+        }
+        // Iterate over the dictionary to find the matching bundle ID
+        for (key, value) in info {
+            if value == containerName {
                 if key == LCUtils.appUrlScheme() {
                     return nil
                 }

@@ -6,7 +6,8 @@ import SwiftUI
     private static var urlStrToOpen: String? = nil
     private static var openUrlStrFunc: ((String) async -> Void)?
     private static var bundleToLaunch: String? = nil
-    private static var launchAppFunc: ((String) async -> Void)?
+    private static var containerToLaunch: String? = nil
+    private static var launchAppFunc: ((String, String?) async -> Void)?
     
     public static func setOpenUrlStrFunc(handler: @escaping ((String) async -> Void)){
         self.openUrlStrFunc = handler
@@ -19,10 +20,10 @@ import SwiftUI
         }
     }
     
-    public static func setLaunchAppFunc(handler: @escaping ((String) async -> Void)){
+    public static func setLaunchAppFunc(handler: @escaping ((String, String?) async -> Void)){
         self.launchAppFunc = handler
         if let bundleToLaunch = self.bundleToLaunch {
-            Task { await handler(bundleToLaunch) }
+            Task { await handler(bundleToLaunch, containerToLaunch) }
             self.bundleToLaunch = nil
         }
     }
@@ -35,11 +36,12 @@ import SwiftUI
         }
     }
     
-    private static func launchApp(bundleId: String) {
+    private static func launchApp(bundleId: String, container: String?) {
         if launchAppFunc == nil {
             bundleToLaunch = bundleId
+            containerToLaunch = container
         } else {
-            Task { await launchAppFunc!(bundleId) }
+            Task { await launchAppFunc!(bundleId, container) }
         }
     }
     
@@ -67,11 +69,17 @@ import SwiftUI
             }
         } else if url.host == "livecontainer-launch" {
             if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                var bundleId : String? = nil
+                var containerName : String? = nil
                 for queryItem in components.queryItems ?? [] {
-                    if queryItem.name == "bundle-name", let bundleId = queryItem.value {
-                        AppDelegate.launchApp(bundleId: bundleId)
-                        break
+                    if queryItem.name == "bundle-name", let bundleId1 = queryItem.value {
+                        bundleId = bundleId1
+                    } else if queryItem.name == "container-folder-name", let containerName1 = queryItem.value {
+                        containerName = containerName1
                     }
+                }
+                if let bundleId {
+                    AppDelegate.launchApp(bundleId: bundleId, container: containerName)
                 }
             }
         }
@@ -82,6 +90,7 @@ import SwiftUI
     func applicationWillTerminate(_ application: UIApplication) {
         // Fix launching app if user opens JIT waiting dialog and kills the app. Won't trigger normally.
         UserDefaults.standard.removeObject(forKey: "selected")
+        UserDefaults.standard.removeObject(forKey: "selectedContainer")
         
         if (UserDefaults.standard.object(forKey: "LCLastLanguages") != nil) {
             // recover livecontainer's own language

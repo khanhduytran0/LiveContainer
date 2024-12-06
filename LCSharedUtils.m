@@ -97,12 +97,15 @@ extern NSString *lcAppUrlScheme;
 
     NSString* launchBundleId = nil;
     NSString* openUrl = nil;
+    NSString* containerFolderName = nil;
     for (NSURLQueryItem* queryItem in components.queryItems) {
         if ([queryItem.name isEqualToString:@"bundle-name"]) {
             launchBundleId = queryItem.value;
         } else if ([queryItem.name isEqualToString:@"open-url"]){
             NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:queryItem.value options:0];
             openUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
+        } else if ([queryItem.name isEqualToString:@"container-folder-name"]) {
+            containerFolderName = queryItem.value;
         }
     }
     if(launchBundleId) {
@@ -112,6 +115,7 @@ extern NSString *lcAppUrlScheme;
         
         // Attempt to restart LiveContainer with the selected guest app
         [lcUserDefaults setObject:launchBundleId forKey:@"selected"];
+        [lcUserDefaults setObject:containerFolderName forKey:@"selectedContainer"];
         return [self launchToGuestApp];
     }
     
@@ -133,6 +137,17 @@ extern NSString *lcAppUrlScheme;
     return infoPath;
 }
 
++ (NSURL*)containerLockPath {
+    static dispatch_once_t once;
+    static NSURL *infoPath;
+    
+    dispatch_once(&once, ^{
+        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
+        infoPath = [appGroupPath URLByAppendingPathComponent:@"LiveContainer/containerLock.plist"];
+    });
+    return infoPath;
+}
+
 + (NSString*)getAppRunningLCSchemeWithBundleId:(NSString*)bundleId {
     NSURL* infoPath = [self appLockPath];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath.path];
@@ -142,6 +157,25 @@ extern NSString *lcAppUrlScheme;
     
     for (NSString* key in info) {
         if([bundleId isEqualToString:info[key]]) {
+            if([key isEqualToString:lcAppUrlScheme]) {
+                return nil;
+            }
+            return key;
+        }
+    }
+    
+    return nil;
+}
+
++ (NSString*)getContainerUsingLCSchemeWithFolderName:(NSString*)folderName {
+    NSURL* infoPath = [self containerLockPath];
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath.path];
+    if (!info) {
+        return nil;
+    }
+    
+    for (NSString* key in info) {
+        if([folderName isEqualToString:info[key]]) {
             if([key isEqualToString:lcAppUrlScheme]) {
                 return nil;
             }
@@ -169,8 +203,36 @@ extern NSString *lcAppUrlScheme;
 
 }
 
++ (void)setContainerUsingByThisLC:(NSString*)folderName {
+    NSURL* infoPath = [self containerLockPath];
+    
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath.path];
+    if (!info) {
+        info = [NSMutableDictionary new];
+    }
+    if(folderName == nil) {
+        [info removeObjectForKey:lcAppUrlScheme];
+    } else {
+        info[lcAppUrlScheme] = folderName;
+    }
+    [info writeToFile:infoPath.path atomically:YES];
+
+}
+
 + (void)removeAppRunningByLC:(NSString*)LCScheme {
     NSURL* infoPath = [self appLockPath];
+    
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath.path];
+    if (!info) {
+        return;
+    }
+    [info removeObjectForKey:LCScheme];
+    [info writeToFile:infoPath.path atomically:YES];
+
+}
+
++ (void)removeContainerUsingByLC:(NSString*)LCScheme {
+    NSURL* infoPath = [self containerLockPath];
     
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath.path];
     if (!info) {
@@ -257,6 +319,16 @@ extern NSString *lcAppUrlScheme;
         [preference writeToFile:itemPath atomically:YES];
     }
     [lcUserDefaults removeObjectForKey:dataUUID];
+}
+
++ (NSString*)findDefaultContainerWithBundleId:(NSString*)bundleId {
+    // find app's default container
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
+    NSURL* appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
+    
+    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", appGroupFolder.path, bundleId];
+    NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
+    return infoDict[@"LCDataUUID"];
 }
 
 @end

@@ -18,7 +18,9 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var uiIsHidden : Bool
     @Published var uiIsLocked : Bool
     @Published var uiIsShared : Bool
-    @Published var uiDataFolder : String?
+    @Published var uiDefaultDataFolder : String?
+    @Published var uiContainers : [LCContainer]
+    @Published var uiSelectedContainer : LCContainer?
     @Published var uiTweakFolder : String?
     @Published var uiDoSymlinkInbox : Bool
     @Published var uiUseLCBundleId : Bool
@@ -44,12 +46,20 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiIsLocked = appInfo.isLocked
         self.uiIsShared = appInfo.isShared
         self.uiSelectedLanguage = appInfo.selectedLanguage ?? ""
-        self.uiDataFolder = appInfo.getDataUUIDNoAssign()
+        self.uiDefaultDataFolder = appInfo.dataUUID
+        self.uiContainers = appInfo.containers
         self.uiTweakFolder = appInfo.tweakFolder()
         self.uiDoSymlinkInbox = appInfo.doSymlinkInbox
         self.uiBypassAssertBarrierOnQueue = appInfo.bypassAssertBarrierOnQueue
         self.uiSigner = appInfo.signer
         self.uiUseLCBundleId = appInfo.doUseLCBundleId
+        
+        for container in uiContainers {
+            if container.folderName == uiDefaultDataFolder {
+                self.uiSelectedContainer = container;
+                break
+            }
+        }
     }
     
     static func == (lhs: LCAppModel, rhs: LCAppModel) -> Bool {
@@ -60,13 +70,34 @@ class LCAppModel: ObservableObject, Hashable {
         hasher.combine(ObjectIdentifier(self))
     }
     
-    func runApp() async throws{
+    func runApp(containerFolderName : String? = nil) async throws{
         if isAppRunning {
             return
         }
         
-        if let runningLC = LCUtils.getAppRunningLCScheme(bundleId: self.appInfo.relativeBundlePath) {
-            let openURL = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(self.appInfo.relativeBundlePath!)")!
+        if uiContainers.isEmpty {
+            let newName = NSUUID().uuidString
+            let newContainer = LCContainer(folderName: newName, name: newName, isShared: uiIsShared)
+            uiContainers.append(newContainer)
+            if uiSelectedContainer == nil {
+                uiSelectedContainer = newContainer;
+            }
+            appInfo.containers = uiContainers;
+            newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: 0)
+            appInfo.dataUUID = newName
+            uiDefaultDataFolder = newName
+        }
+        if let containerFolderName {
+            for uiContainer in uiContainers {
+                if uiContainer.folderName == containerFolderName {
+                    uiSelectedContainer = uiContainer
+                    break
+                }
+            }
+        }
+        
+        if let fn = uiSelectedContainer?.folderName, let runningLC = LCUtils.getContainerUsingLCScheme(containerName: fn) {
+            let openURL = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(self.appInfo.relativeBundlePath!)&container-folder-name=\(fn)")!
             if await UIApplication.shared.canOpenURL(openURL) {
                 await UIApplication.shared.open(openURL)
                 return
@@ -79,6 +110,7 @@ class LCAppModel: ObservableObject, Hashable {
         try await signApp(force: false)
         
         UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
+        UserDefaults.standard.set(uiSelectedContainer?.folderName, forKey: "selectedContainer")
         if let selectedLanguage = self.appInfo.selectedLanguage {
             // save livecontainer's own language
             UserDefaults.standard.set(UserDefaults.standard.object(forKey: "AppleLanguages"), forKey:"LCLastLanguages")

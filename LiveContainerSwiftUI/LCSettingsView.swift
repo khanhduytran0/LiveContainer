@@ -20,8 +20,6 @@ struct LCSettingsView: View {
     @State var successShow = false
     @State var successInfo = ""
     
-    @Binding var apps: [LCAppModel]
-    @Binding var hiddenApps: [LCAppModel]
     @Binding var appDataFolderNames: [String]
     
     @StateObject private var appFolderRemovalAlert = YesNoHelper()
@@ -50,7 +48,7 @@ struct LCSettingsView: View {
     
     let storeName = LCUtils.getStoreName()
     
-    init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>) {
+    init(appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
         
         if(LCUtils.appGroupUserDefault.object(forKey: "LCSignOnlyOnExpiration") == nil) {
@@ -65,8 +63,6 @@ struct LCSettingsView: View {
         
         _isSideStore = State(initialValue: LCUtils.store() == .SideStore)
         
-        _apps = apps
-        _hiddenApps = hiddenApps
         _appDataFolderNames = appDataFolderNames
         
         if let configSideJITServerAddress = LCUtils.appGroupUserDefault.string(forKey: "LCSideJITServerAddress") {
@@ -436,17 +432,15 @@ struct LCSettingsView: View {
     func cleanUpUnusedFolders() async {
         
         var folderNameToAppDict : [String:LCAppModel] = [:]
-        for app in apps {
-            guard let folderName = app.appInfo.getDataUUIDNoAssign() else {
-                continue
+        for app in sharedModel.apps {
+            for container in app.appInfo.containers {
+                folderNameToAppDict[container.folderName] = app;
             }
-            folderNameToAppDict[folderName] = app
         }
-        for app in hiddenApps {
-            guard let folderName = app.appInfo.getDataUUIDNoAssign() else {
-                continue
+        for app in sharedModel.hiddenApps {
+            for container in app.appInfo.containers {
+                folderNameToAppDict[container.folderName] = app;
             }
-            folderNameToAppDict[folderName] = app
         }
         
         var foldersToDelete : [String]  = []
@@ -499,25 +493,27 @@ struct LCSettingsView: View {
         do {
             var appDataFoldersInUse : Set<String> = Set();
             var tweakFoldersInUse : Set<String> = Set();
-            for app in apps {
+            for app in sharedModel.apps {
                 if !app.appInfo.isShared {
                     continue
                 }
-                if let folder = app.appInfo.getDataUUIDNoAssign() {
-                    appDataFoldersInUse.update(with: folder);
+                for container in app.appInfo.containers {
+                    appDataFoldersInUse.update(with: container.folderName);
                 }
+
+                
                 if let folder = app.appInfo.tweakFolder() {
                     tweakFoldersInUse.update(with: folder);
                 }
 
             }
             
-            for app in hiddenApps {
+            for app in sharedModel.hiddenApps {
                 if !app.appInfo.isShared {
                     continue
                 }
-                if let folder = app.appInfo.getDataUUIDNoAssign() {
-                    appDataFoldersInUse.update(with: folder);
+                for container in app.appInfo.containers {
+                    appDataFoldersInUse.update(with: container.folderName);
                 }
                 if let folder = app.appInfo.tweakFolder() {
                     tweakFoldersInUse.update(with: folder);

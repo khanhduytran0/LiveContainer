@@ -8,11 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		170C3DF92C99A489007F86FB /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 170C3DF82C99A489007F86FB /* Localizable.xcstrings */; };
+		170D51B52D02E29F009000A6 /* LCSelectContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170D51B42D02E291009000A6 /* LCSelectContainerView.swift */; };
+		170F86832D02A34C00E642C3 /* LCContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170F86822D02A34100E642C3 /* LCContainerView.swift */; };
 		171014182CE9B42000673269 /* LCVersionInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 171014172CE9B42000673269 /* LCVersionInfo.m */; };
 		1710141C2CE9B50C00673269 /* LCAppInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 1710141B2CE9B50C00673269 /* LCAppInfo.m */; };
 		171014222CE9B63100673269 /* unarchive.m in Sources */ = {isa = PBXBuildFile; fileRef = 171014212CE9B63100673269 /* unarchive.m */; };
 		171014232CE9B63100673269 /* LCUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 1710141F2CE9B63100673269 /* LCUtils.m */; };
 		171014242CE9B63100673269 /* LCMachOUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 1710141D2CE9B63100673269 /* LCMachOUtils.m */; };
+		171510872D01D61E00ED4B2E /* LCContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171510862D01D61B00ED4B2E /* LCContainer.swift */; };
 		173564C92C76FE3500C6C918 /* LCAppListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564BC2C76FE3500C6C918 /* LCAppListView.swift */; };
 		173564CA2C76FE3500C6C918 /* LCTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564BD2C76FE3500C6C918 /* LCTabView.swift */; };
 		173564CC2C76FE3500C6C918 /* LCTweaksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564C02C76FE3500C6C918 /* LCTweaksView.swift */; };
@@ -29,6 +32,8 @@
 
 /* Begin PBXFileReference section */
 		170C3DF82C99A489007F86FB /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		170D51B42D02E291009000A6 /* LCSelectContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCSelectContainerView.swift; sourceTree = "<group>"; };
+		170F86822D02A34100E642C3 /* LCContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCContainerView.swift; sourceTree = "<group>"; };
 		171014162CE9B42000673269 /* LCVersionInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LCVersionInfo.h; sourceTree = "<group>"; };
 		171014172CE9B42000673269 /* LCVersionInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LCVersionInfo.m; sourceTree = "<group>"; };
 		1710141A2CE9B50C00673269 /* LCAppInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LCAppInfo.h; sourceTree = "<group>"; };
@@ -40,6 +45,7 @@
 		171014212CE9B63100673269 /* unarchive.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = unarchive.m; sourceTree = "<group>"; };
 		171014252CE9B6ED00673269 /* archive.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = archive.h; sourceTree = "<group>"; };
 		171014262CE9B6ED00673269 /* archive_entry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = archive_entry.h; sourceTree = "<group>"; };
+		171510862D01D61B00ED4B2E /* LCContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCContainer.swift; sourceTree = "<group>"; };
 		173564BC2C76FE3500C6C918 /* LCAppListView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCAppListView.swift; sourceTree = "<group>"; };
 		173564BD2C76FE3500C6C918 /* LCTabView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCTabView.swift; sourceTree = "<group>"; };
 		173564C02C76FE3500C6C918 /* LCTweaksView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCTweaksView.swift; sourceTree = "<group>"; };
@@ -70,6 +76,7 @@
 		173564BB2C76FE1500C6C918 /* LiveContainerSwiftUI */ = {
 			isa = PBXGroup;
 			children = (
+				170D51B42D02E291009000A6 /* LCSelectContainerView.swift */,
 				173F183F2C7B7B74002953AA /* LCWebView.swift */,
 				173564C82C76FE3500C6C918 /* Assets.xcassets */,
 				173564C72C76FE3500C6C918 /* LCAppBanner.swift */,
@@ -80,6 +87,8 @@
 				173564C02C76FE3500C6C918 /* LCTweaksView.swift */,
 				173564C32C76FE3500C6C918 /* Makefile */,
 				178B4C3F2C7766A300DD1F74 /* LiveContainerSwiftUI-Bridging-Header.h */,
+				171510862D01D61B00ED4B2E /* LCContainer.swift */,
+				170F86822D02A34100E642C3 /* LCContainerView.swift */,
 				178B4C3D2C77654400DD1F74 /* Shared.swift */,
 				17A7640B2C9D1B6C00456519 /* LCAppModel.swift */,
 				170C3DF82C99A489007F86FB /* Localizable.xcstrings */,
@@ -192,6 +201,8 @@
 				179765E12CF8192600D40B95 /* AppDelegate.swift in Sources */,
 				171014242CE9B63100673269 /* LCMachOUtils.m in Sources */,
 				178B4C3E2C77654400DD1F74 /* Shared.swift in Sources */,
+				170D51B52D02E29F009000A6 /* LCSelectContainerView.swift in Sources */,
+				171510872D01D61E00ED4B2E /* LCContainer.swift in Sources */,
 				171014182CE9B42000673269 /* LCVersionInfo.m in Sources */,
 				173564D22C76FE3500C6C918 /* LCAppBanner.swift in Sources */,
 				173F18402C7B7B74002953AA /* LCWebView.swift in Sources */,
@@ -203,6 +214,7 @@
 				173564CC2C76FE3500C6C918 /* LCTweaksView.swift in Sources */,
 				173564CD2C76FE3500C6C918 /* LCSettingsView.swift in Sources */,
 				173564CA2C76FE3500C6C918 /* LCTabView.swift in Sources */,
+				170F86832D02A34C00E642C3 /* LCContainerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

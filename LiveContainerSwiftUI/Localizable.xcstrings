@@ -649,7 +649,7 @@
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此App的数据当前在%@中。打开%@至App界面活后再试。"
+            "value" : "此App的数据当前在%@中。打开%@至App界面后再试。"
           }
         }
       }
@@ -1130,6 +1130,23 @@
         }
       }
     },
+    "lc.common.container" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Containers"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器"
+          }
+        }
+      }
+    },
     "lc.common.copy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1364,6 +1381,312 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "成功"
+          }
+        }
+      }
+    },
+    "lc.container.alreadyDefaultContainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is the default container"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该容器为默认容器"
+          }
+        }
+      }
+    },
+    "lc.container.containerFolderName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Folder Name"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器文件夹名"
+          }
+        }
+      }
+    },
+    "lc.container.containerName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Name"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器名称"
+          }
+        }
+      }
+    },
+    "lc.container.defaultContainerDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer will use the default container when none is specified."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当没有指定容器时，LiveContainer会使用默认容器。"
+          }
+        }
+      }
+    },
+    "lc.container.deleteData" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Data"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除数据"
+          }
+        }
+      }
+    },
+    "lc.container.deleteDataDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you want to delete all data of this container?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你确定要删除该容器的所有数据吗？"
+          }
+        }
+      }
+    },
+    "lc.container.inUse" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This container is currently in use"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器当前正在使用"
+          }
+        }
+      }
+    },
+    "lc.container.inUseBy %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container is currently used by %@."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器当前正在被%@使用。"
+          }
+        }
+      }
+    },
+    "lc.container.notEnoughKeychainGroup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough keychain Access Group."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法分配空闲的钥匙串访问组。"
+          }
+        }
+      }
+    },
+    "lc.container.removeContainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Container"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除容器"
+          }
+        }
+      }
+    },
+    "lc.container.removeContainerDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you want to remove this container?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你确定要删除此容器吗？"
+          }
+        }
+      }
+    },
+    "lc.container.removeKeychainDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you want to remove the keychain of this container?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你确定要清除该容器的钥匙串吗？"
+          }
+        }
+      }
+    },
+    "lc.container.selectUnused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Unused Containers"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择未使用的容器"
+          }
+        }
+      }
+    },
+    "lc.container.selectUnused.noUnused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No unused data folders."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无未使用的数据文件夹。"
+          }
+        }
+      }
+    },
+    "lc.container.selectUnused.unknownApp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown app"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知App"
+          }
+        }
+      }
+    },
+    "lc.container.setDefaultContainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set As Default Container"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置为默认容器"
+          }
+        }
+      }
+    },
+    "lc.container.tooMuchContainers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't add more than 3 containers."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不能添加超过3个容器。"
+          }
+        }
+      }
+    },
+    "lc.container.unbind" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbind From App"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与App解绑"
           }
         }
       }
@@ -1727,7 +2050,7 @@
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清理Keychain"
+            "value" : "清理钥匙串"
           }
         }
       }

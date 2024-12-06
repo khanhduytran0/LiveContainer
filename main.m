@@ -193,7 +193,7 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     return (void *)header + entryoff;
 }
 
-static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
+static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContainer, int argc, char *argv[]) {
     NSString *appError = nil;
     if (!LCSharedUtils.certificatePassword) {
         // First of all, let's check if we have JIT
@@ -228,8 +228,20 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     if(!appBundle) {
         return @"App not found";
     }
+    
+    // find container in Info.plist
+    NSString* dataUUID = selectedContainer;
+    if(!dataUUID) {
+        dataUUID = appBundle.infoDictionary[@"LCDataUUID"];
+    }
+
+    if(dataUUID == nil) {
+        return @"Container not found!";
+    }
+    
     if(isSharedBundle) {
         [LCSharedUtils setAppRunningByThisLC:selectedApp];
+        [LCSharedUtils setContainerUsingByThisLC:dataUUID];
     }
     
     NSError *error;
@@ -277,16 +289,6 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.infoDictionary[@"LCOrignalBundleIdentifier"]];
     } else {
         NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
-    }
-
-    
-    // Set & save the folder it it does not exist in Info.plist
-    NSString* dataUUID = appBundle.infoDictionary[@"LCDataUUID"];
-    if(dataUUID == nil) {
-        NSMutableDictionary* infoDict = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
-        dataUUID = NSUUID.UUID.UUIDString;
-        infoDict[@"LCDataUUID"] = dataUUID;
-        [infoDict writeToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
     }
 
     // Overwrite home and tmp path
@@ -451,16 +453,27 @@ int LiveContainerMain(int argc, char *argv[]) {
     [LCSharedUtils moveSharedAppFolderBack];
     
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
-    NSString* runningLC = [LCSharedUtils getAppRunningLCSchemeWithBundleId:selectedApp];
+    NSString *selectedContainer = [lcUserDefaults stringForKey:@"selectedContainer"];
+    if(selectedApp && !selectedContainer) {
+        selectedContainer = [LCSharedUtils findDefaultContainerWithBundleId:selectedApp];
+    }
+    NSString* runningLC = [LCSharedUtils getContainerUsingLCSchemeWithFolderName:selectedContainer];
     // if another instance is running, we just switch to that one, these should be called after uiapplication initialized
     if(selectedApp && runningLC) {
         [lcUserDefaults removeObjectForKey:@"selected"];
+        [lcUserDefaults removeObjectForKey:@"selectedContainer"];
         NSString* selectedAppBackUp = selectedApp;
         selectedApp = nil;
         dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
         dispatch_after(delay, dispatch_get_main_queue(), ^{
             // Base64 encode the data
-            NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, selectedAppBackUp];
+            NSString* urlStr;
+            if(selectedContainer) {
+                urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@&container-folder-name=%@", runningLC, selectedAppBackUp, selectedContainer];
+            } else {
+                urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, selectedAppBackUp];
+            }
+            
             NSURL* url = [NSURL URLWithString:urlStr];
             if([[UIApplication sharedApplication] canOpenURL:url]){
                 [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
@@ -482,6 +495,7 @@ int LiveContainerMain(int argc, char *argv[]) {
                 }
             } else {
                 [LCSharedUtils removeAppRunningByLC: runningLC];
+                [LCSharedUtils removeContainerUsingByLC: runningLC];
             }
         });
 
@@ -491,6 +505,7 @@ int LiveContainerMain(int argc, char *argv[]) {
         
         NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
         [lcUserDefaults removeObjectForKey:@"selected"];
+        [lcUserDefaults removeObjectForKey:@"selectedContainer"];
         // wait for app to launch so that it can receive the url
         if(launchUrl) {
             [lcUserDefaults removeObjectForKey:@"launchAppUrlScheme"];
@@ -508,16 +523,17 @@ int LiveContainerMain(int argc, char *argv[]) {
         }
         NSSetUncaughtExceptionHandler(&exceptionHandler);
         setenv("LC_HOME_PATH", getenv("HOME"), 1);
-        NSString *appError = invokeAppMain(selectedApp, argc, argv);
+        NSString *appError = invokeAppMain(selectedApp, selectedContainer, argc, argv);
         if (appError) {
             [lcUserDefaults setObject:appError forKey:@"error"];
             [LCSharedUtils setAppRunningByThisLC:nil];
+            [LCSharedUtils setContainerUsingByThisLC:nil];
             // potentially unrecovable state, exit now
             return 1;
         }
     }
     [LCSharedUtils setAppRunningByThisLC:nil];
-    
+    [LCSharedUtils setContainerUsingByThisLC:nil];
     // recover language before reaching UI
     NSArray* savedLaunguage = [lcUserDefaults objectForKey:@"LCLastLanguages"];
     if(savedLaunguage) {

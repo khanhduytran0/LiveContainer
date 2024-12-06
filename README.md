@@ -124,6 +124,12 @@ make package
 - Jump to the entry point
 - The guest app's entry point calls `UIApplicationMain` and start up like any other iOS apps.
 
+### Multi-Account support & Keychain Semi-Sapeartion
+[3 keychain access groups](./entitlements.xml) are created and LiveContainer allocates them to each container of same app. So you can create 3 container with different keychain access groups.
+
+#### Why only 3?
+The [original thought was 256](https://github.com/hugeBlack/LiveContainer/blob/256keychainAccessGroup/entitlements.xml), but due to a [SideStore bug](https://github.com/SideStore/SideStore/issues/782) (latest AltStore don't have it), we can only declare 3 keychain access groups before SideStore fails to sign. So the limit is 3.
+
 ## Limitations
 - Entitlements from the guest app are not applied to the host app. This isn't a big deal since sideloaded apps requires only basic entitlements.
 - App Permissions are globally applied.
@@ -133,7 +139,6 @@ make package
 - Querying custom URL schemes might not work(?)
 
 ## TODO
-- Isolate Keychain per app
 - Use ChOma instead of custom MachO parser
 
 ## License

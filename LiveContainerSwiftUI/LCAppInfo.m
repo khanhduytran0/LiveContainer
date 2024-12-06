@@ -73,13 +73,6 @@
 }
 
 - (NSString*)dataUUID {
-    if (!_info[@"LCDataUUID"]) {
-        self.dataUUID = NSUUID.UUID.UUIDString;
-    }
-    return _info[@"LCDataUUID"];
-}
-
-- (NSString*)getDataUUIDNoAssign {
     return _info[@"LCDataUUID"];
 }
 
@@ -153,7 +146,14 @@
     return newIcon;
 }
 
-- (NSDictionary *)generateWebClipConfig {
+- (NSDictionary *)generateWebClipConfigWithContainerId:(NSString*)containerId {
+    NSString* appClipUrl;
+    if(containerId) {
+        appClipUrl = [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@&container-folder-name=%@", self.bundlePath.lastPathComponent, containerId];
+    } else {
+        appClipUrl = [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@", self.bundlePath.lastPathComponent];
+    }
+    
     NSDictionary *payload = @{
         @"FullScreen": @YES,
         @"Icon": UIImagePNGRepresentation(self.generateLiveContainerWrappedIcon),
@@ -168,7 +168,7 @@
         @"PayloadVersion": @(1),
         @"Precomposed": @NO,
         @"toPayloadOrganization": @"LiveContainer",
-        @"URL": [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@", self.bundlePath.lastPathComponent]
+        @"URL": appClipUrl
     };
     return @{
         @"ConsentText": @{
@@ -455,6 +455,15 @@
         }
 
     }
+    [self save];
+}
+
+- (NSArray<NSDictionary*>* )containerInfo {
+    return _info[@"LCContainers"];
+}
+
+- (void)setContainerInfo:(NSArray<NSDictionary *> *)containerInfo {
+    _info[@"LCContainers"] = containerInfo;
     [self save];
 }
 

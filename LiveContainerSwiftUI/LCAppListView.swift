@@ -16,9 +16,6 @@ struct AppReplaceOption : Hashable {
 
 struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     
-    @Binding var apps: [LCAppModel]
-    @Binding var hiddenApps: [LCAppModel]
-    
     @Binding var appDataFolderNames: [String]
     @Binding var tweakFolderNames: [String]
     
@@ -49,10 +46,8 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     
     @EnvironmentObject private var sharedModel : SharedModel
 
-    init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
+    init(appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
         _installOptions = State(initialValue: [])
-        _apps = apps
-        _hiddenApps = hiddenApps
         _appDataFolderNames = appDataFolderNames
         _tweakFolderNames = tweakFolderNames
         
@@ -61,7 +56,6 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     var body: some View {
         NavigationView {
             ScrollView {
-                
                 NavigationLink(
                     destination: navigateTo,
                     isActive: $isNavigationActive,
@@ -87,14 +81,14 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 }
                 .zIndex(.infinity)
                 LazyVStack {
-                    ForEach(apps, id: \.self) { app in
+                    ForEach(sharedModel.apps, id: \.self) { app in
                         LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
                     }
                     .transition(.scale)
                     
                 }
                 .padding()
-                .animation(.easeInOut, value: apps)
+                .animation(.easeInOut, value: sharedModel.apps)
 
                 VStack {
                     if LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
@@ -105,27 +99,27 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                                         .font(.system(.title2).bold())
                                     Spacer()
                                 }
-                                ForEach(hiddenApps, id: \.self) { app in
+                                ForEach(sharedModel.hiddenApps, id: \.self) { app in
                                     LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
                                 }
                             }
                             .padding()
                             .transition(.opacity)
-                            .animation(.easeInOut, value: apps)
+                            .animation(.easeInOut, value: sharedModel.apps)
                             
-                            if hiddenApps.count == 0 {
+                            if sharedModel.hiddenApps.count == 0 {
                                 Text("lc.appList.hideAppTip".loc)
                                     .foregroundStyle(.gray)
                             }
                         }
-                    } else if hiddenApps.count > 0 {
+                    } else if sharedModel.hiddenApps.count > 0 {
                         LazyVStack {
                             HStack {
                                 Text("lc.appList.hiddenApps".loc)
                                     .font(.system(.title2).bold())
                                 Spacer()
                             }
-                            ForEach(hiddenApps, id: \.self) { app in
+                            ForEach(sharedModel.hiddenApps, id: \.self) { app in
                                 if sharedModel.isHiddenAppUnlocked {
                                     LCAppBanner(appModel: app, delegate: self, appDataFolders: $appDataFolderNames, tweakFolders: $tweakFolderNames)
                                 } else {
@@ -138,10 +132,10 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                             }
                         }
                         .padding()
-                        .animation(.easeInOut, value: apps)
+                        .animation(.easeInOut, value: sharedModel.apps)
                     }
 
-                    let appCount = sharedModel.isHiddenAppUnlocked ? apps.count + hiddenApps.count : apps.count
+                    let appCount = sharedModel.isHiddenAppUnlocked ? sharedModel.apps.count + sharedModel.hiddenApps.count : sharedModel.apps.count
                     Text(appCount > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(appCount) : "lc.appList.installTip".loc)
                         .foregroundStyle(.gray)
                         .animation(.easeInOut, value: appCount)
@@ -229,7 +223,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             }
         )
         .fullScreenCover(isPresented: $webViewOpened) {
-            LCWebView(url: $webViewURL, apps: $apps, hiddenApps: $hiddenApps, isPresent: $webViewOpened)
+            LCWebView(url: $webViewURL, isPresent: $webViewOpened)
         }
         .fullScreenCover(isPresented: $safariViewOpened) {
             SafariView(url: $safariViewURL)
@@ -246,10 +240,10 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     }
     
     func onAppear() {
-        for app in apps {
+        for app in sharedModel.apps {
             app.delegate = self
         }
-        for app in hiddenApps {
+        for app in sharedModel.hiddenApps {
             app.delegate = self
         }
         
@@ -269,9 +263,9 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         }
         if urlToOpen.scheme != "https" && urlToOpen.scheme != "http" {
             var appToLaunch : LCAppModel? = nil
-            var appListsToConsider = [apps]
+            var appListsToConsider = [sharedModel.apps]
             if sharedModel.isHiddenAppUnlocked || !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
-                appListsToConsider.append(hiddenApps)
+                appListsToConsider.append(sharedModel.hiddenApps)
             }
             appLoop:
             for appList in appListsToConsider {
@@ -383,11 +377,11 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         var outputFolder = LCPath.bundlePath.appendingPathComponent(appRelativePath)
         var appToReplace : LCAppModel? = nil
         // Folder exist! show alert for user to choose which bundle to replace
-        var sameBundleIdApp = self.apps.filter { app in
+        var sameBundleIdApp = sharedModel.apps.filter { app in
             return app.appInfo.bundleIdentifier()! == newAppInfo.bundleIdentifier()
         }
         if sameBundleIdApp.count == 0 {
-            sameBundleIdApp = self.hiddenApps.filter { app in
+            sameBundleIdApp = sharedModel.hiddenApps.filter { app in
                 return app.appInfo.bundleIdentifier()! == newAppInfo.bundleIdentifier()
             }
             
@@ -472,7 +466,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             finalNewApp.isShared = appToReplace.appInfo.isShared
             finalNewApp.bypassAssertBarrierOnQueue = appToReplace.appInfo.bypassAssertBarrierOnQueue
             finalNewApp.doSymlinkInbox = appToReplace.appInfo.doSymlinkInbox
-            finalNewApp.setDataUUID(appToReplace.appInfo.getDataUUIDNoAssign())
+            finalNewApp.containerInfo = appToReplace.appInfo.containerInfo
             finalNewApp.setTweakFolder(appToReplace.appInfo.tweakFolder())
             finalNewApp.signer = appToReplace.appInfo.signer
             finalNewApp.selectedLanguage = appToReplace.appInfo.selectedLanguage
@@ -480,19 +474,19 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         DispatchQueue.main.async {
             if let appToReplace {
                 if appToReplace.uiIsHidden {
-                    self.hiddenApps.removeAll { appNow in
+                    sharedModel.hiddenApps.removeAll { appNow in
                         return appNow == appToReplace
                     }
-                    self.hiddenApps.append(LCAppModel(appInfo: finalNewApp, delegate: self))
+                    sharedModel.hiddenApps.append(LCAppModel(appInfo: finalNewApp, delegate: self))
                 } else {
-                    self.apps.removeAll { appNow in
+                    sharedModel.apps.removeAll { appNow in
                         return appNow == appToReplace
                     }
-                    self.apps.append(LCAppModel(appInfo: finalNewApp, delegate: self))
+                    sharedModel.apps.append(LCAppModel(appInfo: finalNewApp, delegate: self))
                 }
 
             } else {
-                self.apps.append(LCAppModel(appInfo: finalNewApp, delegate: self))
+                sharedModel.apps.append(LCAppModel(appInfo: finalNewApp, delegate: self))
             }
 
             self.installprogressVisible = false
@@ -501,10 +495,10 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     
     func removeApp(app: LCAppModel) {
         DispatchQueue.main.async {
-            self.apps.removeAll { now in
+            sharedModel.apps.removeAll { now in
                 return app == now
             }
-            self.hiddenApps.removeAll { now in
+            sharedModel.hiddenApps.removeAll { now in
                 return app == now
             }
         }
@@ -513,27 +507,27 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     func changeAppVisibility(app: LCAppModel) {
         DispatchQueue.main.async {
             if app.appInfo.isHidden {
-                self.apps.removeAll { now in
+                sharedModel.apps.removeAll { now in
                     return app == now
                 }
-                self.hiddenApps.append(app)
+                sharedModel.hiddenApps.append(app)
             } else {
-                self.hiddenApps.removeAll { now in
+                sharedModel.hiddenApps.removeAll { now in
                     return app == now
                 }
-                self.apps.append(app)
+                sharedModel.apps.append(app)
             }
         }
     }
     
     
-    func launchAppWithBundleId(bundleId : String) async {
+    func launchAppWithBundleId(bundleId : String, container : String?) async {
         if bundleId == "" {
             return
         }
         var appFound : LCAppModel? = nil
         var isFoundAppLocked = false
-        for app in apps {
+        for app in sharedModel.apps {
             if app.appInfo.relativeBundlePath == bundleId {
                 appFound = app
                 if app.appInfo.isLocked {
@@ -543,7 +537,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             }
         }
         if appFound == nil && !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
-            for app in hiddenApps {
+            for app in sharedModel.hiddenApps {
                 if app.appInfo.relativeBundlePath == bundleId {
                     appFound = app
                     isFoundAppLocked = true
@@ -571,7 +565,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         }
 
         do {
-            try await appFound.runApp()
+            try await appFound.runApp(containerFolderName: container)
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
