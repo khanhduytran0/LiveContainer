@@ -99,9 +99,9 @@ struct LCAppSettingsView : View{
             
             Section {
                 List{
-                    ForEach(model.uiContainers, id:\.self) { container in
+                    ForEach($model.uiContainers, id:\.self) { $container in
                         NavigationLink {
-                            LCContainerView(container: container, uiDefaultDataFolder: $model.uiDefaultDataFolder, delegate: self)
+                            LCContainerView(container: $container, uiDefaultDataFolder: $model.uiDefaultDataFolder, delegate: self)
                         } label: {
                             Text(container.name)
                         }
@@ -327,7 +327,13 @@ struct LCAppSettingsView : View{
             return
         }
         let fm = FileManager()
-        let dest = LCPath.dataPath.appendingPathComponent(newName)
+        let dest : URL
+        if model.uiIsShared {
+            dest = LCPath.lcGroupDataPath.appendingPathComponent(newName)
+        } else {
+            dest = LCPath.dataPath.appendingPathComponent(newName)
+        }
+        
         do {
             try fm.createDirectory(at: dest, withIntermediateDirectories: false)
         } catch {
@@ -396,6 +402,9 @@ struct LCAppSettingsView : View{
             appInfo.setBundlePath(LCPath.lcGroupBundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
             appInfo.isShared = true
             model.uiIsShared = true
+            for container in model.uiContainers {
+                container.isShared = true
+            }
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
@@ -432,6 +441,9 @@ struct LCAppSettingsView : View{
             appInfo.setBundlePath(LCPath.bundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
             appInfo.isShared = false
             model.uiIsShared = false
+            for container in model.uiContainers {
+                container.isShared = false
+            }
         } catch {
             errorShow = true
             errorInfo = error.localizedDescription

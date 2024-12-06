@@ -14,7 +14,7 @@ protocol LCContainerViewDelegate {
 }
 
 struct LCContainerView : View {
-    @ObservedObject var container : LCContainer
+    @Binding var container : LCContainer
     let delegate : LCContainerViewDelegate
     @Binding var uiDefaultDataFolder : String?
     
@@ -30,10 +30,10 @@ struct LCContainerView : View {
     @State private var successShow = false
     @State private var successInfo = ""
     
-    init(container: LCContainer, uiDefaultDataFolder : Binding<String?>, delegate: LCContainerViewDelegate) {
-        self._container = ObservedObject(wrappedValue: container)
+    init(container: Binding<LCContainer>, uiDefaultDataFolder : Binding<String?>, delegate: LCContainerViewDelegate) {
+        self._container = Binding(projectedValue: container)
         self.delegate = delegate
-        self._typingContainerName = State(initialValue: container.name)
+        self._typingContainerName = State(initialValue: container.wrappedValue.name)
         self._uiDefaultDataFolder = Binding(projectedValue: uiDefaultDataFolder)
     }
     
@@ -43,10 +43,10 @@ struct LCContainerView : View {
                 HStack {
                     Text("lc.container.containerName".loc)
                     Spacer()
-                    TextField(container.name, text: $typingContainerName)
+                    TextField("lc.container.containerName".loc, text: $typingContainerName)
                         .multilineTextAlignment(.trailing)
                         .onSubmit {
-                            container.name = typingContainerName
+                            $container.name.wrappedValue = typingContainerName
                             saveContainer()
                         }
                 }

@@ -108,16 +108,22 @@ class LCContainer : ObservableObject, Hashable {
 extension LCAppInfo {
     var containers : [LCContainer] {
         get {
+            var upgrade = false
             // upgrade
             if let oldDataUUID = dataUUID, containerInfo == nil {
                 containerInfo = [[
                     "folderName": oldDataUUID,
                     "name": oldDataUUID,
                 ]]
+                upgrade = true
             }
             let dictArr = containerInfo as? [[String : Any]] ?? []
             return dictArr.map{ dict in
-                return LCContainer(infoDict: dict, isShared: isShared)
+                let ans = LCContainer(infoDict: dict, isShared: isShared)
+                if upgrade {
+                    ans.makeLCContainerInfoPlist(appIdentifier: bundleIdentifier()!, keychainGroupId: 0)
+                }
+                return ans
             }
         }
         set {

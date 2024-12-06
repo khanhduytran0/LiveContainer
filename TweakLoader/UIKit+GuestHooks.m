@@ -82,9 +82,15 @@ void LCShowAppNotFoundAlert(NSString* bundleId) {
 }
 
 void openUniversalLink(NSString* decodedUrl) {
+    NSURL* urlToOpen = [NSURL URLWithString: decodedUrl];
+    if(![urlToOpen.scheme isEqualToString:@"https"] && ![urlToOpen.scheme isEqualToString:@"http"]) {
+        [UIApplication.sharedApplication.delegate application:UIApplication.sharedApplication openURL:urlToOpen options:@{}];
+        return;
+    }
+    
     UIActivityContinuationManager* uacm = [[UIApplication sharedApplication] _getActivityContinuationManager];
     NSUserActivity* activity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
-    activity.webpageURL = [NSURL URLWithString: decodedUrl];
+    activity.webpageURL = urlToOpen;
     NSDictionary* dict = @{
         @"UIApplicationLaunchOptionsUserActivityKey": activity,
         @"UICanvasConnectionOptionsUserActivityKey": activity,
