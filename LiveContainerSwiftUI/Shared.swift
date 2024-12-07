@@ -54,6 +54,7 @@ struct LCPath {
 
 class SharedModel: ObservableObject {
     @Published var isHiddenAppUnlocked = false
+    @Published var developerMode = false
     // 0= not installed, 1= is installed, 2=current liveContainer is the second one
     @Published var multiLCStatus = 0
     

@@ -107,12 +107,14 @@ struct LCSettingsView: View {
                                 Text("lc.settings.signOnlyOnExpiration".loc)
                             }
                         }
-                        
-//                        Button {
-//                            export()
-//                        } label: {
-//                            Text("export cert")
-//                        }
+                        if sharedModel.developerMode {
+                            Button {
+                                export()
+                            } label: {
+                                Text("export cert")
+                            }
+                        }
+
                         
                         Picker(selection: $defaultSigner) {
                             Text("AltSign").tag(Signer.AltSign)
@@ -193,14 +195,16 @@ struct LCSettingsView: View {
                 } footer: {
                     Text("lc.settings.silentSwitchAppDesc".loc)
                 }
-                
-                Section {
-                    Toggle(isOn: $injectToLCItelf) {
-                        Text("lc.settings.injectLCItself".loc)
+                if sharedModel.developerMode {
+                    Section {
+                        Toggle(isOn: $injectToLCItelf) {
+                            Text("lc.settings.injectLCItself".loc)
+                        }
+                    } footer: {
+                        Text("lc.settings.injectLCItselfDesc".loc)
                     }
-                } footer: {
-                    Text("lc.settings.injectLCItselfDesc".loc)
                 }
+
                 if sharedModel.isHiddenAppUnlocked {
                     Section {
                         Toggle(isOn: $strictHiding) {
@@ -265,6 +269,9 @@ struct LCSettingsView: View {
                 VStack{
                     Text(LCUtils.getVersionInfo())
                         .foregroundStyle(.gray)
+                        .onTapGesture(count: 10) {
+                            sharedModel.developerMode = true
+                        }
                 }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .background(Color(UIColor.systemGroupedBackground))
@@ -661,47 +668,47 @@ struct LCSettingsView: View {
         
     }
     
-//    func export() {
-//        let fileManager = FileManager.default
-//        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-//        
-//        // 1. Copy embedded.mobileprovision from the main bundle to Documents
-//        if let embeddedURL = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision") {
-//            let destinationURL = documentsURL.appendingPathComponent("embedded.mobileprovision")
-//            do {
-//                try fileManager.copyItem(at: embeddedURL, to: destinationURL)
-//                print("Successfully copied embedded.mobileprovision to Documents.")
-//            } catch {
-//                print("Error copying embedded.mobileprovision: \(error)")
-//            }
-//        } else {
-//            print("embedded.mobileprovision not found in the main bundle.")
-//        }
-//        
-//        // 2. Read "certData" from UserDefaults and save to cert.p12 in Documents
-//        if let certData = LCUtils.certificateData() {
-//            let certFileURL = documentsURL.appendingPathComponent("cert.p12")
-//            do {
-//                try certData.write(to: certFileURL)
-//                print("Successfully wrote certData to cert.p12 in Documents.")
-//            } catch {
-//                print("Error writing certData to cert.p12: \(error)")
-//            }
-//        } else {
-//            print("certData not found in UserDefaults.")
-//        }
-//        
-//        // 3. Read "certPassword" from UserDefaults and save to pass.txt in Documents
-//        if let certPassword = LCUtils.certificatePassword() {
-//            let passwordFileURL = documentsURL.appendingPathComponent("pass.txt")
-//            do {
-//                try certPassword.write(to: passwordFileURL, atomically: true, encoding: .utf8)
-//                print("Successfully wrote certPassword to pass.txt in Documents.")
-//            } catch {
-//                print("Error writing certPassword to pass.txt: \(error)")
-//            }
-//        } else {
-//            print("certPassword not found in UserDefaults.")
-//        }
-//    }
+    func export() {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        
+        // 1. Copy embedded.mobileprovision from the main bundle to Documents
+        if let embeddedURL = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision") {
+            let destinationURL = documentsURL.appendingPathComponent("embedded.mobileprovision")
+            do {
+                try fileManager.copyItem(at: embeddedURL, to: destinationURL)
+                print("Successfully copied embedded.mobileprovision to Documents.")
+            } catch {
+                print("Error copying embedded.mobileprovision: \(error)")
+            }
+        } else {
+            print("embedded.mobileprovision not found in the main bundle.")
+        }
+        
+        // 2. Read "certData" from UserDefaults and save to cert.p12 in Documents
+        if let certData = LCUtils.certificateData() {
+            let certFileURL = documentsURL.appendingPathComponent("cert.p12")
+            do {
+                try certData.write(to: certFileURL)
+                print("Successfully wrote certData to cert.p12 in Documents.")
+            } catch {
+                print("Error writing certData to cert.p12: \(error)")
+            }
+        } else {
+            print("certData not found in UserDefaults.")
+        }
+        
+        // 3. Read "certPassword" from UserDefaults and save to pass.txt in Documents
+        if let certPassword = LCUtils.certificatePassword() {
+            let passwordFileURL = documentsURL.appendingPathComponent("pass.txt")
+            do {
+                try certPassword.write(to: passwordFileURL, atomically: true, encoding: .utf8)
+                print("Successfully wrote certPassword to pass.txt in Documents.")
+            } catch {
+                print("Error writing certPassword to pass.txt: \(error)")
+            }
+        } else {
+            print("certPassword not found in UserDefaults.")
+        }
+    }
 }
