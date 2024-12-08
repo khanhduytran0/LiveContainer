@@ -8,6 +8,7 @@
 __attribute__((constructor))
 static void UIKitGuestHooksInit() {
     swizzle(UIApplication.class, @selector(_applicationOpenURLAction:payload:origin:), @selector(hook__applicationOpenURLAction:payload:origin:));
+    swizzle(UIApplication.class, @selector(_connectUISceneFromFBSScene:transitionContext:), @selector(hook__connectUISceneFromFBSScene:transitionContext:));
     swizzle(UIScene.class, @selector(scene:didReceiveActions:fromTransitionContext:), @selector(hook_scene:didReceiveActions:fromTransitionContext:));
 }
 
@@ -84,7 +85,13 @@ void LCShowAppNotFoundAlert(NSString* bundleId) {
 void openUniversalLink(NSString* decodedUrl) {
     NSURL* urlToOpen = [NSURL URLWithString: decodedUrl];
     if(![urlToOpen.scheme isEqualToString:@"https"] && ![urlToOpen.scheme isEqualToString:@"http"]) {
-        [UIApplication.sharedApplication.delegate application:UIApplication.sharedApplication openURL:urlToOpen options:@{}];
+        NSData *data = [decodedUrl dataUsingEncoding:NSUTF8StringEncoding];
+        NSString *encodedUrl = [data base64EncodedStringWithOptions:0];
+        
+        NSString* finalUrl = [NSString stringWithFormat:@"%@://open-url?url=%@", NSUserDefaults.lcAppUrlScheme, encodedUrl];
+        NSURL* url = [NSURL URLWithString: finalUrl];
+        
+        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
         return;
     }
     
@@ -268,6 +275,12 @@ void handleLiveContainerLaunch(NSURL* url) {
     }
     [self hook__applicationOpenURLAction:action payload:payload origin:origin];
     return;
+}
+
+- (void)hook__connectUISceneFromFBSScene:(id)scene transitionContext:(UIApplicationSceneTransitionContext*)context {
+    context.payload = nil;
+    context.actions = nil;
+    [self hook__connectUISceneFromFBSScene:scene transitionContext:context];
 }
 @end
 

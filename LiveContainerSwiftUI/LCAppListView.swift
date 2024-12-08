@@ -470,6 +470,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             finalNewApp.setTweakFolder(appToReplace.appInfo.tweakFolder())
             finalNewApp.signer = appToReplace.appInfo.signer
             finalNewApp.selectedLanguage = appToReplace.appInfo.selectedLanguage
+            finalNewApp.dataUUID = appToReplace.appInfo.dataUUID
         }
         DispatchQueue.main.async {
             if let appToReplace {

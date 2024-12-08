@@ -40,6 +40,14 @@
 - (instancetype)initWithURL:(NSURL *)arg1;
 @end
 
+@interface FBSSceneTransitionContext : NSObject
+@property (nonatomic,copy) NSSet * actions;
+@end
+
+@interface UIApplicationSceneTransitionContext : FBSSceneTransitionContext
+@property (nonatomic,retain) NSDictionary * payload;
+@end
+
 @interface UITableViewHeaderFooterView(private)
 - (void)setText:(NSString *)text;
 - (NSString *)text;
