@@ -220,7 +220,11 @@ void LCSavePreference(void) {
             preferenceDict = [[NSMutableDictionary alloc] init];
             LCPreferences[identifier] = preferenceDict;
         }
-        [preferenceDict addEntriesFromDictionary:registrationDictionary];
+        for(NSString* key in registrationDictionary) {
+            if(![preferenceDict objectForKey:key]) {
+                preferenceDict[key] = registrationDictionary[key];
+            }
+        }
         LCSavePreference();
     }
 }
