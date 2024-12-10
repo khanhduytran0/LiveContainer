@@ -11,12 +11,17 @@ protocol LCContainerViewDelegate {
     func unbindContainer(container: LCContainer)
     func setDefaultContainer(container: LCContainer)
     func saveContainer(container: LCContainer)
+    
+    func getSettingsBundle() -> Bundle?
+    func getUserDefaultsURL(container: LCContainer) -> URL
+    func getBundleId() -> String
 }
 
 struct LCContainerView : View {
     @Binding var container : LCContainer
     let delegate : LCContainerViewDelegate
     @Binding var uiDefaultDataFolder : String?
+    @State var settingsBundle : Bundle? = nil
     
     @StateObject private var removeContainerAlert = YesNoHelper()
     @StateObject private var deleteDataAlert = YesNoHelper()
@@ -55,6 +60,13 @@ struct LCContainerView : View {
                     Spacer()
                     Text(container.folderName)
                         .foregroundStyle(.gray)
+                }
+                if let settingsBundle {
+                    NavigationLink {
+                        AppPreferenceView(bundleId: delegate.getBundleId(), settingsBundle: settingsBundle, userDefaultsURL: delegate.getUserDefaultsURL(container: container))
+                    } label: {
+                        Text("lc.container.preferences".loc)
+                    }
                 }
                 if container.folderName == uiDefaultDataFolder {
                     Text("lc.container.alreadyDefaultContainer".loc)
@@ -159,6 +171,7 @@ struct LCContainerView : View {
         }
         .onAppear() {
             container.reloadInfoPlist()
+            settingsBundle = delegate.getSettingsBundle()
             inUse = LCUtils.getContainerUsingLCScheme(containerName: container.folderName) != nil
         }
         

@@ -1538,6 +1538,23 @@
         }
       }
     },
+    "lc.container.preferences" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Preferences"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器设置"
+          }
+        }
+      }
+    },
     "lc.container.removeContainer" : {
       "extractionState" : "manual",
       "localizations" : {

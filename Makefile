@@ -15,7 +15,6 @@ $(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m LCSharedUtil
 $(APPLICATION_NAME)_CODESIGN_FLAGS = -Sentitlements.xml
 $(APPLICATION_NAME)_CFLAGS = -fobjc-arc
 $(APPLICATION_NAME)_LDFLAGS = -e _LiveContainerMain -rpath @loader_path/Frameworks
-$(APPLICATION_NAME)_FRAMEWORKS = UIKit
 
 include $(THEOS_MAKE_PATH)/application.mk
 

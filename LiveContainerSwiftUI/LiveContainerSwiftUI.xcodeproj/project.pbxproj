@@ -24,6 +24,7 @@
 		173564D22C76FE3500C6C918 /* LCAppBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564C72C76FE3500C6C918 /* LCAppBanner.swift */; };
 		173564D32C76FE3500C6C918 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 173564C82C76FE3500C6C918 /* Assets.xcassets */; };
 		173F18402C7B7B74002953AA /* LCWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173F183F2C7B7B74002953AA /* LCWebView.swift */; };
+		17583D342D08555000FBA7F0 /* LCAppPreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17583D332D08554400FBA7F0 /* LCAppPreferenceView.swift */; };
 		178B4C3E2C77654400DD1F74 /* Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178B4C3D2C77654400DD1F74 /* Shared.swift */; };
 		179765E12CF8192600D40B95 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179765E02CF8192200D40B95 /* AppDelegate.swift */; };
 		17A7640C2C9D1B6C00456519 /* LCAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A7640B2C9D1B6C00456519 /* LCAppModel.swift */; };
@@ -54,6 +55,7 @@
 		173564C72C76FE3500C6C918 /* LCAppBanner.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCAppBanner.swift; sourceTree = "<group>"; };
 		173564C82C76FE3500C6C918 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		173F183F2C7B7B74002953AA /* LCWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCWebView.swift; sourceTree = "<group>"; };
+		17583D332D08554400FBA7F0 /* LCAppPreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCAppPreferenceView.swift; sourceTree = "<group>"; };
 		178B4C3D2C77654400DD1F74 /* Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared.swift; sourceTree = "<group>"; };
 		178B4C3F2C7766A300DD1F74 /* LiveContainerSwiftUI-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "LiveContainerSwiftUI-Bridging-Header.h"; sourceTree = "<group>"; };
 		179765E02CF8192200D40B95 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -83,6 +85,7 @@
 				173564BC2C76FE3500C6C918 /* LCAppListView.swift */,
 				173564C12C76FE3500C6C918 /* LCSettingsView.swift */,
 				173564BD2C76FE3500C6C918 /* LCTabView.swift */,
+				17583D332D08554400FBA7F0 /* LCAppPreferenceView.swift */,
 				17C536F32C98529D006C2C75 /* LCAppSettingsView.swift */,
 				173564C02C76FE3500C6C918 /* LCTweaksView.swift */,
 				173564C32C76FE3500C6C918 /* Makefile */,
@@ -198,6 +201,7 @@
 			files = (
 				171014222CE9B63100673269 /* unarchive.m in Sources */,
 				171014232CE9B63100673269 /* LCUtils.m in Sources */,
+				17583D342D08555000FBA7F0 /* LCAppPreferenceView.swift in Sources */,
 				179765E12CF8192600D40B95 /* AppDelegate.swift in Sources */,
 				171014242CE9B63100673269 /* LCMachOUtils.m in Sources */,
 				178B4C3E2C77654400DD1F74 /* Shared.swift in Sources */,
@@ -254,6 +258,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -317,6 +322,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;

@@ -508,6 +508,10 @@ struct LCAppSettingsView : View{
 
 
 extension LCAppSettingsView : LCContainerViewDelegate {
+    func getBundleId() -> String {
+        return model.appInfo.bundleIdentifier()!
+    }
+    
     func unbindContainer(container: LCContainer) {
         model.uiContainers.removeAll { c in
             c === container
@@ -549,6 +553,25 @@ extension LCAppSettingsView : LCContainerViewDelegate {
         appInfo.containers = model.uiContainers
     }
     
+    func getSettingsBundle() -> Bundle? {
+        return Bundle(url: URL(fileURLWithPath: appInfo.bundlePath()).appendingPathComponent("Settings.bundle"))
+    }
+    
+    func getUserDefaultsURL(container: LCContainer) -> URL {
+        let preferencesFolderUrl = container.containerURL.appendingPathComponent("Library/Preferences")
+        let fm = FileManager.default
+        do {
+            let doExist = fm.fileExists(atPath: preferencesFolderUrl.path)
+            if !doExist {
+                try fm.createDirectory(at: preferencesFolderUrl, withIntermediateDirectories: true)
+            }
+
+        } catch {
+            errorInfo = "Cannot create Library/Preferences folder!".loc
+            errorShow = true
+        }
+        return preferencesFolderUrl
+    }
     
 }
 
