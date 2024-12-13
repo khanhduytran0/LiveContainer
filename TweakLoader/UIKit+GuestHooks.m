@@ -5,11 +5,35 @@
 #import <LocalAuthentication/LocalAuthentication.h>
 #import "Localization.h"
 
+UIInterfaceOrientation orientationLock = UIInterfaceOrientationUnknown;
+
 __attribute__((constructor))
 static void UIKitGuestHooksInit() {
     swizzle(UIApplication.class, @selector(_applicationOpenURLAction:payload:origin:), @selector(hook__applicationOpenURLAction:payload:origin:));
     swizzle(UIApplication.class, @selector(_connectUISceneFromFBSScene:transitionContext:), @selector(hook__connectUISceneFromFBSScene:transitionContext:));
     swizzle(UIScene.class, @selector(scene:didReceiveActions:fromTransitionContext:), @selector(hook_scene:didReceiveActions:fromTransitionContext:));
+
+    NSInteger orientationLockDirection = [NSBundle.mainBundle.infoDictionary[@"LCOrientationLock"] integerValue];
+    if([UIDevice.currentDevice userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        switch (orientationLockDirection) {
+            case 1:
+                orientationLock = UIInterfaceOrientationLandscapeRight;
+                break;
+            case 2:
+                orientationLock = UIInterfaceOrientationPortrait;
+                break;
+            default:
+                break;
+        }
+        if(orientationLock != UIInterfaceOrientationUnknown) {
+            swizzle(FBSSceneParameters.class, @selector(initWithXPCDictionary:), @selector(hook_initWithXPCDictionary:));
+            swizzle(UIViewController.class, @selector(__supportedInterfaceOrientations), @selector(hook___supportedInterfaceOrientations));
+            swizzle(UIViewController.class, @selector(shouldAutorotateToInterfaceOrientation:), @selector(hook_shouldAutorotateToInterfaceOrientation:));
+            swizzle(UIWindow.class, @selector(setAutorotates:forceUpdateInterfaceOrientation:), @selector(hook_setAutorotates:forceUpdateInterfaceOrientation:));
+        }
+
+    }
+
 }
 
 NSString* findDefaultContainerWithBundleId(NSString* bundleId) {
@@ -281,6 +305,15 @@ void handleLiveContainerLaunch(NSURL* url) {
     context.payload = nil;
     context.actions = nil;
     [self hook__connectUISceneFromFBSScene:scene transitionContext:context];
+    if(orientationLock != UIInterfaceOrientationUnknown) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [[LSApplicationWorkspace defaultWorkspace] openApplicationWithBundleID:@"com.apple.springboard"];
+        });
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [[LSApplicationWorkspace defaultWorkspace] openApplicationWithBundleID:NSUserDefaults.lcMainBundle.bundleIdentifier];
+        });
+    }
 }
 @end
 
@@ -340,5 +373,39 @@ void handleLiveContainerLaunch(NSURL* url) {
     NSMutableSet *newActions = actions.mutableCopy;
     [newActions removeObject:urlAction];
     [self hook_scene:scene didReceiveActions:newActions fromTransitionContext:context];
+}
+@end
+
+@implementation FBSSceneParameters(LiveContainerHook)
+- (instancetype)hook_initWithXPCDictionary:(NSDictionary*)dict {
+
+    FBSSceneParameters* ans = [self hook_initWithXPCDictionary:dict];
+    UIMutableApplicationSceneSettings* settings = [ans.settings mutableCopy];
+    UIMutableApplicationSceneClientSettings* clientSettings = [ans.clientSettings mutableCopy];
+    [settings setInterfaceOrientation:orientationLock];
+    [clientSettings setInterfaceOrientation:orientationLock];
+    ans.settings = settings;
+    ans.clientSettings = clientSettings;
+    return ans;
+}
+@end
+
+
+
+@implementation UIViewController(LiveContainerHook)
+
+- (UIInterfaceOrientationMask)hook___supportedInterfaceOrientations {
+    return (UIInterfaceOrientationMask)(1 << orientationLock);
+}
+
+- (BOOL)hook_shouldAutorotateToInterfaceOrientation:(NSInteger)orientation {
+    return YES;
+}
+
+@end
+
+@implementation UIWindow(hook)
+- (void)hook_setAutorotates:(BOOL)autorotates forceUpdateInterfaceOrientation:(BOOL)force {
+    [self hook_setAutorotates:YES forceUpdateInterfaceOrientation:YES];
 }
 @end

@@ -26,6 +26,7 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var uiUseLCBundleId : Bool
     @Published var uiBypassAssertBarrierOnQueue : Bool
     @Published var uiSigner : Signer
+    @Published var uiOrientationLock : LCOrientationLock
     @Published var uiSelectedLanguage : String
     @Published var supportedLanaguages : [String]?
     
@@ -52,6 +53,7 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiDoSymlinkInbox = appInfo.doSymlinkInbox
         self.uiBypassAssertBarrierOnQueue = appInfo.bypassAssertBarrierOnQueue
         self.uiSigner = appInfo.signer
+        self.uiOrientationLock = appInfo.orientationLock
         self.uiUseLCBundleId = appInfo.doUseLCBundleId
         
         for container in uiContainers {

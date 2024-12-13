@@ -12,7 +12,7 @@
 	if(self) {
         _bundlePath = bundlePath;
         _info = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
-        
+        _autoSaveDisabled = false;
     }
     return self;
 }
@@ -187,7 +187,10 @@
 }
 
 - (void)save {
-    [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
+    if(!_autoSaveDisabled) {
+        [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
+    }
+
 }
 
 - (void)preprocessBundleBeforeSiging:(NSURL *)bundleURL completion:(dispatch_block_t)completion {
@@ -422,7 +425,16 @@
 }
 - (void)setSigner:(Signer)newSigner {
     _info[@"signer"] = [NSNumber numberWithInt:(int) newSigner];
-    NSLog(@"[LC] new signer = %d", (int) newSigner);
+    [self save];
+    
+}
+
+- (LCOrientationLock)orientationLock {
+    return (LCOrientationLock) [((NSNumber*) _info[@"LCOrientationLock"]) intValue];
+
+}
+- (void)setOrientationLock:(LCOrientationLock)orientationLock {
+    _info[@"LCOrientationLock"] = [NSNumber numberWithInt:(int) orientationLock];
     [self save];
     
 }

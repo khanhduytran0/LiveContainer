@@ -9,5 +9,6 @@ LIBRARY_NAME = TweakLoader
 TweakLoader_FILES = SecItem.m TweakLoader.m NSBundle+FixCydiaSubstrate.m NSFileManager+GuestHooks.m UIKit+GuestHooks.m utils.m DocumentPicker.m FBSSerialQueue.m ../Localization.m ../fishhook/fishhook.c
 TweakLoader_CFLAGS = -objc-arc
 TweakLoader_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
+TweakLoader_PRIVATE_FRAMEWORKS = CoreServices FrontBoard RunningBoardServices
 
 include $(THEOS_MAKE_PATH)/library.mk

@@ -2,6 +2,12 @@
 #import <UIKit/UIKit.h>
 #import "LCUtils.h"
 
+typedef NS_ENUM(NSInteger, LCOrientationLock){
+    Disabled = 0,
+    Landscape = 1,
+    Portrait = 2
+};
+
 @interface LCAppInfo : NSObject {
    NSMutableDictionary* _info;
    NSString* _bundlePath;
@@ -15,10 +21,12 @@
 @property bool bypassAssertBarrierOnQueue;
 @property UIColor* cachedColor;
 @property Signer signer;
+@property LCOrientationLock orientationLock;
 @property bool doUseLCBundleId;
 @property NSString* selectedLanguage;
 @property NSString* dataUUID;
 @property NSArray<NSDictionary*>* containerInfo;
+@property bool autoSaveDisabled;
 
 - (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;

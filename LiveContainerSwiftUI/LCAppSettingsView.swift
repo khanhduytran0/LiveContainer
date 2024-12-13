@@ -236,6 +236,21 @@ struct LCAppSettingsView : View{
             } footer: {
                 Text("lc.appSettings.useLCBundleIdDesc".loc)
             }
+            if sharedModel.isPhone {
+                Section {
+                    Picker(selection: $model.uiOrientationLock) {
+                        Text("lc.common.disabled".loc).tag(LCOrientationLock.Disabled)
+                        Text("lc.apppSettings.orientationLock.landscape".loc).tag(LCOrientationLock.Landscape)
+                        Text("lc.apppSettings.orientationLock.portrait".loc).tag(LCOrientationLock.Portrait)
+                    } label: {
+                        Text("lc.apppSettings.orientationLock".loc)
+                    }
+                    .onChange(of: model.uiOrientationLock, perform: { newValue in
+                        Task { await setOrientationLock(newValue) }
+                    })
+                }
+            }
+
             
             Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
@@ -475,6 +490,11 @@ struct LCAppSettingsView : View{
     func setDoUseLCBundleId(_ doUseLCBundleId : Bool) async {
         appInfo.doUseLCBundleId = doUseLCBundleId
         model.uiUseLCBundleId = doUseLCBundleId
+    }
+    
+    func setOrientationLock(_ lock : LCOrientationLock) async {
+        appInfo.orientationLock = lock
+        model.uiOrientationLock = lock
     }
     
     func loadSupportedLanguages() {

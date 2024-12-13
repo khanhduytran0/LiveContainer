@@ -460,6 +460,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         
         if let appToReplace {
             // copy previous configration to new app
+            finalNewApp.autoSaveDisabled = true
             finalNewApp.isLocked = appToReplace.appInfo.isLocked
             finalNewApp.isHidden = appToReplace.appInfo.isHidden
             finalNewApp.isJITNeeded = appToReplace.appInfo.isJITNeeded
@@ -471,6 +472,9 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             finalNewApp.signer = appToReplace.appInfo.signer
             finalNewApp.selectedLanguage = appToReplace.appInfo.selectedLanguage
             finalNewApp.dataUUID = appToReplace.appInfo.dataUUID
+            finalNewApp.orientationLock = appToReplace.appInfo.orientationLock
+            finalNewApp.autoSaveDisabled = false
+            finalNewApp.save()
         }
         DispatchQueue.main.async {
             if let appToReplace {

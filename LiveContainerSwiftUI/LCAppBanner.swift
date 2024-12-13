@@ -64,15 +64,17 @@ struct LCAppBanner : View {
                     HStack {
                         Text(appInfo.displayName()).font(.system(size: 16)).bold()
                         if model.uiIsShared {
-                            Text("lc.appBanner.shared".loc).font(.system(size: 8)).bold().padding(2)
-                                .frame(width: 50, height:16)
+                            Image(systemName: "arrowshape.turn.up.left.fill")
+                                .font(.system(size: 8))
+                                .frame(width: 16, height:16)
                                 .background(
                                     Capsule().fill(Color("BadgeColor"))
                                 )
                         }
                         if model.uiIsJITNeeded {
-                            Text("JIT").font(.system(size: 8)).bold().padding(2)
-                                .frame(width: 30, height:16)
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 8))
+                                .frame(width: 16, height:16)
                                 .background(
                                     Capsule().fill(Color("JITBadgeColor"))
                                 )

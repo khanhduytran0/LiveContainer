@@ -60,6 +60,9 @@ class SharedModel: ObservableObject {
     
     @Published var apps : [LCAppModel] = []
     @Published var hiddenApps : [LCAppModel] = []
+    let isPhone: Bool = {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }()
     
     func updateMultiLCStatus() {
         if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {
