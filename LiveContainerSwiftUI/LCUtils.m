@@ -98,7 +98,7 @@
 
     NSArray *signerFrameworks;
     
-    if([self store] == AltStore) {
+    if([NSFileManager.defaultManager fileExistsAtPath:[self.storeBundlePath URLByAppendingPathComponent:@"Frameworks/KeychainAccess.framework"].path]) {
         // AltStore requires 1 more framework than sidestore
         signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"KeychainAccess.framework", @"AltStoreCore.framework"];
     } else {
@@ -326,10 +326,10 @@
     [data writeToURL:execPath options:0 error:error];
 }
 
-+ (void)validateJITLessSetupWithCompletionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
++ (void)validateJITLessSetupWithSigner:(Signer)signer completionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
     // Verify that the certificate is usable
     // Create a test app bundle
-    NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:@"CertificateValidation"];
+    NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:@"CertificateValidation.app"];
     [NSFileManager.defaultManager createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
     NSString *tmpExecPath = [path stringByAppendingPathComponent:@"LiveContainer.tmp"];
     NSString *tmpLibPath = [path stringByAppendingPathComponent:@"TestJITLess.dylib"];
@@ -341,12 +341,23 @@
     [info writeToFile:tmpInfoPath atomically:YES];
 
     // Sign the test app bundle
-    [LCUtils signAppBundle:[NSURL fileURLWithPath:path]
-    completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completionHandler(success, error);
-        });
-    }];
+    if(signer == AltSign) {
+        [LCUtils signAppBundle:[NSURL fileURLWithPath:path]
+        completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completionHandler(success, error);
+            });
+        }];
+    } else {
+        [LCUtils signAppBundleWithZSign:[NSURL fileURLWithPath:path]
+        completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completionHandler(success, error);
+            });
+        }];
+    }
+    
+
 }
 
 + (NSURL *)archiveIPAWithBundleName:(NSString*)newBundleName error:(NSError **)error {

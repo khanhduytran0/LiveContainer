@@ -26,6 +26,7 @@ static void UIKitGuestHooksInit() {
                 break;
         }
         if(orientationLock != UIInterfaceOrientationUnknown) {
+            swizzle(UIApplication.class, @selector(_handleDelegateCallbacksWithOptions:isSuspended:restoreState:), @selector(hook__handleDelegateCallbacksWithOptions:isSuspended:restoreState:));
             swizzle(FBSSceneParameters.class, @selector(initWithXPCDictionary:), @selector(hook_initWithXPCDictionary:));
             swizzle(UIViewController.class, @selector(__supportedInterfaceOrientations), @selector(hook___supportedInterfaceOrientations));
             swizzle(UIViewController.class, @selector(shouldAutorotateToInterfaceOrientation:), @selector(hook_shouldAutorotateToInterfaceOrientation:));
@@ -305,15 +306,22 @@ void handleLiveContainerLaunch(NSURL* url) {
     context.payload = nil;
     context.actions = nil;
     [self hook__connectUISceneFromFBSScene:scene transitionContext:context];
-    if(orientationLock != UIInterfaceOrientationUnknown) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+}
+
+-(BOOL)hook__handleDelegateCallbacksWithOptions:(id)arg1 isSuspended:(BOOL)arg2 restoreState:(BOOL)arg3 {
+    BOOL ans = [self hook__handleDelegateCallbacksWithOptions:arg1 isSuspended:arg2 restoreState:arg3];
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+//        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             [[LSApplicationWorkspace defaultWorkspace] openApplicationWithBundleID:@"com.apple.springboard"];
-        });
-        
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [[LSApplicationWorkspace defaultWorkspace] openApplicationWithBundleID:NSUserDefaults.lcMainBundle.bundleIdentifier];
         });
-    }
+
+    });
+
+
+    return ans;
 }
 @end
 
@@ -395,7 +403,12 @@ void handleLiveContainerLaunch(NSURL* url) {
 @implementation UIViewController(LiveContainerHook)
 
 - (UIInterfaceOrientationMask)hook___supportedInterfaceOrientations {
-    return (UIInterfaceOrientationMask)(1 << orientationLock);
+    if(orientationLock == UIInterfaceOrientationLandscapeRight) {
+        return UIInterfaceOrientationMaskLandscape;
+    } else {
+        return UIInterfaceOrientationMaskPortrait;
+    }
+
 }
 
 - (BOOL)hook_shouldAutorotateToInterfaceOrientation:(NSInteger)orientation {

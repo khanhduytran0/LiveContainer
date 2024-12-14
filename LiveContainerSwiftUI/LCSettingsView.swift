@@ -402,7 +402,7 @@ struct LCSettingsView: View {
             return;
         }
         isJITLessTestInProgress = true
-        LCUtils.validateJITLessSetup { success, error in
+        LCUtils.validateJITLessSetup(with: defaultSigner) { success, error in
             if success {
                 successInfo = "lc.jitlessSetup.success".loc
                 successShow = true
