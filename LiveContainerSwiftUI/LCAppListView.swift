@@ -442,10 +442,12 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         
         // patch and sign it
         var signError : String? = nil
+        var signSuccess = false
         await withCheckedContinuation({ c in
             finalNewApp.signer = Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!
-            finalNewApp.patchExecAndSignIfNeed(completionHandler: { error in
+            finalNewApp.patchExecAndSignIfNeed(completionHandler: { success, error in
                 signError = error
+                signSuccess = success
                 c.resume()
             }, progressHandler: { signProgress in
                 installProgress.addChild(signProgress!, withPendingUnitCount: 20)
@@ -454,7 +456,11 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         
         // we leave it unsigned even if signing failed
         if let signError {
-            errorInfo = signError
+            if signSuccess {
+                errorInfo = "\("lc.appList.signSuccessWithError".loc)\n\n\(signError)"
+            } else {
+                errorInfo = signError
+            }
             errorShow = true
         }
         

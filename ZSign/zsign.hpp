@@ -28,7 +28,6 @@ bool ListDylibs(NSString *filePath, NSMutableArray *dylibPathsArray);
 bool UninstallDylibs(NSString *filePath, NSArray<NSString *> *dylibPathsArray);
 
 void zsign(NSString *appPath,
-          NSString* execName,
           NSData *prov,
           NSData *key,
           NSString *pass,

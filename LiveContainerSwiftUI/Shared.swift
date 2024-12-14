@@ -432,7 +432,7 @@ extension LCUtils {
             if signer == .AltSign {
                 progress = LCUtils.signAppBundle(url, completionHandler: compeletionHandler)
             } else {
-                progress = LCUtils.signAppBundle(withZSign: url, execName: "LiveContainer.tmp", completionHandler: compeletionHandler)
+                progress = LCUtils.signAppBundle(withZSign: url, completionHandler: compeletionHandler)
             }
             guard let progress = progress else {
                 ans = "lc.utils.initSigningError".loc

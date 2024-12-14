@@ -9,7 +9,7 @@ public:
 	ZAppBundle();
 
 public:
-    bool ConfigureFolderSign(ZSignAsset *pSignAsset, const string &strFolder, const string &execName, const string &strBundleID, const string &strBundleVersion, const string &strDisplayName, const string &strDyLibFile, bool bForce, bool bWeakInject, bool bEnableCache, bool dontGenerateEmbeddedMobileProvision);
+    bool ConfigureFolderSign(ZSignAsset *pSignAsset, const string &strFolder, const string &strBundleID, const string &strBundleVersion, const string &strDisplayName, const string &strDyLibFile, bool bForce, bool bWeakInject, bool bEnableCache, bool dontGenerateEmbeddedMobileProvision);
     bool StartSign(bool enableCache);
     int GetSignCount();
 private:
@@ -39,4 +39,5 @@ private:
 public:
 	string m_strAppFolder;
     std::function<void()> progressHandler;
+    string signFailedFiles;
 };

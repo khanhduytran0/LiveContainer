@@ -350,3 +350,18 @@ bool ZMachO::RemoveDylib(const std::set<std::string> &dylibNames) {
 	ZLog::Warn(">>> Finished removing specified dylibs!\n");
 	return removalSuccessful;
 }
+
+
+bool is_64bit_macho(const char *filepath) {
+    FILE *file = fopen(filepath, "rb");
+    if (!file) {
+        return false; // Failed to open file
+    }
+
+    uint32_t magic;
+    fread(&magic, sizeof(uint32_t), 1, file);
+    fclose(file);
+
+    // 64-bit Mach-O magic number is 0xfeedfacf
+    return magic == 0xfeedfacf;
+}

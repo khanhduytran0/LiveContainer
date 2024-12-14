@@ -156,7 +156,6 @@ NSError* makeErrorFromLog(const std::vector<std::string>& vec) {
 ZSignAsset zSignAsset;
 
 void zsign(NSString *appPath,
-          NSString* execName,
           NSData *prov,
           NSData *key,
           NSString *pass,
@@ -178,15 +177,13 @@ void zsign(NSString *appPath,
 	string strOutputFile;
 
 	string strEntitlementsFile;
-	
-	bForce = true;
+
     const char* strPKeyFileData = (const char*)[key bytes];
     const char* strProvFileData = (const char*)[prov bytes];
 	strPassword = [pass cStringUsingEncoding:NSUTF8StringEncoding];
 	
 	
 	string strPath = [appPath cStringUsingEncoding:NSUTF8StringEncoding];
-    string execNameStr = [execName cStringUsingEncoding:NSUTF8StringEncoding];
     
     bool _ = ZLog::logs.empty();
 
@@ -203,7 +200,7 @@ void zsign(NSString *appPath,
 	string strFolder = strPath;
 	
 	__block ZAppBundle bundle;
-	bool success = bundle.ConfigureFolderSign(&zSignAsset, strFolder, execNameStr, "", "", "", strDyLibFile, bForce, bWeakInject, bEnableCache, bDontGenerateEmbeddedMobileProvision);
+	bool success = bundle.ConfigureFolderSign(&zSignAsset, strFolder, "", "", "", strDyLibFile, bForce, bWeakInject, bEnableCache, bDontGenerateEmbeddedMobileProvision);
 
     if(!success) {
         completionHandler(NO, nil, makeErrorFromLog(ZLog::logs));
@@ -224,7 +221,15 @@ void zsign(NSString *appPath,
     bool bRet = bundle.StartSign(bEnableCache);
     timer.PrintResult(bRet, ">>> Signed %s!", bRet ? "OK" : "Failed");
     gtimer.Print(">>> Done.");
-    completionHandler(YES, date, nil);
+    NSError* signError = nil;
+    if(!bundle.signFailedFiles.empty()) {
+        NSDictionary* userInfo = @{
+            NSLocalizedDescriptionKey : [NSString stringWithUTF8String:bundle.signFailedFiles.c_str()]
+        };
+        signError = [NSError errorWithDomain:@"Failed to Sign" code:-1 userInfo:userInfo];
+    }
+    
+    completionHandler(YES, date, signError);
     _ = ZLog::logs.empty();
     
 	return;

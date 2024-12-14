@@ -208,13 +208,12 @@
     });
 }
 
-// return "SignNeeded" if sign is needed, other wise return an error
-- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign {
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(bool success, NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign {
     NSString *appPath = self.bundlePath;
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = _info;
     if (!info) {
-        completetionHandler(@"Info.plist not found");
+        completetionHandler(NO, @"Info.plist not found");
         return;
     }
     
@@ -226,7 +225,7 @@
             LCPatchExecSlice(path, header);
         });
         if (error) {
-            completetionHandler(error);
+            completetionHandler(NO, error);
             return;
         }
         info[@"LCPatchRevision"] = @(currentPatchRev);
@@ -234,7 +233,7 @@
     }
 
     if (!LCUtils.certificatePassword) {
-        completetionHandler(nil);
+        completetionHandler(YES, nil);
         return;
     }
 
@@ -244,7 +243,7 @@
     if(expirationDate && [[[NSUserDefaults alloc] initWithSuiteName:[LCUtils appGroupID]] boolForKey:@"LCSignOnlyOnExpiration"] && !forceSign) {
         if([expirationDate laterDate:[NSDate now]] == expirationDate) {
             // not expired yet, don't sign again
-            completetionHandler(nil);
+            completetionHandler(YES, nil);
             return;
         }
     }
@@ -256,7 +255,7 @@
         CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
         signID = *(uint64_t *)digest + signRevision;
     } else {
-        completetionHandler(@"Failed to find signing certificate. Please refresh your store and try again.");
+        completetionHandler(NO, @"Failed to find signing certificate. Please refresh your store and try again.");
         return;
     }
     
@@ -283,7 +282,7 @@
             
             void (^signCompletionHandler)(BOOL success, NSDate* expirationDate, NSError *error)  = ^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    if (!error) {
+                    if (success) {
                         info[@"LCJITLessSignID"] = @(signID);
                     }
                     
@@ -291,19 +290,13 @@
                     [NSFileManager.defaultManager removeItemAtPath:tmpExecPath error:nil];
                     
 
-                    if(!error && expirationDate) {
+                    if(success && expirationDate) {
                         info[@"LCExpirationDate"] = expirationDate;
                     }
                     // Save sign ID and restore bundle ID
                     [self save];
                     
-                    if(error) {
-                        completetionHandler(error.localizedDescription);
-                        return;
-                    } else {
-                        completetionHandler(nil);
-                        return;
-                    }
+                    completetionHandler(success, error.localizedDescription);
 
                 });
             };
@@ -312,14 +305,14 @@
             
             switch ([self signer]) {
                 case ZSign:
-                    progress = [LCUtils signAppBundleWithZSign:appPathURL execName:info[@"CFBundleExecutable"] completionHandler:signCompletionHandler];
+                    progress = [LCUtils signAppBundleWithZSign:appPathURL completionHandler:signCompletionHandler];
                     break;
                 case AltSign:
                     progress = [LCUtils signAppBundle:appPathURL completionHandler:signCompletionHandler];
                     break;
                     
                 default:
-                    completetionHandler(@"Signer Not Found");
+                    completetionHandler(NO, @"Signer Not Found");
                     break;
             }
 
@@ -330,7 +323,7 @@
 
     } else {
         // no need to sign again
-        completetionHandler(nil);
+        completetionHandler(YES, nil);
         return;
     }
 }

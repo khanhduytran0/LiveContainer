@@ -146,6 +146,7 @@ class LCAppModel: ObservableObject, Hashable {
     
     func signApp(force: Bool = false) async throws {
         var signError : String? = nil
+        var signSuccess = false
         defer {
             DispatchQueue.main.async {
                 self.isSigningInProgress = false
@@ -153,8 +154,9 @@ class LCAppModel: ObservableObject, Hashable {
         }
         
         await withCheckedContinuation({ c in
-            appInfo.patchExecAndSignIfNeed(completionHandler: { error in
+            appInfo.patchExecAndSignIfNeed(completionHandler: { success, error in
                 signError = error;
+                signSuccess = success;
                 c.resume()
             }, progressHandler: { signProgress in
                 guard let signProgress else {
@@ -169,7 +171,9 @@ class LCAppModel: ObservableObject, Hashable {
             }, forceSign: force)
         })
         if let signError {
-            throw signError
+            if !signSuccess {
+                throw signError
+            }
         }
         
         // sign its tweak

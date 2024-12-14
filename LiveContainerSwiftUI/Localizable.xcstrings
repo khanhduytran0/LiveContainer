@@ -603,6 +603,23 @@
         }
       }
     },
+    "lc.appList.signSuccessWithError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App was signed successfully, but LiveContainer was unable to sign the following files. You may be able to use the app, but do expect crash."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App签名成功，但以下文件签名失败。App有可能可以正常运行。"
+          }
+        }
+      }
+    },
     "lc.appList.urlInvalidError" : {
       "extractionState" : "manual",
       "localizations" : {

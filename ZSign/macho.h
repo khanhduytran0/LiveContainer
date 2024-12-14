@@ -32,3 +32,5 @@ private:
 	bool m_bCSRealloced;
 	vector<ZArchO *> m_arrArchOes;
 };
+
+bool is_64bit_macho(const char *filepath);

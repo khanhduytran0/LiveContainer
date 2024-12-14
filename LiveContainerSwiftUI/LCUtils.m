@@ -232,7 +232,7 @@
     return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:signCompletionHandler];
 }
 
-+ (NSProgress *)signAppBundleWithZSign:(NSURL *)path execName:(NSString*)execName completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
++ (NSProgress *)signAppBundleWithZSign:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
     NSError *error;
 
     // use zsign as our signer~
@@ -248,7 +248,7 @@
 
     NSLog(@"[LC] starting signing...");
     
-    NSProgress* ans = [NSClassFromString(@"ZSigner") signWithAppPath:[path path] execName:execName prov:profileData key: self.certificateData pass:self.certificatePassword completionHandler:completionHandler];
+    NSProgress* ans = [NSClassFromString(@"ZSigner") signWithAppPath:[path path] prov:profileData key: self.certificateData pass:self.certificatePassword completionHandler:completionHandler];
     
     return ans;
 }
