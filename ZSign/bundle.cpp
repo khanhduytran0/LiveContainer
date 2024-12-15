@@ -369,102 +369,102 @@ bool ZAppBundle::SignNode(JValue &jvNode)
             }
 		}
 	}
-    // LiveContainer don't need CodeResources
-//	ZBase64 b64;
-//	string strInfoPlistSHA1;
-//	string strInfoPlistSHA256;
-//	string strFolder = jvNode["path"];
-//	string strBundleId = jvNode["bid"];
-//	string strBundleExe = jvNode["exec"];
-//	b64.Decode(jvNode["sha1"].asCString(), strInfoPlistSHA1);
-//	b64.Decode(jvNode["sha2"].asCString(), strInfoPlistSHA256);
-//	if (strBundleId.empty() || strBundleExe.empty() || strInfoPlistSHA1.empty() || strInfoPlistSHA256.empty())
-//	{
-//		ZLog::ErrorV(">>> Can't Get BundleID or BundleExecute or Info.plist SHASum in Info.plist! %s\n", strFolder.c_str());
-//		return false;
-//	}
-//
-//	string strBaseFolder = m_strAppFolder;
-//	if ("/" != strFolder)
-//	{
-//		strBaseFolder += "/";
-//		strBaseFolder += strFolder;
-//	}
-//
-//	string strExePath = strBaseFolder + "/" + strBundleExe;
-//	ZLog::PrintV(">>> SignFolder: %s, (%s)\n", ("/" == strFolder) ? basename((char *)m_strAppFolder.c_str()) : strFolder.c_str(), strBundleExe.c_str());
-//
-//	ZMachO macho;
-//	if (!macho.Init(strExePath.c_str()))
-//	{
-//		ZLog::ErrorV(">>> Can't Parse BundleExecute File! %s\n", strExePath.c_str());
-//		return false;
-//	}
-//	
-//	RemoveFolderV("%s/_CodeSignature", strBaseFolder.c_str());
-//	CreateFolderV("%s/_CodeSignature", strBaseFolder.c_str());
-//	string strCodeResFile = strBaseFolder + "/_CodeSignature/CodeResources";
-//
-//	JValue jvCodeRes;
-//	if (!m_bForceSign)
-//	{
-//		jvCodeRes.readPListFile(strCodeResFile.c_str());
-//	}
+	ZBase64 b64;
+	string strInfoPlistSHA1;
+	string strInfoPlistSHA256;
+	string strFolder = jvNode["path"];
+	string strBundleId = jvNode["bid"];
+	string strBundleExe = jvNode["exec"];
+	b64.Decode(jvNode["sha1"].asCString(), strInfoPlistSHA1);
+	b64.Decode(jvNode["sha2"].asCString(), strInfoPlistSHA256);
+	if (strBundleId.empty() || strBundleExe.empty() || strInfoPlistSHA1.empty() || strInfoPlistSHA256.empty())
+	{
+		ZLog::ErrorV(">>> Can't Get BundleID or BundleExecute or Info.plist SHASum in Info.plist! %s\n", strFolder.c_str());
+		return false;
+	}
+
+	string strBaseFolder = m_strAppFolder;
+	if ("/" != strFolder)
+	{
+		strBaseFolder += "/";
+		strBaseFolder += strFolder;
+	}
+
+	string strExePath = strBaseFolder + "/" + strBundleExe;
+	ZLog::PrintV(">>> SignFolder: %s, (%s)\n", ("/" == strFolder) ? basename((char *)m_strAppFolder.c_str()) : strFolder.c_str(), strBundleExe.c_str());
+
+	ZMachO macho;
+	if (!macho.Init(strExePath.c_str()))
+	{
+		ZLog::ErrorV(">>> Can't Parse BundleExecute File! %s\n", strExePath.c_str());
+		return false;
+	}
+	
+	RemoveFolderV("%s/_CodeSignature", strBaseFolder.c_str());
+	CreateFolderV("%s/_CodeSignature", strBaseFolder.c_str());
+	string strCodeResFile = strBaseFolder + "/_CodeSignature/CodeResources";
+
+	JValue jvCodeRes;
+	if (!m_bForceSign)
+	{
+		jvCodeRes.readPListFile(strCodeResFile.c_str());
+	}
     
-//	if (m_bForceSign || jvCodeRes.isNull())
-//	{ //create
+	if (m_bForceSign || jvCodeRes.isNull())
+	{ //create
+        // LiveContainer don't need CodeResources
 //		if (!GenerateCodeResources(strBaseFolder, jvCodeRes))
 //		{
 //			ZLog::ErrorV(">>> Create CodeResources Failed! %s\n", strBaseFolder.c_str());
 //			return false;
 //		}
-//	}
-//	else if (jvNode.has("changed"))
-//	{ //use existsed
-//		for (size_t i = 0; i < jvNode["changed"].size(); i++)
-//		{
-//			string strFile = jvNode["changed"][i].asCString();
-//			string strRealFile = m_strAppFolder + "/" + strFile;
-//
-//			string strFileSHA1Base64;
-//			string strFileSHA256Base64;
-//			if (!SHASumBase64File(strRealFile.c_str(), strFileSHA1Base64, strFileSHA256Base64))
-//			{
-//				ZLog::ErrorV(">>> Can't Get Changed File SHASumBase64! %s", strFile.c_str());
-//				return false;
-//			}
-//
-//			string strKey = strFile;
-//			if ("/" != strFolder)
-//			{
-//				strKey = strFile.substr(strFolder.size() + 1);
-//			}
-//			jvCodeRes["files"][strKey] = "data:" + strFileSHA1Base64;
-//			jvCodeRes["files2"][strKey]["hash"] = "data:" + strFileSHA1Base64;
-//			jvCodeRes["files2"][strKey]["hash2"] = "data:" + strFileSHA256Base64;
-//
-//			ZLog::DebugV("\t\tChanged File: %s, %s\n", strFileSHA1Base64.c_str(), strKey.c_str());
-//		}
-//	}
-//
-//	string strCodeResData;
-//	jvCodeRes.writePList(strCodeResData);
-//	if (!WriteFile(strCodeResFile.c_str(), strCodeResData))
-//	{
-//		ZLog::ErrorV("\tWriting CodeResources Failed! %s\n", strCodeResFile.c_str());
-//		return false;
-//	}
-//
-//	bool bForceSign = m_bForceSign;
-//	if ("/" == strFolder && !m_strDyLibPath.empty())
-//	{ //inject dylib
-//		macho.InjectDyLib(m_bWeakInject, m_strDyLibPath.c_str(), bForceSign);
-//	}
-//
-//    if (!macho.Sign(m_pSignAsset, bForceSign, strBundleId, strInfoPlistSHA1, strInfoPlistSHA256, strCodeResData))
-//	{
-//		return false;
-//	}
+	}
+	else if (jvNode.has("changed"))
+	{ //use existsed
+		for (size_t i = 0; i < jvNode["changed"].size(); i++)
+		{
+			string strFile = jvNode["changed"][i].asCString();
+			string strRealFile = m_strAppFolder + "/" + strFile;
+
+			string strFileSHA1Base64;
+			string strFileSHA256Base64;
+			if (!SHASumBase64File(strRealFile.c_str(), strFileSHA1Base64, strFileSHA256Base64))
+			{
+				ZLog::ErrorV(">>> Can't Get Changed File SHASumBase64! %s", strFile.c_str());
+				return false;
+			}
+
+			string strKey = strFile;
+			if ("/" != strFolder)
+			{
+				strKey = strFile.substr(strFolder.size() + 1);
+			}
+			jvCodeRes["files"][strKey] = "data:" + strFileSHA1Base64;
+			jvCodeRes["files2"][strKey]["hash"] = "data:" + strFileSHA1Base64;
+			jvCodeRes["files2"][strKey]["hash2"] = "data:" + strFileSHA256Base64;
+
+			ZLog::DebugV("\t\tChanged File: %s, %s\n", strFileSHA1Base64.c_str(), strKey.c_str());
+		}
+	}
+
+	string strCodeResData;
+	jvCodeRes.writePList(strCodeResData);
+	if (!WriteFile(strCodeResFile.c_str(), strCodeResData))
+	{
+		ZLog::ErrorV("\tWriting CodeResources Failed! %s\n", strCodeResFile.c_str());
+		return false;
+	}
+
+	bool bForceSign = m_bForceSign;
+	if ("/" == strFolder && !m_strDyLibPath.empty())
+	{ //inject dylib
+		macho.InjectDyLib(m_bWeakInject, m_strDyLibPath.c_str(), bForceSign);
+	}
+
+    if (!macho.Sign(m_pSignAsset, bForceSign, strBundleId, strInfoPlistSHA1, strInfoPlistSHA256, strCodeResData))
+	{
+		return false;
+	}
 
     if(progressHandler) {
         progressHandler();
