@@ -14,15 +14,15 @@
       "bundleIdentifier": "com.kdt.livecontainer",
       "developerName": "khanhduytran0",
       "subtitle": "Run iOS app without actually installing it!",
-      "version": "2.1.2",
-      "versionDate": "2024-08-15",
-      "versionDescription": "Feature: AltStore support\r\n(untested)\r \nBug fixes\r\n\u2022 JIT-less setup may fail to find the signing certificate. This is worked around by re-adding the glob keychain group entitlement. (not guaranteed to work, as I couldn\u2019t reproduce the issue in the first place)\r\n\u2022 Switches in settings not working. Apparently using the private Preference framework causing changes to be saved to the wrong preference file.\r\n\u2022 Some apps may get stuck on a black screen caused by an unknown deadlock. This is worked around by pre-initializing \"UIScreen\".\r\n\u2022 Some apps may fail to create temporary files. This is fixed by redirecting guest app\u2019s temporary directory to that of LiveContainer using symlink instead of creating its own. (thanks @hugeBlack for hinting me the issue)",
-      "downloadURL": "https://github.com/khanhduytran0/LiveContainer/releases/download/2.1.2/com.kdt.livecontainer_2.1.2.ipa",
+      "version": "3.0.0",
+      "versionDate": "2024-12-16",
+      "versionDescription": "Features\r\niOS 18.2+ Support\r \nSwiftUI rewrite (153)\r\nLiveContainer now has a AltStore-like UI. \r\n\u2022 Main page is colorful now (192) by @slds1 \r\n\u2022 SideJITServer/JITStreamer 2.0 support\r\n\u2022 AltStore support\r\n\u2022 New JITLess mode that patch your store, so no jitless renew is required\r\n\u2022 Locking(164) apps by @fkunn1326 & hiding apps\r \nMultiple LiveContainer (153)\r\nNow you can install 2 LiveContainers to run 2 apps at the same time. App and their data, Keychains and most preferences can be shared between these two. If user open an app via URL Scheme or from My Apps screen, the LiveContainer that last ran that app will be switched to.\r \nBetter Open in App Support (153)\r\nIt turns out that some apps don't rely on URL Schemes and use Universal Links instead. In this update, the web page's \"apple-app-site-association\" will be checked and LiveContainer will launch app based on it.\r \nLocalization (153)\r\nLocalization is now supported. You can add a language in LiveContainerSwiftUI project and add your translation in \"Localizable.xcstrings\", then submit your translation as PR. We may consider adding something like a Crowdin page if it\u2019s large enough (?)\r \nDedicated AltStore/SideStore source (156)\r \nFixes\r\niOS file picker issue (153): 68, 123, 142\r \nDuplicated Flutter-based app bundle name (153): 112\r\n",
+      "downloadURL": "https://github.com/khanhduytran0/LiveContainer/releases/download/3.0.0/com.kdt.livecontainer_3.0.0.ipa",
       "localizedDescription": "Run iOS app without actually installing it!",
       "iconURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/Resources/AppIcon76x76.png",
       "tintColor": "#0784FC",
       "category": "utilities",
-      "size": 194586,
+      "size": 905495,
       "screenshotURLs": [
         "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/screenshots/1.png"
       ],
@@ -72,6 +72,13 @@
       },
       "versions": [
         {
+          "version": "3.0.0",
+          "date": "2024-12-16",
+          "localizedDescription": "Features\r\niOS 18.2+ Support\r \nSwiftUI rewrite (153)\r\nLiveContainer now has a AltStore-like UI. \r\n\u2022 Main page is colorful now (192) by @slds1 \r\n\u2022 SideJITServer/JITStreamer 2.0 support\r\n\u2022 AltStore support\r\n\u2022 New JITLess mode that patch your store, so no jitless renew is required\r\n\u2022 Locking(164) apps by @fkunn1326 & hiding apps\r \nMultiple LiveContainer (153)\r\nNow you can install 2 LiveContainers to run 2 apps at the same time. App and their data, Keychains and most preferences can be shared between these two. If user open an app via URL Scheme or from My Apps screen, the LiveContainer that last ran that app will be switched to.\r \nBetter Open in App Support (153)\r\nIt turns out that some apps don't rely on URL Schemes and use Universal Links instead. In this update, the web page's \"apple-app-site-association\" will be checked and LiveContainer will launch app based on it.\r \nLocalization (153)\r\nLocalization is now supported. You can add a language in LiveContainerSwiftUI project and add your translation in \"Localizable.xcstrings\", then submit your translation as PR. We may consider adding something like a Crowdin page if it\u2019s large enough (?)\r \nDedicated AltStore/SideStore source (156)\r \nFixes\r\niOS file picker issue (153): 68, 123, 142\r \nDuplicated Flutter-based app bundle name (153): 112\r\n",
+          "downloadURL": "https://github.com/khanhduytran0/LiveContainer/releases/download/3.0.0/com.kdt.livecontainer_3.0.0.ipa",
+          "size": 905495
+        },
+        {
           "version": "2.1.2",
           "date": "2024-08-15",
           "localizedDescription": "Feature: AltStore support\r\n(untested)\r \nBug fixes\r\n\u2022 JIT-less setup may fail to find the signing certificate. This is worked around by re-adding the glob keychain group entitlement. (not guaranteed to work, as I couldn\u2019t reproduce the issue in the first place)\r\n\u2022 Switches in settings not working. Apparently using the private Preference framework causing changes to be saved to the wrong preference file.\r\n\u2022 Some apps may get stuck on a black screen caused by an unknown deadlock. This is worked around by pre-initializing \"UIScreen\".\r\n\u2022 Some apps may fail to create temporary files. This is fixed by redirecting guest app\u2019s temporary directory to that of LiveContainer using symlink instead of creating its own. (thanks @hugeBlack for hinting me the issue)",
@@ -92,6 +99,17 @@
       "tintColor": "#0784FC",
       "title": "2.1.2 - LiveContainer  15/08/24",
       "url": "https://github.com/khanhduytran0/LiveContainer/releases/tag/2.1.2"
+    },
+    {
+      "appID": "com.kdt.livecontainer",
+      "caption": "Update of LiveContainer just got released!",
+      "date": "2024-12-16T11:15:27Z",
+      "identifier": "release-3.0.0",
+      "imageURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/screenshots/release.png",
+      "notify": true,
+      "tintColor": "#0784FC",
+      "title": "3.0.0 - LiveContainer  16/12/24",
+      "url": "https://github.com/khanhduytran0/LiveContainer/releases/tag/3.0.0"
     }
   ]
 }
