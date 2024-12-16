@@ -124,7 +124,7 @@ make package
 - Jump to the entry point
 - The guest app's entry point calls `UIApplicationMain` and start up like any other iOS apps.
 
-### Multi-Account support & Keychain Semi-Sapeartion
+### Multi-Account support & Keychain Semi-Separation
 [3 keychain access groups](./entitlements.xml) are created and LiveContainer allocates them to each container of same app. So you can create 3 container with different keychain access groups.
 
 #### Why only 3?

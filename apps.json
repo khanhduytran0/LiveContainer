@@ -14,15 +14,15 @@
       "bundleIdentifier": "com.kdt.livecontainer",
       "developerName": "khanhduytran0",
       "subtitle": "Run iOS app without actually installing it!",
-      "version": "3.0.0",
+      "version": "3.1.0",
       "versionDate": "2024-12-16",
-      "versionDescription": "Features\r\niOS 18.2+ Support\r \nSwiftUI rewrite (153)\r\nLiveContainer now has a AltStore-like UI. \r\n\u2022 Main page is colorful now (192) by @slds1 \r\n\u2022 SideJITServer/JITStreamer 2.0 support\r\n\u2022 AltStore support\r\n\u2022 New JITLess mode that patch your store, so no jitless renew is required\r\n\u2022 Locking(164) apps by @fkunn1326 & hiding apps\r \nMultiple LiveContainer (153)\r\nNow you can install 2 LiveContainers to run 2 apps at the same time. App and their data, Keychains and most preferences can be shared between these two. If user open an app via URL Scheme or from My Apps screen, the LiveContainer that last ran that app will be switched to.\r \nBetter Open in App Support (153)\r\nIt turns out that some apps don't rely on URL Schemes and use Universal Links instead. In this update, the web page's \"apple-app-site-association\" will be checked and LiveContainer will launch app based on it.\r \nLocalization (153)\r\nLocalization is now supported. You can add a language in LiveContainerSwiftUI project and add your translation in \"Localizable.xcstrings\", then submit your translation as PR. We may consider adding something like a Crowdin page if it\u2019s large enough (?)\r \nDedicated AltStore/SideStore source (156)\r \nFixes\r\niOS file picker issue (153): 68, 123, 142\r \nDuplicated Flutter-based app bundle name (153): 112\r\n",
-      "downloadURL": "https://github.com/khanhduytran0/LiveContainer/releases/download/3.0.0/com.kdt.livecontainer_3.0.0.ipa",
+      "versionDescription": "New Features\r\nNew Signer: ZSign\r\nZSign is now added as one of LiveContainer's signers.\r\n\u2022 ZSign has less format check comparing to AltSign, the signer used by SideStore/AltStore/LiveContainer, so it potentially signs apps then AltSign, solving issues like 222 and 134. \r\n\u2022 Its caching feature allows it to sign faster than AltSign.\r \nAltSign remains the default signer for competibility reasons. You can switch signer in Settings and app-specific settings for one specific app.\r \nRe-Sign Only on Expiration\r\nLiveContainer now keeps track of the date of expiration of each app's code signature and only signs when its signature is expired. So re-signing happens less frequent than before.\r \nAutomatic Tweak Re-Sign\r\nLiveContainer now keeps track of the tweaks you added and re-signs it if it is changed or its code signature expires, which makes tweak development with LiveContainer more convenient.\r \nImplement 175.\r \nMultiple Container Support\r\nYou can now create up to 3 containers for each app, so you can log in multiple accounts in different containers(data folders).\r \nKeychains are now semi-separated between app containers. Note that keychains will be removed if you delete a container in LiveContainer.\r \nkeychains created in older version will remain untouched so you can continue using your apps like before. To use this feature, clean up your keychain in LiveContainer settings.\r \nThis feature, along with the following fix of NSUserDefault leak impelements 218 176.\r \nLanguage Selection for Each App\r\nYou can now choose an language for an app in app-specific settings.\r \nImplement 171\r \nApp Preferences\r\nYou can now modify app preferences in LiveContainer like in iOS Settings. To change app preferences, go to app-specific settings -> (container name) -> Container Preferences\r \nImplement 252\r \nForce Orientation Lock\r\nThis option can be used to solve some game having stretched/mal-functioning UI when launched in portrait mode\r \nImplement 251\r \nJITLess Support for Multiple SideStores\r\nIf you use Multiple SideStores with SparseRestore, you can now export the tweaked SideStore IPA and install it manually to enable JITLess mode.\r \nImplement 219\r \nBug Fixes\r\n\u2022 NSUserDefault Leak & Random Signing out: NSUserDefault(app preferences) are now *almost* separated and properly placed in app's data folder. Solve 149 163 215\r\n\u2022 Game Controller Support: You can now use game controllers in LiveContainer\r\n\u2022 Hook \"-[VSSubscriptionRegistrationCenter setCurrentSubscription:]\": Solve 227\r\n\u2022 New file picker & local notification fix\r\n\u2022 App receiving LiveContainer's launch URL after launch: Solve 243\r\n",
+      "downloadURL": "https://github.com/khanhduytran0/LiveContainer/releases/download/3.1.0/com.kdt.livecontainer_3.1.0.ipa",
       "localizedDescription": "Run iOS app without actually installing it!",
       "iconURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/Resources/AppIcon76x76.png",
       "tintColor": "#0784FC",
       "category": "utilities",
-      "size": 905495,
+      "size": 2899038,
       "screenshotURLs": [
         "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/screenshots/1.png"
       ],
@@ -72,6 +72,13 @@
       },
       "versions": [
         {
+          "version": "3.1.0",
+          "date": "2024-12-16",
+          "localizedDescription": "New Features\r\nNew Signer: ZSign\r\nZSign is now added as one of LiveContainer's signers.\r\n\u2022 ZSign has less format check comparing to AltSign, the signer used by SideStore/AltStore/LiveContainer, so it potentially signs apps then AltSign, solving issues like 222 and 134. \r\n\u2022 Its caching feature allows it to sign faster than AltSign.\r \nAltSign remains the default signer for competibility reasons. You can switch signer in Settings and app-specific settings for one specific app.\r \nRe-Sign Only on Expiration\r\nLiveContainer now keeps track of the date of expiration of each app's code signature and only signs when its signature is expired. So re-signing happens less frequent than before.\r \nAutomatic Tweak Re-Sign\r\nLiveContainer now keeps track of the tweaks you added and re-signs it if it is changed or its code signature expires, which makes tweak development with LiveContainer more convenient.\r \nImplement 175.\r \nMultiple Container Support\r\nYou can now create up to 3 containers for each app, so you can log in multiple accounts in different containers(data folders).\r \nKeychains are now semi-separated between app containers. Note that keychains will be removed if you delete a container in LiveContainer.\r \nkeychains created in older version will remain untouched so you can continue using your apps like before. To use this feature, clean up your keychain in LiveContainer settings.\r \nThis feature, along with the following fix of NSUserDefault leak impelements 218 176.\r \nLanguage Selection for Each App\r\nYou can now choose an language for an app in app-specific settings.\r \nImplement 171\r \nApp Preferences\r\nYou can now modify app preferences in LiveContainer like in iOS Settings. To change app preferences, go to app-specific settings -> (container name) -> Container Preferences\r \nImplement 252\r \nForce Orientation Lock\r\nThis option can be used to solve some game having stretched/mal-functioning UI when launched in portrait mode\r \nImplement 251\r \nJITLess Support for Multiple SideStores\r\nIf you use Multiple SideStores with SparseRestore, you can now export the tweaked SideStore IPA and install it manually to enable JITLess mode.\r \nImplement 219\r \nBug Fixes\r\n\u2022 NSUserDefault Leak & Random Signing out: NSUserDefault(app preferences) are now *almost* separated and properly placed in app's data folder. Solve 149 163 215\r\n\u2022 Game Controller Support: You can now use game controllers in LiveContainer\r\n\u2022 Hook \"-[VSSubscriptionRegistrationCenter setCurrentSubscription:]\": Solve 227\r\n\u2022 New file picker & local notification fix\r\n\u2022 App receiving LiveContainer's launch URL after launch: Solve 243\r\n",
+          "downloadURL": "https://github.com/khanhduytran0/LiveContainer/releases/download/3.1.0/com.kdt.livecontainer_3.1.0.ipa",
+          "size": 2899038
+        },
+        {
           "version": "3.0.0",
           "date": "2024-12-16",
           "localizedDescription": "Features\r\niOS 18.2+ Support\r \nSwiftUI rewrite (153)\r\nLiveContainer now has a AltStore-like UI. \r\n\u2022 Main page is colorful now (192) by @slds1 \r\n\u2022 SideJITServer/JITStreamer 2.0 support\r\n\u2022 AltStore support\r\n\u2022 New JITLess mode that patch your store, so no jitless renew is required\r\n\u2022 Locking(164) apps by @fkunn1326 & hiding apps\r \nMultiple LiveContainer (153)\r\nNow you can install 2 LiveContainers to run 2 apps at the same time. App and their data, Keychains and most preferences can be shared between these two. If user open an app via URL Scheme or from My Apps screen, the LiveContainer that last ran that app will be switched to.\r \nBetter Open in App Support (153)\r\nIt turns out that some apps don't rely on URL Schemes and use Universal Links instead. In this update, the web page's \"apple-app-site-association\" will be checked and LiveContainer will launch app based on it.\r \nLocalization (153)\r\nLocalization is now supported. You can add a language in LiveContainerSwiftUI project and add your translation in \"Localizable.xcstrings\", then submit your translation as PR. We may consider adding something like a Crowdin page if it\u2019s large enough (?)\r \nDedicated AltStore/SideStore source (156)\r \nFixes\r\niOS file picker issue (153): 68, 123, 142\r \nDuplicated Flutter-based app bundle name (153): 112\r\n",
@@ -110,6 +117,17 @@
       "tintColor": "#0784FC",
       "title": "3.0.0 - LiveContainer  16/12/24",
       "url": "https://github.com/khanhduytran0/LiveContainer/releases/tag/3.0.0"
+    },
+    {
+      "appID": "com.kdt.livecontainer",
+      "caption": "Update of LiveContainer just got released!",
+      "date": "2024-12-16T12:38:30Z",
+      "identifier": "release-3.1.0",
+      "imageURL": "https://raw.githubusercontent.com/khanhduytran0/LiveContainer/main/screenshots/release.png",
+      "notify": true,
+      "tintColor": "#0784FC",
+      "title": "3.1.0 - LiveContainer  16/12/24",
+      "url": "https://github.com/khanhduytran0/LiveContainer/releases/tag/3.1.0"
     }
   ]
 }
