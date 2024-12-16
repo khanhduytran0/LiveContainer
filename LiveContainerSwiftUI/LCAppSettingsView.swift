@@ -18,7 +18,6 @@ struct LCAppSettingsView : View{
     @Binding var tweakFolders: [String]
     
 
-    @State private var uiPickerDataFolder : String?
     @State private var uiPickerTweakFolder : String?
     
     @StateObject private var renameFolderInput = InputHelper()
@@ -27,6 +26,7 @@ struct LCAppSettingsView : View{
     
     @State private var errorShow = false
     @State private var errorInfo = ""
+    @State private var selectUnusedContainerSheetShow = false
     
     @EnvironmentObject private var sharedModel : SharedModel
     
@@ -35,7 +35,6 @@ struct LCAppSettingsView : View{
         self._model = ObservedObject(wrappedValue: model)
         _appDataFolders = appDataFolders
         _tweakFolders = tweakFolders
-        self._uiPickerDataFolder = State(initialValue: model.uiDataFolder)
         self._uiPickerTweakFolder = State(initialValue: model.uiTweakFolder)
     }
     
@@ -50,42 +49,6 @@ struct LCAppSettingsView : View{
                         .multilineTextAlignment(.trailing)
                 }
                 if !model.uiIsShared {
-                    Menu {
-                        Button {
-                            Task{ await createFolder() }
-                        } label: {
-                            Label("lc.appSettings.newDataFolder".loc, systemImage: "plus")
-                        }
-                        if model.uiDataFolder != nil {
-                            Button {
-                                Task{ await renameDataFolder() }
-                            } label: {
-                                Label("lc.appSettings.renameDataFolder".loc, systemImage: "pencil")
-                            }
-                        }
-
-                        Picker(selection: $uiPickerDataFolder , label: Text("")) {
-                            ForEach(appDataFolders, id:\.self) { folderName in
-                                Button(folderName) {
-                                    setDataFolder(folderName: folderName)
-                                }.tag(Optional(folderName))
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Text("lc.appSettings.dataFolder".loc)
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Text(model.uiDataFolder == nil ? "lc.appSettings.noDataFolder".loc : model.uiDataFolder!)
-                                .multilineTextAlignment(.trailing)
-                        }
-                    }
-                    .onChange(of: uiPickerDataFolder, perform: { newValue in
-                        if newValue != model.uiDataFolder {
-                            setDataFolder(folderName: newValue)
-                        }
-                    })
-                    
                     Menu {
                         Picker(selection: $uiPickerTweakFolder , label: Text("")) {
                             Label("lc.common.none".loc, systemImage: "nosign").tag(Optional<String>(nil))
@@ -111,14 +74,6 @@ struct LCAppSettingsView : View{
                     
                 } else {
                     HStack {
-                        Text("lc.appSettings.dataFolder".loc)
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Text(model.uiDataFolder == nil ? "lc.appSettings.noDataFolder".loc : model.uiDataFolder!)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    HStack {
                         Text("lc.appSettings.tweakFolder".loc)
                             .foregroundColor(.primary)
                         Spacer()
@@ -140,6 +95,35 @@ struct LCAppSettingsView : View{
                 }
             } header: {
                 Text("lc.common.data".loc)
+            }
+            
+            Section {
+                List{
+                    ForEach($model.uiContainers, id:\.self) { $container in
+                        NavigationLink {
+                            LCContainerView(container: $container, uiDefaultDataFolder: $model.uiDefaultDataFolder, delegate: self)
+                        } label: {
+                            Text(container.name)
+                        }
+                    }
+                }
+                if(model.uiContainers.count < 3) {
+                    Button {
+                        Task{ await createFolder() }
+                    } label: {
+                        Text("lc.appSettings.newDataFolder".loc)
+                    }
+                    if(!model.uiIsShared) {
+                        Button {
+                            selectUnusedContainerSheetShow = true
+                        } label: {
+                            Text("lc.container.selectUnused".loc)
+                        }
+                    }
+                }
+                
+            } header: {
+                Text("lc.common.container".loc)
             }
             
             
@@ -177,6 +161,96 @@ struct LCAppSettingsView : View{
                         .transition(.opacity.combined(with: .slide))
                 }
             }
+
+            Picker(selection: $model.uiSigner) {
+                Text("AltSign").tag(Signer.AltSign)
+                Text("ZSign").tag(Signer.ZSign)
+            } label: {
+                Text("lc.appSettings.signer".loc)
+            }
+            .onChange(of: model.uiSigner, perform: { newValue in
+                Task { await setSigner(newValue) }
+            })
+            
+            Section {
+                NavigationLink {
+                    if let supportedLanguage = model.supportedLanaguages {
+                        Form {
+                            Picker(selection: $model.uiSelectedLanguage) {
+                                Text("lc.common.auto".loc).tag("")
+                                
+                                ForEach(supportedLanguage, id:\.self) { language in
+                                    if language != "Base" {
+                                        VStack(alignment: .leading) {
+                                            Text(Locale(identifier: language).localizedString(forIdentifier: language) ?? language)
+                                            Text("\(Locale.current.localizedString(forIdentifier: language) ?? "") - \(language)")
+                                                .font(.footnote)
+                                                .foregroundStyle(.gray)
+                                        }
+                                        .tag(language)
+                                    }
+
+                                }
+                            } label: {
+                                Text("lc.common.language".loc)
+                            }
+                            .pickerStyle(.inline)
+                            .onChange(of: model.uiSelectedLanguage, perform: { newValue in
+                                Task { await setLanguage(newValue) }
+                            })
+                        }
+
+                    } else {
+                        Text("lc.appSettings.languageLoading".loc)
+                            .onAppear() {
+                                Task{ loadSupportedLanguages() }
+                            }
+                    }
+                } label: {
+                    HStack {
+                        Text("lc.common.language".loc)
+                        Spacer()
+                        if model.uiSelectedLanguage == "" {
+                            Text("lc.common.auto".loc)
+                                .foregroundStyle(.gray)
+                        } else {
+                            Text(Locale.current.localizedString(forIdentifier: model.uiSelectedLanguage) ?? model.uiSelectedLanguage)
+                                .foregroundStyle(.gray)
+                        }
+                    }
+                    
+                }
+            }
+            
+
+            
+            Section {
+                Toggle(isOn: $model.uiUseLCBundleId) {
+                    Text("lc.appSettings.useLCBundleId".loc)
+                }
+                .onChange(of: model.uiUseLCBundleId, perform: { newValue in
+                    Task { await setDoUseLCBundleId(newValue) }
+                })
+            } header: {
+                Text("lc.appSettings.fixes".loc)
+            } footer: {
+                Text("lc.appSettings.useLCBundleIdDesc".loc)
+            }
+            if sharedModel.isPhone {
+                Section {
+                    Picker(selection: $model.uiOrientationLock) {
+                        Text("lc.common.disabled".loc).tag(LCOrientationLock.Disabled)
+                        Text("lc.apppSettings.orientationLock.landscape".loc).tag(LCOrientationLock.Landscape)
+                        Text("lc.apppSettings.orientationLock.portrait".loc).tag(LCOrientationLock.Portrait)
+                    } label: {
+                        Text("lc.apppSettings.orientationLock".loc)
+                    }
+                    .onChange(of: model.uiOrientationLock, perform: { newValue in
+                        Task { await setOrientationLock(newValue) }
+                    })
+                }
+            }
+
             
             Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
@@ -185,8 +259,6 @@ struct LCAppSettingsView : View{
                 .onChange(of: model.uiDoSymlinkInbox, perform: { newValue in
                     Task { await setSimlinkInbox(newValue) }
                 })
-            } header: {
-                Text("lc.appSettings.fixes".loc)
             } footer: {
                 Text("lc.appSettings.fixFilePickerDesc".loc)
             }
@@ -215,7 +287,7 @@ struct LCAppSettingsView : View{
 
         }
         .navigationTitle(appInfo.displayName())
-        
+        .navigationBarTitleDisplayMode(.inline)
         .alert("lc.common.error".loc, isPresented: $errorShow) {
             Button("lc.common.ok".loc, action: {
             })
@@ -259,20 +331,24 @@ struct LCAppSettingsView : View{
         } message: {
             Text("lc.appSettings.toPrivateAppDesc".loc)
         }
+        .sheet(isPresented: $selectUnusedContainerSheetShow) {
+            LCSelectContainerView(isPresent: $selectUnusedContainerSheetShow, delegate: self)
+        }
     }
-    
-    func setDataFolder(folderName: String?) {
-        self.appInfo.setDataUUID(folderName!)
-        self.model.uiDataFolder = folderName
-        self.uiPickerDataFolder = folderName
-    }
-    
+
     func createFolder() async {
-        guard let newName = await renameFolderInput.open(initVal: NSUUID().uuidString), newName != "" else {
+        let newName = NSUUID().uuidString
+        guard let displayName = await renameFolderInput.open(initVal: newName), displayName != "" else {
             return
         }
         let fm = FileManager()
-        let dest = LCPath.dataPath.appendingPathComponent(newName)
+        let dest : URL
+        if model.uiIsShared {
+            dest = LCPath.lcGroupDataPath.appendingPathComponent(newName)
+        } else {
+            dest = LCPath.dataPath.appendingPathComponent(newName)
+        }
+        
         do {
             try fm.createDirectory(at: dest, withIntermediateDirectories: false)
         } catch {
@@ -282,38 +358,31 @@ struct LCAppSettingsView : View{
         }
         
         self.appDataFolders.append(newName)
-        self.setDataFolder(folderName: newName)
-        
-    }
-    
-    func renameDataFolder() async {
-        if self.appInfo.getDataUUIDNoAssign() == nil {
-            return
+        let newContainer = LCContainer(folderName: newName, name: displayName, isShared: model.uiIsShared)
+        // assign keychain group
+        var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
+        for i in 0...2 {
+            keychainGroupSet.insert(i)
         }
-        
-        let initVal = self.model.uiDataFolder == nil ? "" : self.model.uiDataFolder!
-        guard let newName = await renameFolderInput.open(initVal: initVal), newName != "" else {
-            return
+        for container in model.uiContainers {
+            keychainGroupSet.remove(container.keychainGroupId)
         }
-        let fm = FileManager()
-        let orig = LCPath.dataPath.appendingPathComponent(appInfo.getDataUUIDNoAssign())
-        let dest = LCPath.dataPath.appendingPathComponent(newName)
-        do {
-            try fm.moveItem(at: orig, to: dest)
-        } catch {
+        guard let freeKeyChainGroup = keychainGroupSet.first else {
+            errorInfo = "lc.container.notEnoughKeychainGroup".loc
             errorShow = true
-            errorInfo = error.localizedDescription
             return
         }
         
-        let i = self.appDataFolders.firstIndex(of: self.appInfo.getDataUUIDNoAssign())
-        guard let i = i else {
-            return
+        model.uiContainers.append(newContainer)
+        if model.uiSelectedContainer == nil {
+            model.uiSelectedContainer = newContainer;
         }
-        
-        self.appDataFolders[i] = newName
-        self.setDataFolder(folderName: newName)
-        
+        if model.uiDefaultDataFolder == nil {
+            model.uiDefaultDataFolder = newName
+            appInfo.dataUUID = newName
+        }
+        appInfo.containers = model.uiContainers;
+        newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: freeKeyChainGroup)
     }
     
     func setTweakFolder(folderName: String?) {
@@ -331,11 +400,11 @@ struct LCAppSettingsView : View{
             try LCPath.ensureAppGroupPaths()
             let fm = FileManager()
             try fm.moveItem(atPath: appInfo.bundlePath(), toPath: LCPath.lcGroupBundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
-            if let dataFolder = appInfo.getDataUUIDNoAssign(), dataFolder.count > 0 {
-                try fm.moveItem(at: LCPath.dataPath.appendingPathComponent(dataFolder),
-                                to: LCPath.lcGroupDataPath.appendingPathComponent(dataFolder))
+            for container in model.uiContainers {
+                try fm.moveItem(at: LCPath.dataPath.appendingPathComponent(container.folderName),
+                                to: LCPath.lcGroupDataPath.appendingPathComponent(container.folderName))
                 appDataFolders.removeAll(where: { s in
-                    return s == dataFolder
+                    return s == container.folderName
                 })
             }
             if let tweakFolder = appInfo.tweakFolder(), tweakFolder.count > 0 {
@@ -348,6 +417,9 @@ struct LCAppSettingsView : View{
             appInfo.setBundlePath(LCPath.lcGroupBundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
             appInfo.isShared = true
             model.uiIsShared = true
+            for container in model.uiContainers {
+                container.isShared = true
+            }
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
@@ -370,11 +442,10 @@ struct LCAppSettingsView : View{
         do {
             let fm = FileManager()
             try fm.moveItem(atPath: appInfo.bundlePath(), toPath: LCPath.bundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
-            if let dataFolder = appInfo.getDataUUIDNoAssign(), dataFolder.count > 0 {
-                try fm.moveItem(at: LCPath.lcGroupDataPath.appendingPathComponent(dataFolder),
-                                to: LCPath.dataPath.appendingPathComponent(dataFolder))
-                appDataFolders.append(dataFolder)
-                model.uiDataFolder = dataFolder
+            for container in model.uiContainers {
+                try fm.moveItem(at: LCPath.lcGroupDataPath.appendingPathComponent(container.folderName),
+                                to: LCPath.dataPath.appendingPathComponent(container.folderName))
+                appDataFolders.append(container.folderName)
             }
             if let tweakFolder = appInfo.tweakFolder(), tweakFolder.count > 0 {
                 try fm.moveItem(at: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder),
@@ -385,6 +456,9 @@ struct LCAppSettingsView : View{
             appInfo.setBundlePath(LCPath.bundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
             appInfo.isShared = false
             model.uiIsShared = false
+            for container in model.uiContainers {
+                container.isShared = false
+            }
         } catch {
             errorShow = true
             errorInfo = error.localizedDescription
@@ -398,10 +472,39 @@ struct LCAppSettingsView : View{
 
     }
     
+    func setSigner(_ signer: Signer) async {
+        appInfo.signer = signer
+        model.uiSigner = signer
+    }
+    
+    func setLanguage(_ lang: String) async {
+        appInfo.selectedLanguage = lang
+        model.uiSelectedLanguage = lang
+    }
+    
     func setSimlinkInbox(_ simlinkInbox : Bool) async {
         appInfo.doSymlinkInbox = simlinkInbox
         model.uiDoSymlinkInbox = simlinkInbox
-
+    }
+    
+    func setDoUseLCBundleId(_ doUseLCBundleId : Bool) async {
+        appInfo.doUseLCBundleId = doUseLCBundleId
+        model.uiUseLCBundleId = doUseLCBundleId
+    }
+    
+    func setOrientationLock(_ lock : LCOrientationLock) async {
+        appInfo.orientationLock = lock
+        model.uiOrientationLock = lock
+    }
+    
+    func loadSupportedLanguages() {
+        do {
+            try model.loadSupportedLanguages()
+        } catch {
+            errorShow = true
+            errorInfo = error.localizedDescription
+            return
+        }
     }
     
     func setBypassAssertBarrierOnQueue(_ enabled : Bool) async {
@@ -419,5 +522,120 @@ struct LCAppSettingsView : View{
             errorInfo = error.localizedDescription
             errorShow = true
         }
+    }
+}
+
+
+
+extension LCAppSettingsView : LCContainerViewDelegate {
+    func getBundleId() -> String {
+        return model.appInfo.bundleIdentifier()!
+    }
+    
+    func unbindContainer(container: LCContainer) {
+        model.uiContainers.removeAll { c in
+            c === container
+        }
+        
+        // if the deleted container is the default one, we change to another one
+        if container.folderName == model.uiDefaultDataFolder && !model.uiContainers.isEmpty{
+            setDefaultContainer(container: model.uiContainers[0])
+        }
+        // if the deleted container is the selected one, we change to the default one
+        if model.uiSelectedContainer === container && !model.uiContainers.isEmpty {
+            for container in model.uiContainers {
+                if container.folderName == model.uiDefaultDataFolder {
+                    model.uiSelectedContainer = container
+                    break
+                }
+            }
+        }
+        
+        if model.uiContainers.isEmpty {
+            model.uiSelectedContainer = nil
+            model.uiDefaultDataFolder = nil
+            appInfo.dataUUID = nil
+        }
+        appInfo.containers = model.uiContainers
+    }
+    
+    func setDefaultContainer(container newDefaultContainer: LCContainer ) {
+        if model.uiSelectedContainer?.folderName == model.uiDefaultDataFolder {
+            model.uiSelectedContainer = newDefaultContainer
+        }
+        
+        appInfo.dataUUID = newDefaultContainer.folderName
+        model.uiDefaultDataFolder = newDefaultContainer.folderName
+    }
+    
+    func saveContainer(container: LCContainer) {
+        container.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: container.keychainGroupId)
+        appInfo.containers = model.uiContainers
+    }
+    
+    func getSettingsBundle() -> Bundle? {
+        return Bundle(url: URL(fileURLWithPath: appInfo.bundlePath()).appendingPathComponent("Settings.bundle"))
+    }
+    
+    func getUserDefaultsURL(container: LCContainer) -> URL {
+        let preferencesFolderUrl = container.containerURL.appendingPathComponent("Library/Preferences")
+        let fm = FileManager.default
+        do {
+            let doExist = fm.fileExists(atPath: preferencesFolderUrl.path)
+            if !doExist {
+                try fm.createDirectory(at: preferencesFolderUrl, withIntermediateDirectories: true)
+            }
+
+        } catch {
+            errorInfo = "Cannot create Library/Preferences folder!".loc
+            errorShow = true
+        }
+        return preferencesFolderUrl
+    }
+    
+}
+
+extension LCAppSettingsView : LCSelectContainerViewDelegate {
+    func addContainers(containers: Set<String>) {
+        if containers.count + model.uiContainers.count > 3 {
+            errorInfo = "lc.container.tooMuchContainers".loc
+            errorShow = true
+            return
+        }
+        
+        for folderName in containers {
+            let newContainer = LCContainer(folderName: folderName, name: folderName, isShared: false)
+            newContainer.loadName()
+            if newContainer.keychainGroupId == -1 {
+                // assign keychain group for old containers
+                var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
+                for i in 0...2 {
+                    keychainGroupSet.insert(i)
+                }
+                for container in model.uiContainers {
+                    keychainGroupSet.remove(container.keychainGroupId)
+                }
+                guard let freeKeyChainGroup = keychainGroupSet.first else {
+                    errorInfo = "lc.container.notEnoughKeychainGroup".loc
+                    errorShow = true
+                    return
+                }
+                newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: freeKeyChainGroup)
+            }
+
+            
+            model.uiContainers.append(newContainer)
+            if model.uiSelectedContainer == nil {
+                model.uiSelectedContainer = newContainer;
+            }
+            if model.uiDefaultDataFolder == nil {
+                model.uiDefaultDataFolder = folderName
+                appInfo.dataUUID = folderName
+            }
+
+
+        }
+        appInfo.containers = model.uiContainers;
+
     }
 }

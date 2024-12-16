@@ -6,9 +6,7 @@ FRAMEWORK_NAME = LiveContainerSwiftUI
 
 LiveContainerSwiftUI_FILES = \
 $(shell find . -name '*.swift') \
-LCSwiftBridge.m \
 LCAppInfo.m \
-LCAppDelegateSwiftUI.m \
 LCVersionInfo.m \
 LCUtils.m \
 LCMachOUtils.m \

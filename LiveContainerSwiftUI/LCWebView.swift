@@ -17,9 +17,6 @@ struct LCWebView: View {
     @State private var uiLoadStatus = 0.0
     @State private var pageTitle = ""
     
-    @Binding var apps : [LCAppModel]
-    @Binding var hiddenApps : [LCAppModel]
-    
     @State private var runAppAlert = YesNoHelper()
     @State private var runAppAlertMsg = ""
     
@@ -28,12 +25,10 @@ struct LCWebView: View {
     
     @EnvironmentObject private var sharedModel : SharedModel
     
-    init(url: Binding<URL>, apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, isPresent: Binding<Bool>) {
+    init(url: Binding<URL>, isPresent: Binding<Bool>) {
         self._webView = State(initialValue: WebView())
         self._url = url
-        self._apps = apps
         self._isPresent = isPresent
-        self._hiddenApps = hiddenApps
     }
     
     var body: some View {
@@ -144,9 +139,9 @@ struct LCWebView: View {
     
     public func onURLSchemeDetected(url: URL) async {
         var appToLaunch : LCAppModel? = nil
-        var appListsToConsider = [apps]
+        var appListsToConsider = [sharedModel.apps]
         if sharedModel.isHiddenAppUnlocked || !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
-            appListsToConsider.append(hiddenApps)
+            appListsToConsider.append(sharedModel.hiddenApps)
         }
         appLoop:
         for appList in appListsToConsider {
@@ -194,11 +189,11 @@ struct LCWebView: View {
     
     public func onUniversalLinkDetected(url: URL, bundleIDs: [String]) async {
         var bundleIDToAppDict: [String: LCAppModel] = [:]
-        for app in apps {
+        for app in sharedModel.apps {
             bundleIDToAppDict[app.appInfo.bundleIdentifier()!] = app
         }
         if !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") || sharedModel.isHiddenAppUnlocked {
-            for app in hiddenApps {
+            for app in sharedModel.hiddenApps {
                 bundleIDToAppDict[app.appInfo.bundleIdentifier()!] = app
             }
         }

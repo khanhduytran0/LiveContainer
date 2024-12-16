@@ -97,12 +97,15 @@ extern NSString *lcAppUrlScheme;
 
     NSString* launchBundleId = nil;
     NSString* openUrl = nil;
+    NSString* containerFolderName = nil;
     for (NSURLQueryItem* queryItem in components.queryItems) {
         if ([queryItem.name isEqualToString:@"bundle-name"]) {
             launchBundleId = queryItem.value;
         } else if ([queryItem.name isEqualToString:@"open-url"]){
             NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:queryItem.value options:0];
             openUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
+        } else if ([queryItem.name isEqualToString:@"container-folder-name"]) {
+            containerFolderName = queryItem.value;
         }
     }
     if(launchBundleId) {
@@ -112,6 +115,7 @@ extern NSString *lcAppUrlScheme;
         
         // Attempt to restart LiveContainer with the selected guest app
         [lcUserDefaults setObject:launchBundleId forKey:@"selected"];
+        [lcUserDefaults setObject:containerFolderName forKey:@"selectedContainer"];
         return [self launchToGuestApp];
     }
     
@@ -133,6 +137,17 @@ extern NSString *lcAppUrlScheme;
     return infoPath;
 }
 
++ (NSURL*)containerLockPath {
+    static dispatch_once_t once;
+    static NSURL *infoPath;
+    
+    dispatch_once(&once, ^{
+        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
+        infoPath = [appGroupPath URLByAppendingPathComponent:@"LiveContainer/containerLock.plist"];
+    });
+    return infoPath;
+}
+
 + (NSString*)getAppRunningLCSchemeWithBundleId:(NSString*)bundleId {
     NSURL* infoPath = [self appLockPath];
     NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath.path];
@@ -142,6 +157,25 @@ extern NSString *lcAppUrlScheme;
     
     for (NSString* key in info) {
         if([bundleId isEqualToString:info[key]]) {
+            if([key isEqualToString:lcAppUrlScheme]) {
+                return nil;
+            }
+            return key;
+        }
+    }
+    
+    return nil;
+}
+
++ (NSString*)getContainerUsingLCSchemeWithFolderName:(NSString*)folderName {
+    NSURL* infoPath = [self containerLockPath];
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath.path];
+    if (!info) {
+        return nil;
+    }
+    
+    for (NSString* key in info) {
+        if([folderName isEqualToString:info[key]]) {
             if([key isEqualToString:lcAppUrlScheme]) {
                 return nil;
             }
@@ -169,6 +203,22 @@ extern NSString *lcAppUrlScheme;
 
 }
 
++ (void)setContainerUsingByThisLC:(NSString*)folderName {
+    NSURL* infoPath = [self containerLockPath];
+    
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath.path];
+    if (!info) {
+        info = [NSMutableDictionary new];
+    }
+    if(folderName == nil) {
+        [info removeObjectForKey:lcAppUrlScheme];
+    } else {
+        info[lcAppUrlScheme] = folderName;
+    }
+    [info writeToFile:infoPath.path atomically:YES];
+
+}
+
 + (void)removeAppRunningByLC:(NSString*)LCScheme {
     NSURL* infoPath = [self appLockPath];
     
@@ -181,64 +231,15 @@ extern NSString *lcAppUrlScheme;
 
 }
 
-// move all plists file from fromPath to toPath
-+ (void)movePreferencesFromPath:(NSString*) plistLocationFrom toPath:(NSString*)plistLocationTo {
-    NSFileManager* fm = [[NSFileManager alloc] init];
-    NSError* error1;
-    NSArray<NSString *> * plists = [fm contentsOfDirectoryAtPath:plistLocationFrom error:&error1];
-
-    // remove all plists in toPath first
-    NSArray *directoryContents = [fm contentsOfDirectoryAtPath:plistLocationTo error:&error1];
-    for (NSString *item in directoryContents) {
-        // Check if the item is a plist and does not contain "LiveContainer"
-        if(![item hasSuffix:@".plist"] || [item containsString:@"livecontainer"]) {
-            continue;
-        }
-        NSString *itemPath = [plistLocationTo stringByAppendingPathComponent:item];
-        // Attempt to delete the file
-        [fm removeItemAtPath:itemPath error:&error1];
-    }
++ (void)removeContainerUsingByLC:(NSString*)LCScheme {
+    NSURL* infoPath = [self containerLockPath];
     
-    [fm createDirectoryAtPath:plistLocationTo withIntermediateDirectories:YES attributes:@{} error:&error1];
-    // move all plists in fromPath to toPath
-    for (NSString* item in plists) {
-        if(![item hasSuffix:@".plist"] || [item containsString:@"livecontainer"]) {
-            continue;
-        }
-        NSString* toPlistPath = [NSString stringWithFormat:@"%@/%@", plistLocationTo, item];
-        NSString* fromPlistPath = [NSString stringWithFormat:@"%@/%@", plistLocationFrom, item];
-        
-        [fm moveItemAtPath:fromPlistPath toPath:toPlistPath error:&error1];
-        if(error1) {
-            NSLog(@"[LC] error1 = %@", error1.description);
-        }
-        
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithContentsOfFile:infoPath.path];
+    if (!info) {
+        return;
     }
-
-}
-
-// to make apple happy and prevent, we have to load all preferences into NSUserDefault so that guest app can read them
-+ (void)loadPreferencesFromPath:(NSString*) plistLocationFrom {
-    NSFileManager* fm = [[NSFileManager alloc] init];
-    NSError* error1;
-    NSArray<NSString *> * plists = [fm contentsOfDirectoryAtPath:plistLocationFrom error:&error1];
-    
-    // move all plists in fromPath to toPath
-    for (NSString* item in plists) {
-        if(![item hasSuffix:@".plist"] || [item containsString:@"livecontainer"]) {
-            continue;
-        }
-        NSString* fromPlistPath = [NSString stringWithFormat:@"%@/%@", plistLocationFrom, item];
-        // load, the file and sync
-        NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithContentsOfFile:fromPlistPath];
-        NSUserDefaults* nud = [[NSUserDefaults alloc] initWithSuiteName: [item substringToIndex:[item length]-6]];
-        for(NSString* key in dict) {
-            [nud setObject:dict[key] forKey:key];
-        }
-        
-        [nud synchronize];
-        
-    }
+    [info removeObjectForKey:LCScheme];
+    [info writeToFile:infoPath.path atomically:YES];
 
 }
 
@@ -295,6 +296,39 @@ extern NSString *lcAppUrlScheme;
         appBundle = [[NSBundle alloc] initWithPath:bundlePath];
     }
     return appBundle;
+}
+
++ (void)dumpPreferenceToPath:(NSString*)plistLocationTo dataUUID:(NSString*)dataUUID {
+    NSFileManager* fm = [[NSFileManager alloc] init];
+    NSError* error1;
+    
+    NSDictionary* preferences = [lcUserDefaults objectForKey:dataUUID];
+    if(!preferences) {
+        return;
+    }
+    
+    [fm createDirectoryAtPath:plistLocationTo withIntermediateDirectories:YES attributes:@{} error:&error1];
+    for(NSString* identifier in preferences) {
+        NSDictionary* preference = preferences[identifier];
+        NSString *itemPath = [plistLocationTo stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", identifier]];
+        if([preference count] == 0) {
+            // Attempt to delete the file
+            [fm removeItemAtPath:itemPath error:&error1];
+            continue;
+        }
+        [preference writeToFile:itemPath atomically:YES];
+    }
+    [lcUserDefaults removeObjectForKey:dataUUID];
+}
+
++ (NSString*)findDefaultContainerWithBundleId:(NSString*)bundleId {
+    // find app's default container
+    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
+    NSURL* appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
+    
+    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", appGroupFolder.path, bundleId];
+    NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
+    return infoDict[@"LCDataUUID"];
 }
 
 @end

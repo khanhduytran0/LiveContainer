@@ -5,11 +5,55 @@
 #import <LocalAuthentication/LocalAuthentication.h>
 #import "Localization.h"
 
+UIInterfaceOrientation orientationLock = UIInterfaceOrientationUnknown;
+
 __attribute__((constructor))
 static void UIKitGuestHooksInit() {
     swizzle(UIApplication.class, @selector(_applicationOpenURLAction:payload:origin:), @selector(hook__applicationOpenURLAction:payload:origin:));
+    swizzle(UIApplication.class, @selector(_connectUISceneFromFBSScene:transitionContext:), @selector(hook__connectUISceneFromFBSScene:transitionContext:));
     swizzle(UIScene.class, @selector(scene:didReceiveActions:fromTransitionContext:), @selector(hook_scene:didReceiveActions:fromTransitionContext:));
+
+    NSInteger orientationLockDirection = [NSBundle.mainBundle.infoDictionary[@"LCOrientationLock"] integerValue];
+    if([UIDevice.currentDevice userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        switch (orientationLockDirection) {
+            case 1:
+                orientationLock = UIInterfaceOrientationLandscapeRight;
+                break;
+            case 2:
+                orientationLock = UIInterfaceOrientationPortrait;
+                break;
+            default:
+                break;
+        }
+        if(orientationLock != UIInterfaceOrientationUnknown) {
+            swizzle(UIApplication.class, @selector(_handleDelegateCallbacksWithOptions:isSuspended:restoreState:), @selector(hook__handleDelegateCallbacksWithOptions:isSuspended:restoreState:));
+            swizzle(FBSSceneParameters.class, @selector(initWithXPCDictionary:), @selector(hook_initWithXPCDictionary:));
+            swizzle(UIViewController.class, @selector(__supportedInterfaceOrientations), @selector(hook___supportedInterfaceOrientations));
+            swizzle(UIViewController.class, @selector(shouldAutorotateToInterfaceOrientation:), @selector(hook_shouldAutorotateToInterfaceOrientation:));
+            swizzle(UIWindow.class, @selector(setAutorotates:forceUpdateInterfaceOrientation:), @selector(hook_setAutorotates:forceUpdateInterfaceOrientation:));
+        }
+
+    }
+
 }
+
+NSString* findDefaultContainerWithBundleId(NSString* bundleId) {
+    // find app's default container
+    NSString *appGroupPath = [NSUserDefaults lcAppGroupPath];
+    NSString* appGroupFolder = [appGroupPath stringByAppendingPathComponent:@"LiveContainer"];
+    
+    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", appGroupFolder, bundleId];
+    NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
+    if(!infoDict) {
+        NSString* lcDocFolder = [[NSString stringWithUTF8String:getenv("LC_HOME_PATH")] stringByAppendingPathComponent:@"Documents"];
+        
+        bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", lcDocFolder, bundleId];
+        infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
+    }
+    
+    return infoDict[@"LCDataUUID"];
+}
+
 
 void LCShowSwitchAppConfirmation(NSURL *url, NSString* bundleId) {
     if ([NSUserDefaults.lcUserDefaults boolForKey:@"LCSwitchAppWithoutAsking"]) {
@@ -64,9 +108,21 @@ void LCShowAppNotFoundAlert(NSString* bundleId) {
 }
 
 void openUniversalLink(NSString* decodedUrl) {
+    NSURL* urlToOpen = [NSURL URLWithString: decodedUrl];
+    if(![urlToOpen.scheme isEqualToString:@"https"] && ![urlToOpen.scheme isEqualToString:@"http"]) {
+        NSData *data = [decodedUrl dataUsingEncoding:NSUTF8StringEncoding];
+        NSString *encodedUrl = [data base64EncodedStringWithOptions:0];
+        
+        NSString* finalUrl = [NSString stringWithFormat:@"%@://open-url?url=%@", NSUserDefaults.lcAppUrlScheme, encodedUrl];
+        NSURL* url = [NSURL URLWithString: finalUrl];
+        
+        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+        return;
+    }
+    
     UIActivityContinuationManager* uacm = [[UIApplication sharedApplication] _getActivityContinuationManager];
     NSUserActivity* activity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
-    activity.webpageURL = [NSURL URLWithString: decodedUrl];
+    activity.webpageURL = urlToOpen;
     NSDictionary* dict = @{
         @"UIApplicationLaunchOptionsUserActivityKey": activity,
         @"UICanvasConnectionOptionsUserActivityKey": activity,
@@ -150,6 +206,7 @@ void handleLiveContainerLaunch(NSURL* url) {
     // check if there are other LCs is running this app
     NSString* bundleName = nil;
     NSString* openUrl = nil;
+    NSString* containerFolderName = nil;
     NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
     for (NSURLQueryItem* queryItem in components.queryItems) {
         if ([queryItem.name isEqualToString:@"bundle-name"]) {
@@ -157,17 +214,22 @@ void handleLiveContainerLaunch(NSURL* url) {
         } else if ([queryItem.name isEqualToString:@"open-url"]) {
             NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:queryItem.value options:0];
             openUrl = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
+        } else if ([queryItem.name isEqualToString:@"container-folder-name"]) {
+            containerFolderName = queryItem.value;
         }
     }
-    
-    if ([bundleName isEqualToString:NSBundle.mainBundle.bundlePath.lastPathComponent]) {
+    NSString* containerId = [NSString stringWithUTF8String:getenv("HOME")].lastPathComponent;
+    if(!containerFolderName) {
+        containerFolderName = findDefaultContainerWithBundleId(bundleName);
+    }
+    if ([bundleName isEqualToString:NSBundle.mainBundle.bundlePath.lastPathComponent] && [containerId isEqualToString:containerFolderName]) {
         if(openUrl) {
             openUniversalLink(openUrl);
         }
     } else {
-        NSString* runningLC = [NSClassFromString(@"LCSharedUtils") getAppRunningLCSchemeWithBundleId:bundleName];
+        NSString* runningLC = [NSClassFromString(@"LCSharedUtils") getContainerUsingLCSchemeWithFolderName:containerFolderName];
         if(runningLC) {
-            NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, bundleName];
+            NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@&container-folder-name=%@", runningLC, bundleName, containerFolderName];
             [UIApplication.sharedApplication openURL:[NSURL URLWithString:urlStr] options:@{} completionHandler:nil];
             return;
         }
@@ -239,6 +301,28 @@ void handleLiveContainerLaunch(NSURL* url) {
     [self hook__applicationOpenURLAction:action payload:payload origin:origin];
     return;
 }
+
+- (void)hook__connectUISceneFromFBSScene:(id)scene transitionContext:(UIApplicationSceneTransitionContext*)context {
+    context.payload = nil;
+    context.actions = nil;
+    [self hook__connectUISceneFromFBSScene:scene transitionContext:context];
+}
+
+-(BOOL)hook__handleDelegateCallbacksWithOptions:(id)arg1 isSuspended:(BOOL)arg2 restoreState:(BOOL)arg3 {
+    BOOL ans = [self hook__handleDelegateCallbacksWithOptions:arg1 isSuspended:arg2 restoreState:arg3];
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+//        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            [[LSApplicationWorkspace defaultWorkspace] openApplicationWithBundleID:@"com.apple.springboard"];
+            [[LSApplicationWorkspace defaultWorkspace] openApplicationWithBundleID:NSUserDefaults.lcMainBundle.bundleIdentifier];
+        });
+
+    });
+
+
+    return ans;
+}
 @end
 
 // Handler for SceneDelegate
@@ -297,5 +381,44 @@ void handleLiveContainerLaunch(NSURL* url) {
     NSMutableSet *newActions = actions.mutableCopy;
     [newActions removeObject:urlAction];
     [self hook_scene:scene didReceiveActions:newActions fromTransitionContext:context];
+}
+@end
+
+@implementation FBSSceneParameters(LiveContainerHook)
+- (instancetype)hook_initWithXPCDictionary:(NSDictionary*)dict {
+
+    FBSSceneParameters* ans = [self hook_initWithXPCDictionary:dict];
+    UIMutableApplicationSceneSettings* settings = [ans.settings mutableCopy];
+    UIMutableApplicationSceneClientSettings* clientSettings = [ans.clientSettings mutableCopy];
+    [settings setInterfaceOrientation:orientationLock];
+    [clientSettings setInterfaceOrientation:orientationLock];
+    ans.settings = settings;
+    ans.clientSettings = clientSettings;
+    return ans;
+}
+@end
+
+
+
+@implementation UIViewController(LiveContainerHook)
+
+- (UIInterfaceOrientationMask)hook___supportedInterfaceOrientations {
+    if(orientationLock == UIInterfaceOrientationLandscapeRight) {
+        return UIInterfaceOrientationMaskLandscape;
+    } else {
+        return UIInterfaceOrientationMaskPortrait;
+    }
+
+}
+
+- (BOOL)hook_shouldAutorotateToInterfaceOrientation:(NSInteger)orientation {
+    return YES;
+}
+
+@end
+
+@implementation UIWindow(hook)
+- (void)hook_setAutorotates:(BOOL)autorotates forceUpdateInterfaceOrientation:(BOOL)force {
+    [self hook_setAutorotates:YES forceUpdateInterfaceOrientation:YES];
 }
 @end

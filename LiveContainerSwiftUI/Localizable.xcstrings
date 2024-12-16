@@ -222,23 +222,6 @@
         }
       }
     },
-    "lc.appBanner.shared" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SHARED"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共享"
-          }
-        }
-      }
-    },
     "lc.appBanner.uninstall" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -620,6 +603,23 @@
         }
       }
     },
+    "lc.appList.signSuccessWithError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App was signed successfully, but LiveContainer was unable to sign the following files. You may be able to use the app, but do expect crash."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App签名成功，但以下文件签名失败。App有可能可以正常运行。"
+          }
+        }
+      }
+    },
     "lc.appList.urlInvalidError" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -637,6 +637,57 @@
         }
       }
     },
+    "lc.apppSettings.orientationLock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orientation Lock"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旋转锁定"
+          }
+        }
+      }
+    },
+    "lc.apppSettings.orientationLock.landscape" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Landscape"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横屏"
+          }
+        }
+      }
+    },
+    "lc.apppSettings.orientationLock.portrait" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portrait"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "竖屏"
+          }
+        }
+      }
+    },
     "lc.appSettings.appOpenInOtherLc %@ %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -649,7 +700,7 @@
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此App的数据当前在%@中。打开%@至App界面活后再试。"
+            "value" : "此App的数据当前在%@中。打开%@至App界面后再试。"
           }
         }
       }
@@ -745,13 +796,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fix File Picker"
+            "value" : "(Legacy) Fix File Picker"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "修复文件导入"
+            "value" : "(旧方法)修复文件导入"
           }
         }
       }
@@ -837,6 +888,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要完全隐藏App，请在设置中启用严格隐藏模式。"
+          }
+        }
+      }
+    },
+    "lc.appSettings.languageLoading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading Available Languages…"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在加载可选语言"
           }
         }
       }
@@ -943,6 +1011,23 @@
         }
       }
     },
+    "lc.appSettings.signer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signer"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "签名工具"
+          }
+        }
+      }
+    },
     "lc.appSettings.toPrivateApp" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1028,6 +1113,57 @@
         }
       }
     },
+    "lc.appSettings.useLCBundleId" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix File Picker & Local Notification"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复文件导入和本地通知"
+          }
+        }
+      }
+    },
+    "lc.appSettings.useLCBundleIdDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixes these issues by using LiveContainer’s bundle identifier when overwriting main bundle."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过使用LiveContainer的包名解决上述问题。"
+          }
+        }
+      }
+    },
+    "lc.common.auto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
+          }
+        }
+      }
+    },
     "lc.common.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1041,6 +1177,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
+          }
+        }
+      }
+    },
+    "lc.common.container" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Containers"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器"
           }
         }
       }
@@ -1092,6 +1245,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除"
+          }
+        }
+      }
+    },
+    "lc.common.disabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "禁用"
           }
         }
       }
@@ -1160,6 +1330,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "错误"
+          }
+        }
+      }
+    },
+    "lc.common.language" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语言"
           }
         }
       }
@@ -1262,6 +1449,329 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "成功"
+          }
+        }
+      }
+    },
+    "lc.container.alreadyDefaultContainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is the default container"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该容器为默认容器"
+          }
+        }
+      }
+    },
+    "lc.container.containerFolderName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Folder Name"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器文件夹名"
+          }
+        }
+      }
+    },
+    "lc.container.containerName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Name"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器名称"
+          }
+        }
+      }
+    },
+    "lc.container.defaultContainerDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer will use the default container when none is specified."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当没有指定容器时，LiveContainer会使用默认容器。"
+          }
+        }
+      }
+    },
+    "lc.container.deleteData" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Data"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除数据"
+          }
+        }
+      }
+    },
+    "lc.container.deleteDataDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you want to delete all data of this container?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你确定要删除该容器的所有数据吗？"
+          }
+        }
+      }
+    },
+    "lc.container.inUse" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This container is currently in use"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器当前正在使用"
+          }
+        }
+      }
+    },
+    "lc.container.inUseBy %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container is currently used by %@."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器当前正在被%@使用。"
+          }
+        }
+      }
+    },
+    "lc.container.notEnoughKeychainGroup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough keychain Access Group."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法分配空闲的钥匙串访问组。"
+          }
+        }
+      }
+    },
+    "lc.container.preferences" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Container Preferences"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器设置"
+          }
+        }
+      }
+    },
+    "lc.container.removeContainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Container"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除容器"
+          }
+        }
+      }
+    },
+    "lc.container.removeContainerDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you want to remove this container?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你确定要删除此容器吗？"
+          }
+        }
+      }
+    },
+    "lc.container.removeKeychainDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you want to remove the keychain of this container?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你确定要清除该容器的钥匙串吗？"
+          }
+        }
+      }
+    },
+    "lc.container.selectUnused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Unused Containers"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择未使用的容器"
+          }
+        }
+      }
+    },
+    "lc.container.selectUnused.noUnused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No unused data folders."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无未使用的数据文件夹。"
+          }
+        }
+      }
+    },
+    "lc.container.selectUnused.unknownApp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown app"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知App"
+          }
+        }
+      }
+    },
+    "lc.container.setDefaultContainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set As Default Container"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置为默认容器"
+          }
+        }
+      }
+    },
+    "lc.container.tooMuchContainers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't add more than 3 containers."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不能添加超过3个容器。"
+          }
+        }
+      }
+    },
+    "lc.container.unbind" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbind From App"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与App解绑"
           }
         }
       }
@@ -1625,7 +2135,7 @@
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清理Keychain"
+            "value" : "清理钥匙串"
           }
         }
       }
@@ -1643,6 +2153,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "某些App的账户不能在LiveContainer间同步的原因可能是其Keychain还存储在本地。清理Keychain可能能解决此问题，但可能会导致你登出某些账户。要继续吗？"
+          }
+        }
+      }
+    },
+    "lc.settings.defaultSigner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Signer"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认签名工具"
           }
         }
       }
@@ -1728,40 +2255,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在App图标外加LiveContainer图标边框。"
-          }
-        }
-      }
-    },
-    "lc.settings.ignoreAltCert" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ignore ALTCertificate.p12"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "忽略ALTCertificate.p12"
-          }
-        }
-      }
-    },
-    "lc.settings.ignoreAltCertDesc" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If you see frequent re-sign, enable this option."
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "如果App重新签名过于频繁，可尝试启用此项。"
           }
         }
       }
@@ -2156,19 +2649,70 @@
         }
       }
     },
-    "lc.settings.patchStoreDesc %@ %@ %@" : {
+    "lc.settings.patchStoreArchiveOnly" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To use JIT-Less mode with %@, you must patch %@ in order to retrieve certificate. %@’s functions will not be affected. Continue?"
+            "value" : "Archive Only"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为了通过%@获取证书以配置免JIT模式，你必须要给%@打补丁。%@的功能不会受到任何影响。要继续吗？"
+            "value" : "仅打包"
+          }
+        }
+      }
+    },
+    "lc.settings.patchStoreArchiveSuccess %@ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patched %@ has been saved to LiveContainer's document folder. Please install it with the %@ that LiveContainer is installed with."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打包的%@已经保存到LiveContainer的“文件”文件夹，请将其手动安装到安装了LiveContainer的那个%@中。"
+          }
+        }
+      }
+    },
+    "lc.settings.patchStoreDesc %@ %@ %@ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To use JIT-Less mode with %@, you must patch %@ in order to retrieve certificate. %@’s functions will not be affected. Please confirm that you can refresh %@ before applying the patch. Continue?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了通过%@获取证书以配置免JIT模式，你必须要给%@打补丁。%@的功能不会受到任何影响。请确保在打补丁前%@可以正常刷新。要继续吗？"
+          }
+        }
+      }
+    },
+    "lc.settings.patchStoreMultipleHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you have multiple SideStore installed, please select “Archive Only” and install the tweaked IPA manually."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果你安装了多个SideStore，请选择“仅打包”并手动安装打过补丁的IPA。"
           }
         }
       }
@@ -2186,6 +2730,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新免JIT模式证书"
+          }
+        }
+      }
+    },
+    "lc.settings.signer.desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If ZSign reports an error, please try AltSign. Please restart LiveContainer after switching Signer."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "若ZSign签名遇到问题，可尝试使用AltSign。切换签名工具后请重启LiveContainer。"
+          }
+        }
+      }
+    },
+    "lc.settings.signOnlyOnExpiration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-Sign Only on Certificate Expires"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在证书过期时重新签名"
+          }
+        }
+      }
+    },
+    "lc.settings.signOnlyOnExpirationDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you see frequent re-sign, enable this option."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果App重新签名过于频繁，可尝试启用此项。"
           }
         }
       }

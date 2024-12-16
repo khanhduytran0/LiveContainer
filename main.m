@@ -23,6 +23,8 @@ NSString *lcAppGroupPath;
 NSString* lcAppUrlScheme;
 NSBundle* lcMainBundle;
 
+void NUDGuestHooksInit();
+
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
     return lcUserDefaults;
@@ -191,7 +193,7 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     return (void *)header + entryoff;
 }
 
-static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
+static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContainer, int argc, char *argv[]) {
     NSString *appError = nil;
     if (!LCSharedUtils.certificatePassword) {
         // First of all, let's check if we have JIT
@@ -226,8 +228,20 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     if(!appBundle) {
         return @"App not found";
     }
+    
+    // find container in Info.plist
+    NSString* dataUUID = selectedContainer;
+    if(!dataUUID) {
+        dataUUID = appBundle.infoDictionary[@"LCDataUUID"];
+    }
+
+    if(dataUUID == nil) {
+        return @"Container not found!";
+    }
+    
     if(isSharedBundle) {
         [LCSharedUtils setAppRunningByThisLC:selectedApp];
+        [LCSharedUtils setContainerUsingByThisLC:dataUUID];
     }
     
     NSError *error;
@@ -269,17 +283,12 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     const char *appExecPath = appBundle.executablePath.UTF8String;
     *path = appExecPath;
     overwriteExecPath(appBundle.bundlePath);
-
-    // Overwrite NSUserDefaults
-    NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
     
-    // Set & save the folder it it does not exist in Info.plist
-    NSString* dataUUID = appBundle.infoDictionary[@"LCDataUUID"];
-    if(dataUUID == nil) {
-        NSMutableDictionary* infoDict = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
-        dataUUID = NSUUID.UUID.UUIDString;
-        infoDict[@"LCDataUUID"] = dataUUID;
-        [infoDict writeToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
+    // Overwrite NSUserDefaults
+    if([appBundle.infoDictionary[@"doUseLCBundleId"] boolValue]) {
+        NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.infoDictionary[@"LCOrignalBundleIdentifier"]];
+    } else {
+        NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
     }
 
     // Overwrite home and tmp path
@@ -342,7 +351,7 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
         NSString *dirPath = [newHomePath stringByAppendingPathComponent:dir];
         [fm createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:nil];
     }
-    [LCSharedUtils loadPreferencesFromPath:[newHomePath stringByAppendingPathComponent:@"Library/Preferences"]];
+
     [lcUserDefaults setObject:dataUUID forKey:@"lastLaunchDataUUID"];
     if(isSharedBundle) {
         [lcUserDefaults setObject:@"Shared" forKey:@"lastLaunchType"];
@@ -363,6 +372,10 @@ static NSString* invokeAppMain(NSString *selectedApp, int argc, char *argv[]) {
     [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
     NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
     *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
+    
+    // hook NSUserDefault before running libraries' initializers
+    NUDGuestHooksInit();
+    
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
@@ -419,9 +432,7 @@ int LiveContainerMain(int argc, char *argv[]) {
     lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
     lcAppGroupPath = [[NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[NSClassFromString(@"LCSharedUtils") appGroupID]] path];
     lcMainBundle = [NSBundle mainBundle];
-    // move preferences first then the entire folder
     
-
     NSString* lastLaunchDataUUID = [lcUserDefaults objectForKey:@"lastLaunchDataUUID"];
     if(lastLaunchDataUUID) {
         NSString* lastLaunchType = [lcUserDefaults objectForKey:@"lastLaunchType"];
@@ -433,7 +444,8 @@ int LiveContainerMain(int argc, char *argv[]) {
         } else {
             preferencesTo = [docPathUrl.path stringByAppendingPathComponent:[NSString stringWithFormat:@"Data/Application/%@/Library/Preferences", lastLaunchDataUUID]];
         }
-        [LCSharedUtils movePreferencesFromPath:[NSString stringWithFormat:@"%@/Preferences", libraryPathUrl.path] toPath:preferencesTo];
+        // recover preferences
+        [LCSharedUtils dumpPreferenceToPath:preferencesTo dataUUID:lastLaunchDataUUID];
         [lcUserDefaults removeObjectForKey:@"lastLaunchDataUUID"];
         [lcUserDefaults removeObjectForKey:@"lastLaunchType"];
     }
@@ -441,16 +453,27 @@ int LiveContainerMain(int argc, char *argv[]) {
     [LCSharedUtils moveSharedAppFolderBack];
     
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
-    NSString* runningLC = [LCSharedUtils getAppRunningLCSchemeWithBundleId:selectedApp];
+    NSString *selectedContainer = [lcUserDefaults stringForKey:@"selectedContainer"];
+    if(selectedApp && !selectedContainer) {
+        selectedContainer = [LCSharedUtils findDefaultContainerWithBundleId:selectedApp];
+    }
+    NSString* runningLC = [LCSharedUtils getContainerUsingLCSchemeWithFolderName:selectedContainer];
     // if another instance is running, we just switch to that one, these should be called after uiapplication initialized
     if(selectedApp && runningLC) {
         [lcUserDefaults removeObjectForKey:@"selected"];
+        [lcUserDefaults removeObjectForKey:@"selectedContainer"];
         NSString* selectedAppBackUp = selectedApp;
         selectedApp = nil;
         dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
         dispatch_after(delay, dispatch_get_main_queue(), ^{
             // Base64 encode the data
-            NSString* urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, selectedAppBackUp];
+            NSString* urlStr;
+            if(selectedContainer) {
+                urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@&container-folder-name=%@", runningLC, selectedAppBackUp, selectedContainer];
+            } else {
+                urlStr = [NSString stringWithFormat:@"%@://livecontainer-launch?bundle-name=%@", runningLC, selectedAppBackUp];
+            }
+            
             NSURL* url = [NSURL URLWithString:urlStr];
             if([[UIApplication sharedApplication] canOpenURL:url]){
                 [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
@@ -472,6 +495,7 @@ int LiveContainerMain(int argc, char *argv[]) {
                 }
             } else {
                 [LCSharedUtils removeAppRunningByLC: runningLC];
+                [LCSharedUtils removeContainerUsingByLC: runningLC];
             }
         });
 
@@ -481,6 +505,7 @@ int LiveContainerMain(int argc, char *argv[]) {
         
         NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
         [lcUserDefaults removeObjectForKey:@"selected"];
+        [lcUserDefaults removeObjectForKey:@"selectedContainer"];
         // wait for app to launch so that it can receive the url
         if(launchUrl) {
             [lcUserDefaults removeObjectForKey:@"launchAppUrlScheme"];
@@ -498,22 +523,31 @@ int LiveContainerMain(int argc, char *argv[]) {
         }
         NSSetUncaughtExceptionHandler(&exceptionHandler);
         setenv("LC_HOME_PATH", getenv("HOME"), 1);
-        NSString *appError = invokeAppMain(selectedApp, argc, argv);
+        NSString *appError = invokeAppMain(selectedApp, selectedContainer, argc, argv);
         if (appError) {
             [lcUserDefaults setObject:appError forKey:@"error"];
             [LCSharedUtils setAppRunningByThisLC:nil];
+            [LCSharedUtils setContainerUsingByThisLC:nil];
             // potentially unrecovable state, exit now
             return 1;
         }
     }
     [LCSharedUtils setAppRunningByThisLC:nil];
+    [LCSharedUtils setContainerUsingByThisLC:nil];
+    // recover language before reaching UI
+    NSArray* savedLaunguage = [lcUserDefaults objectForKey:@"LCLastLanguages"];
+    if(savedLaunguage) {
+        [lcUserDefaults setObject:savedLaunguage forKey:@"AppleLanguages"];
+        [lcUserDefaults removeObjectForKey:@"LCLastLanguages"];
+        [lcUserDefaults synchronize];
+    }
     void *LiveContainerSwiftUIHandle = dlopen("@executable_path/Frameworks/LiveContainerSwiftUI.framework/LiveContainerSwiftUI", RTLD_LAZY);
     assert(LiveContainerSwiftUIHandle);
     @autoreleasepool {
         if ([lcUserDefaults boolForKey:@"LCLoadTweaksToSelf"]) {
             dlopen("@executable_path/Frameworks/TweakLoader.dylib", RTLD_LAZY);
         }
-        return UIApplicationMain(argc, argv, nil, @"LCAppDelegateSwiftUI");
+        return UIApplicationMain(argc, argv, nil, @"LiveContainerSwiftUI.AppDelegate");
     }
 }
 

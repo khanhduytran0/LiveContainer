@@ -9,8 +9,6 @@ import Foundation
 import SwiftUI
 
 struct LCTabView: View {
-    @State var apps: [LCAppModel]
-    @State var hiddenApps: [LCAppModel]
     @State var appDataFolderNames: [String]
     @State var tweakFolderNames: [String]
     
@@ -82,15 +80,15 @@ struct LCTabView: View {
         } catch {
             NSLog("[LC] error:\(error)")
         }
-        _apps = State(initialValue: tempApps)
+        DataManager.shared.model.apps = tempApps
+        DataManager.shared.model.hiddenApps = tempHiddenApps
         _appDataFolderNames = State(initialValue: tempAppDataFolderNames)
         _tweakFolderNames = State(initialValue: tempTweakFolderNames)
-        _hiddenApps = State(initialValue: tempHiddenApps)
     }
     
     var body: some View {
         TabView {
-            LCAppListView(apps: $apps, hiddenApps: $hiddenApps, appDataFolderNames: $appDataFolderNames, tweakFolderNames: $tweakFolderNames)
+            LCAppListView(appDataFolderNames: $appDataFolderNames, tweakFolderNames: $tweakFolderNames)
                 .tabItem {
                     Label("lc.tabView.apps".loc, systemImage: "square.stack.3d.up.fill")
                 }
@@ -101,7 +99,7 @@ struct LCTabView: View {
                     }
             }
 
-            LCSettingsView(apps: $apps, hiddenApps: $hiddenApps, appDataFolderNames: $appDataFolderNames)
+            LCSettingsView(appDataFolderNames: $appDataFolderNames)
                 .tabItem {
                     Label("lc.tabView.settings".loc, systemImage: "gearshape.fill")
                 }

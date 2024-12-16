@@ -8,26 +8,31 @@
 import Foundation
 import SwiftUI
 
+enum PatchChoice {
+    case cancel
+    case autoPath
+    case archiveOnly
+}
+
 struct LCSettingsView: View {
     @State var errorShow = false
     @State var errorInfo = ""
     @State var successShow = false
     @State var successInfo = ""
     
-    @Binding var apps: [LCAppModel]
-    @Binding var hiddenApps: [LCAppModel]
     @Binding var appDataFolderNames: [String]
     
     @StateObject private var appFolderRemovalAlert = YesNoHelper()
     @State private var folderRemoveCount = 0
     
     @StateObject private var keyChainRemovalAlert = YesNoHelper()
-    @StateObject private var patchAltStoreAlert = YesNoHelper()
+    @StateObject private var patchAltStoreAlert = AlertHelper<PatchChoice>()
     @State private var isAltStorePatched = false
     
     @State var isJitLessEnabled = false
+    @State var defaultSigner = Signer.ZSign
     @State var isJITLessTestInProgress = false
-    @State var isAltCertIgnored = false
+    @State var isSignOnlyOnExpiration = true
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
     @State var injectToLCItelf = false
@@ -43,18 +48,21 @@ struct LCSettingsView: View {
     
     let storeName = LCUtils.getStoreName()
     
-    init(apps: Binding<[LCAppModel]>, hiddenApps: Binding<[LCAppModel]>, appDataFolderNames: Binding<[String]>) {
+    init(appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
         
-        _isAltCertIgnored = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreALTCertificate"))
+        if(LCUtils.appGroupUserDefault.object(forKey: "LCSignOnlyOnExpiration") == nil) {
+            LCUtils.appGroupUserDefault.set(true, forKey: "LCSignOnlyOnExpiration")
+        }
+        _defaultSigner = State(initialValue: Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!)
+        
+        _isSignOnlyOnExpiration = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCSignOnlyOnExpiration"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
         _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
         
         _isSideStore = State(initialValue: LCUtils.store() == .SideStore)
         
-        _apps = apps
-        _hiddenApps = hiddenApps
         _appDataFolderNames = appDataFolderNames
         
         if let configSideJITServerAddress = LCUtils.appGroupUserDefault.string(forKey: "LCSideJITServerAddress") {
@@ -90,18 +98,35 @@ struct LCSettingsView: View {
                         
                         if isAltStorePatched {
                             Button {
-                            testJITLessMode()
+                                testJITLessMode()
                             } label: {
                                 Text("lc.settings.testJitLess".loc)
                             }
                             .disabled(isJITLessTestInProgress)
+                            Toggle(isOn: $isSignOnlyOnExpiration) {
+                                Text("lc.settings.signOnlyOnExpiration".loc)
+                            }
                         }
+                        if sharedModel.developerMode {
+                            Button {
+                                export()
+                            } label: {
+                                Text("export cert")
+                            }
+                        }
+
                         
+                        Picker(selection: $defaultSigner) {
+                            Text("AltSign").tag(Signer.AltSign)
+                            Text("ZSign").tag(Signer.ZSign)
+                        } label: {
+                            Text("lc.settings.defaultSigner")
+                        }
 
                     } header: {
                         Text("lc.settings.jitLess".loc)
                     } footer: {
-                        Text("lc.settings.jitLessDesc".loc)
+                        Text("lc.settings.jitLessDesc".loc + "\n" + "lc.settings.signer.desc".loc)
                     }
                 }
 
@@ -124,17 +149,6 @@ struct LCSettingsView: View {
                 } footer: {
                     Text("lc.settings.multiLCDesc".loc)
                 }
-                
-                if(isSideStore) {
-                    Section {
-                        Toggle(isOn: $isAltCertIgnored) {
-                            Text("lc.settings.ignoreAltCert".loc)
-                        }
-                    } footer: {
-                        Text("lc.settings.ignoreAltCertDesc".loc)
-                    }
-                }
-
                 
                 Section {
                     HStack {
@@ -181,14 +195,16 @@ struct LCSettingsView: View {
                 } footer: {
                     Text("lc.settings.silentSwitchAppDesc".loc)
                 }
-                
-                Section {
-                    Toggle(isOn: $injectToLCItelf) {
-                        Text("lc.settings.injectLCItself".loc)
+                if sharedModel.developerMode {
+                    Section {
+                        Toggle(isOn: $injectToLCItelf) {
+                            Text("lc.settings.injectLCItself".loc)
+                        }
+                    } footer: {
+                        Text("lc.settings.injectLCItselfDesc".loc)
                     }
-                } footer: {
-                    Text("lc.settings.injectLCItselfDesc".loc)
                 }
+
                 if sharedModel.isHiddenAppUnlocked {
                     Section {
                         Toggle(isOn: $strictHiding) {
@@ -253,6 +269,9 @@ struct LCSettingsView: View {
                 VStack{
                     Text(LCUtils.getVersionInfo())
                         .foregroundStyle(.gray)
+                        .onTapGesture(count: 10) {
+                            sharedModel.developerMode = true
+                        }
                 }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .background(Color(UIColor.systemGroupedBackground))
@@ -309,19 +328,32 @@ struct LCSettingsView: View {
             }
             .alert("lc.settings.patchStore %@".localizeWithFormat(LCUtils.getStoreName()), isPresented: $patchAltStoreAlert.show) {
                 Button(role: .destructive) {
-                    patchAltStoreAlert.close(result: true)
+                    patchAltStoreAlert.close(result: .autoPath)
                 } label: {
                     Text("lc.common.ok".loc)
                 }
+                if(isSideStore) {
+                    Button {
+                        patchAltStoreAlert.close(result: .archiveOnly)
+                    } label: {
+                        Text("lc.settings.patchStoreArchiveOnly".loc)
+                    }
+                }
+
 
                 Button("lc.common.cancel".loc, role: .cancel) {
-                    patchAltStoreAlert.close(result: false)
+                    patchAltStoreAlert.close(result: .cancel)
                 }
             } message: {
-                Text("lc.settings.patchStoreDesc %@ %@ %@".localizeWithFormat(storeName, storeName, storeName))
+                if(isSideStore) {
+                    Text("lc.settings.patchStoreDesc %@ %@ %@ %@".localizeWithFormat(storeName, storeName, storeName, storeName) + "\n\n" + "lc.settings.patchStoreMultipleHint".loc)
+                } else {
+                    Text("lc.settings.patchStoreDesc %@ %@ %@ %@".localizeWithFormat(storeName, storeName, storeName, storeName))
+                }
+
             }
-            .onChange(of: isAltCertIgnored) { newValue in
-                saveItem(key: "LCIgnoreALTCertificate", val: newValue)
+            .onChange(of: isSignOnlyOnExpiration) { newValue in
+                saveAppGroupItem(key: "LCSignOnlyOnExpiration", val: newValue)
             }
             .onChange(of: silentSwitchApp) { newValue in
                 saveItem(key: "LCSwitchAppWithoutAsking", val: newValue)
@@ -340,6 +372,9 @@ struct LCSettingsView: View {
             }
             .onChange(of: sideJITServerAddress) { newValue in
                 saveAppGroupItem(key: "LCSideJITServerAddress", val: newValue)
+            }
+            .onChange(of: defaultSigner) { newValue in
+                saveAppGroupItem(key: "LCDefaultSigner", val: newValue.rawValue)
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -367,7 +402,7 @@ struct LCSettingsView: View {
             return;
         }
         isJITLessTestInProgress = true
-        LCUtils.validateJITLessSetup { success, error in
+        LCUtils.validateJITLessSetup(with: defaultSigner) { success, error in
             if success {
                 successInfo = "lc.jitlessSetup.success".loc
                 successShow = true
@@ -404,17 +439,15 @@ struct LCSettingsView: View {
     func cleanUpUnusedFolders() async {
         
         var folderNameToAppDict : [String:LCAppModel] = [:]
-        for app in apps {
-            guard let folderName = app.appInfo.getDataUUIDNoAssign() else {
-                continue
+        for app in sharedModel.apps {
+            for container in app.appInfo.containers {
+                folderNameToAppDict[container.folderName] = app;
             }
-            folderNameToAppDict[folderName] = app
         }
-        for app in hiddenApps {
-            guard let folderName = app.appInfo.getDataUUIDNoAssign() else {
-                continue
+        for app in sharedModel.hiddenApps {
+            for container in app.appInfo.containers {
+                folderNameToAppDict[container.folderName] = app;
             }
-            folderNameToAppDict[folderName] = app
         }
         
         var foldersToDelete : [String]  = []
@@ -432,6 +465,7 @@ struct LCSettingsView: View {
             let fm = FileManager()
             for folder in foldersToDelete {
                 try fm.removeItem(at: LCPath.dataPath.appendingPathComponent(folder))
+                LCUtils.removeAppKeychain(dataUUID: folder)
                 self.appDataFolderNames.removeAll(where: { s in
                     return s == folder
                 })
@@ -466,25 +500,27 @@ struct LCSettingsView: View {
         do {
             var appDataFoldersInUse : Set<String> = Set();
             var tweakFoldersInUse : Set<String> = Set();
-            for app in apps {
+            for app in sharedModel.apps {
                 if !app.appInfo.isShared {
                     continue
                 }
-                if let folder = app.appInfo.getDataUUIDNoAssign() {
-                    appDataFoldersInUse.update(with: folder);
+                for container in app.appInfo.containers {
+                    appDataFoldersInUse.update(with: container.folderName);
                 }
+
+                
                 if let folder = app.appInfo.tweakFolder() {
                     tweakFoldersInUse.update(with: folder);
                 }
 
             }
             
-            for app in hiddenApps {
+            for app in sharedModel.hiddenApps {
                 if !app.appInfo.isShared {
                     continue
                 }
-                if let folder = app.appInfo.getDataUUIDNoAssign() {
-                    appDataFoldersInUse.update(with: folder);
+                for container in app.appInfo.containers {
+                    appDataFoldersInUse.update(with: container.folderName);
                 }
                 if let folder = app.appInfo.tweakFolder() {
                     tweakFoldersInUse.update(with: folder);
@@ -608,18 +644,71 @@ struct LCSettingsView: View {
     }
     
     func patchAltStore() async {
-        guard let result = await patchAltStoreAlert.open(), result else {
+        guard let result = await patchAltStoreAlert.open(), result != .cancel else {
             return
         }
         
         do {
             let altStoreIpa = try LCUtils.archiveTweakedAltStore()
             let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), altStoreIpa.absoluteString)
-            await UIApplication.shared.open(URL(string: storeInstallUrl)!)
+            if(result == .archiveOnly) {
+                let movedAltStoreIpaUrl = LCPath.docPath.appendingPathComponent("Patched\(isSideStore ? "SideStore" : "AltStore").ipa")
+                try FileManager.default.moveItem(at: altStoreIpa, to: movedAltStoreIpaUrl)
+                successInfo = "lc.settings.patchStoreArchiveSuccess %@ %@".localizeWithFormat(storeName, storeName)
+                successShow = true
+            } else {
+                await UIApplication.shared.open(URL(string: storeInstallUrl)!)
+            }
+            
+
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
         }
         
+    }
+    
+    func export() {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        
+        // 1. Copy embedded.mobileprovision from the main bundle to Documents
+        if let embeddedURL = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision") {
+            let destinationURL = documentsURL.appendingPathComponent("embedded.mobileprovision")
+            do {
+                try fileManager.copyItem(at: embeddedURL, to: destinationURL)
+                print("Successfully copied embedded.mobileprovision to Documents.")
+            } catch {
+                print("Error copying embedded.mobileprovision: \(error)")
+            }
+        } else {
+            print("embedded.mobileprovision not found in the main bundle.")
+        }
+        
+        // 2. Read "certData" from UserDefaults and save to cert.p12 in Documents
+        if let certData = LCUtils.certificateData() {
+            let certFileURL = documentsURL.appendingPathComponent("cert.p12")
+            do {
+                try certData.write(to: certFileURL)
+                print("Successfully wrote certData to cert.p12 in Documents.")
+            } catch {
+                print("Error writing certData to cert.p12: \(error)")
+            }
+        } else {
+            print("certData not found in UserDefaults.")
+        }
+        
+        // 3. Read "certPassword" from UserDefaults and save to pass.txt in Documents
+        if let certPassword = LCUtils.certificatePassword() {
+            let passwordFileURL = documentsURL.appendingPathComponent("pass.txt")
+            do {
+                try certPassword.write(to: passwordFileURL, atomically: true, encoding: .utf8)
+                print("Successfully wrote certPassword to pass.txt in Documents.")
+            } catch {
+                print("Error writing certPassword to pass.txt: \(error)")
+            }
+        } else {
+            print("certPassword not found in UserDefaults.")
+        }
     }
 }

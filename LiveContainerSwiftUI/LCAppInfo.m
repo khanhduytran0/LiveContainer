@@ -12,7 +12,7 @@
 	if(self) {
         _bundlePath = bundlePath;
         _info = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
-        
+        _autoSaveDisabled = false;
     }
     return self;
 }
@@ -65,17 +65,14 @@
 }
 
 - (NSString*)bundleIdentifier {
-    return _info[@"CFBundleIdentifier"];
+    if([self doUseLCBundleId]) {
+        return _info[@"LCOrignalBundleIdentifier"];
+    } else {
+        return _info[@"CFBundleIdentifier"];
+    }
 }
 
 - (NSString*)dataUUID {
-    if (!_info[@"LCDataUUID"]) {
-        self.dataUUID = NSUUID.UUID.UUIDString;
-    }
-    return _info[@"LCDataUUID"];
-}
-
-- (NSString*)getDataUUIDNoAssign {
     return _info[@"LCDataUUID"];
 }
 
@@ -90,6 +87,20 @@
 
 - (void)setTweakFolder:(NSString *)tweakFolder {
     _info[@"LCTweakFolder"] = tweakFolder;
+    [self save];
+}
+
+- (NSString*)selectedLanguage {
+    return _info[@"LCSelectedLanguage"];
+}
+
+- (void)setSelectedLanguage:(NSString *)selectedLanguage {
+    if([selectedLanguage isEqualToString: @""]) {
+        _info[@"LCSelectedLanguage"] = nil;
+    } else {
+        _info[@"LCSelectedLanguage"] = selectedLanguage;
+    }
+    
     [self save];
 }
 
@@ -135,7 +146,14 @@
     return newIcon;
 }
 
-- (NSDictionary *)generateWebClipConfig {
+- (NSDictionary *)generateWebClipConfigWithContainerId:(NSString*)containerId {
+    NSString* appClipUrl;
+    if(containerId) {
+        appClipUrl = [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@&container-folder-name=%@", self.bundlePath.lastPathComponent, containerId];
+    } else {
+        appClipUrl = [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@", self.bundlePath.lastPathComponent];
+    }
+    
     NSDictionary *payload = @{
         @"FullScreen": @YES,
         @"Icon": UIImagePNGRepresentation(self.generateLiveContainerWrappedIcon),
@@ -150,7 +168,7 @@
         @"PayloadVersion": @(1),
         @"Precomposed": @NO,
         @"toPayloadOrganization": @"LiveContainer",
-        @"URL": [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@", self.bundlePath.lastPathComponent]
+        @"URL": appClipUrl
     };
     return @{
         @"ConsentText": @{
@@ -169,7 +187,10 @@
 }
 
 - (void)save {
-    [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
+    if(!_autoSaveDisabled) {
+        [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
+    }
+
 }
 
 - (void)preprocessBundleBeforeSiging:(NSURL *)bundleURL completion:(dispatch_block_t)completion {
@@ -179,20 +200,20 @@
         // Remove PlugIns folder
         [NSFileManager.defaultManager removeItemAtURL:[bundleURL URLByAppendingPathComponent:@"PlugIns"] error:nil];
         // Remove code signature from all library files
-        [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
-        
+        if([self signer] == AltSign) {
+            [LCUtils removeCodeSignatureFromBundleURL:bundleURL];
+        }
 
         dispatch_async(dispatch_get_main_queue(), completion);
     });
 }
 
-// return "SignNeeded" if sign is needed, other wise return an error
-- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign {
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(bool success, NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign {
     NSString *appPath = self.bundlePath;
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = _info;
     if (!info) {
-        completetionHandler(@"Info.plist not found");
+        completetionHandler(NO, @"Info.plist not found");
         return;
     }
     
@@ -204,7 +225,7 @@
             LCPatchExecSlice(path, header);
         });
         if (error) {
-            completetionHandler(error);
+            completetionHandler(NO, error);
             return;
         }
         info[@"LCPatchRevision"] = @(currentPatchRev);
@@ -212,12 +233,21 @@
     }
 
     if (!LCUtils.certificatePassword) {
-        completetionHandler(nil);
+        completetionHandler(YES, nil);
         return;
     }
 
     int signRevision = 1;
 
+    NSDate* expirationDate = info[@"LCExpirationDate"];
+    if(expirationDate && [[[NSUserDefaults alloc] initWithSuiteName:[LCUtils appGroupID]] boolForKey:@"LCSignOnlyOnExpiration"] && !forceSign) {
+        if([expirationDate laterDate:[NSDate now]] == expirationDate) {
+            // not expired yet, don't sign again
+            completetionHandler(YES, nil);
+            return;
+        }
+    }
+    
     // We're only getting the first 8 bytes for comparison
     NSUInteger signID;
     if (LCUtils.certificateData) {
@@ -225,7 +255,7 @@
         CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
         signID = *(uint64_t *)digest + signRevision;
     } else {
-        completetionHandler(@"Failed to find ALTCertificate.p12. Please refresh your store and try again.");
+        completetionHandler(NO, @"Failed to find signing certificate. Please refresh your store and try again.");
         return;
     }
     
@@ -250,33 +280,42 @@
             [info removeObjectForKey:@"LCBundleExecutable"];
             [info removeObjectForKey:@"LCBundleIdentifier"];
             
-            void (^signCompletionHandler)(BOOL success, NSError *error)  = ^(BOOL success, NSError *_Nullable error) {
+            void (^signCompletionHandler)(BOOL success, NSDate* expirationDate, NSError *error)  = ^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    if (!error) {
+                    if (success) {
                         info[@"LCJITLessSignID"] = @(signID);
                     }
                     
                     // Remove fake main executable
                     [NSFileManager.defaultManager removeItemAtPath:tmpExecPath error:nil];
                     
+
+                    if(success && expirationDate) {
+                        info[@"LCExpirationDate"] = expirationDate;
+                    }
                     // Save sign ID and restore bundle ID
                     [self save];
                     
-                    
-                    if(error) {
-                        completetionHandler(error.localizedDescription);
-                        return;
-                    } else {
-                        completetionHandler(nil);
-                        return;
-                    }
+                    completetionHandler(success, error.localizedDescription);
 
                 });
             };
             
             __block NSProgress *progress;
             
-            progress = [LCUtils signAppBundle:appPathURL completionHandler:signCompletionHandler];
+            switch ([self signer]) {
+                case ZSign:
+                    progress = [LCUtils signAppBundleWithZSign:appPathURL completionHandler:signCompletionHandler];
+                    break;
+                case AltSign:
+                    progress = [LCUtils signAppBundle:appPathURL completionHandler:signCompletionHandler];
+                    break;
+                    
+                default:
+                    completetionHandler(NO, @"Signer Not Found");
+                    break;
+            }
+
             if (progress) {
                 progressHandler(progress);
             }
@@ -284,7 +323,7 @@
 
     } else {
         // no need to sign again
-        completetionHandler(nil);
+        completetionHandler(YES, nil);
         return;
     }
 }
@@ -341,6 +380,25 @@
     
 }
 
+- (bool)doUseLCBundleId {
+    if(_info[@"doUseLCBundleId"] != nil) {
+        return [_info[@"doUseLCBundleId"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDoUseLCBundleId:(bool)doUseLCBundleId {
+    _info[@"doUseLCBundleId"] = [NSNumber numberWithBool:doUseLCBundleId];
+    if(doUseLCBundleId) {
+        _info[@"LCOrignalBundleIdentifier"] = _info[@"CFBundleIdentifier"];
+        _info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+    } else if (_info[@"LCOrignalBundleIdentifier"]) {
+        _info[@"CFBundleIdentifier"] = _info[@"LCOrignalBundleIdentifier"];
+        [_info removeObjectForKey:@"LCOrignalBundleIdentifier"];
+    }
+    [self save];
+}
+
 - (bool)bypassAssertBarrierOnQueue {
     if(_info[@"bypassAssertBarrierOnQueue"] != nil) {
         return [_info[@"bypassAssertBarrierOnQueue"] boolValue];
@@ -350,6 +408,26 @@
 }
 - (void)setBypassAssertBarrierOnQueue:(bool)enabled {
     _info[@"bypassAssertBarrierOnQueue"] = [NSNumber numberWithBool:enabled];
+    [self save];
+    
+}
+
+- (Signer)signer {
+    return (Signer) [((NSNumber*) _info[@"signer"]) intValue];
+
+}
+- (void)setSigner:(Signer)newSigner {
+    _info[@"signer"] = [NSNumber numberWithInt:(int) newSigner];
+    [self save];
+    
+}
+
+- (LCOrientationLock)orientationLock {
+    return (LCOrientationLock) [((NSNumber*) _info[@"LCOrientationLock"]) intValue];
+
+}
+- (void)setOrientationLock:(LCOrientationLock)orientationLock {
+    _info[@"LCOrientationLock"] = [NSNumber numberWithInt:(int) orientationLock];
     [self save];
     
 }
@@ -382,6 +460,15 @@
         }
 
     }
+    [self save];
+}
+
+- (NSArray<NSDictionary*>* )containerInfo {
+    return _info[@"LCContainers"];
+}
+
+- (void)setContainerInfo:(NSArray<NSDictionary *> *)containerInfo {
+    _info[@"LCContainers"] = containerInfo;
     [self save];
 }
 

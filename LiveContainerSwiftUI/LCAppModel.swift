@@ -18,10 +18,17 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var uiIsHidden : Bool
     @Published var uiIsLocked : Bool
     @Published var uiIsShared : Bool
-    @Published var uiDataFolder : String?
+    @Published var uiDefaultDataFolder : String?
+    @Published var uiContainers : [LCContainer]
+    @Published var uiSelectedContainer : LCContainer?
     @Published var uiTweakFolder : String?
     @Published var uiDoSymlinkInbox : Bool
+    @Published var uiUseLCBundleId : Bool
     @Published var uiBypassAssertBarrierOnQueue : Bool
+    @Published var uiSigner : Signer
+    @Published var uiOrientationLock : LCOrientationLock
+    @Published var uiSelectedLanguage : String
+    @Published var supportedLanaguages : [String]?
     
     var jitAlert : YesNoHelper? = nil
     
@@ -39,10 +46,22 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiIsHidden = appInfo.isHidden
         self.uiIsLocked = appInfo.isLocked
         self.uiIsShared = appInfo.isShared
-        self.uiDataFolder = appInfo.getDataUUIDNoAssign()
+        self.uiSelectedLanguage = appInfo.selectedLanguage ?? ""
+        self.uiDefaultDataFolder = appInfo.dataUUID
+        self.uiContainers = appInfo.containers
         self.uiTweakFolder = appInfo.tweakFolder()
         self.uiDoSymlinkInbox = appInfo.doSymlinkInbox
         self.uiBypassAssertBarrierOnQueue = appInfo.bypassAssertBarrierOnQueue
+        self.uiSigner = appInfo.signer
+        self.uiOrientationLock = appInfo.orientationLock
+        self.uiUseLCBundleId = appInfo.doUseLCBundleId
+        
+        for container in uiContainers {
+            if container.folderName == uiDefaultDataFolder {
+                self.uiSelectedContainer = container;
+                break
+            }
+        }
     }
     
     static func == (lhs: LCAppModel, rhs: LCAppModel) -> Bool {
@@ -53,13 +72,34 @@ class LCAppModel: ObservableObject, Hashable {
         hasher.combine(ObjectIdentifier(self))
     }
     
-    func runApp() async throws{
+    func runApp(containerFolderName : String? = nil) async throws{
         if isAppRunning {
             return
         }
         
-        if let runningLC = LCUtils.getAppRunningLCScheme(bundleId: self.appInfo.relativeBundlePath) {
-            let openURL = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(self.appInfo.relativeBundlePath!)")!
+        if uiContainers.isEmpty {
+            let newName = NSUUID().uuidString
+            let newContainer = LCContainer(folderName: newName, name: newName, isShared: uiIsShared)
+            uiContainers.append(newContainer)
+            if uiSelectedContainer == nil {
+                uiSelectedContainer = newContainer;
+            }
+            appInfo.containers = uiContainers;
+            newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: 0)
+            appInfo.dataUUID = newName
+            uiDefaultDataFolder = newName
+        }
+        if let containerFolderName {
+            for uiContainer in uiContainers {
+                if uiContainer.folderName == containerFolderName {
+                    uiSelectedContainer = uiContainer
+                    break
+                }
+            }
+        }
+        
+        if let fn = uiSelectedContainer?.folderName, let runningLC = LCUtils.getContainerUsingLCScheme(containerName: fn) {
+            let openURL = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(self.appInfo.relativeBundlePath!)&container-folder-name=\(fn)")!
             if await UIApplication.shared.canOpenURL(openURL) {
                 await UIApplication.shared.open(openURL)
                 return
@@ -72,6 +112,14 @@ class LCAppModel: ObservableObject, Hashable {
         try await signApp(force: false)
         
         UserDefaults.standard.set(self.appInfo.relativeBundlePath, forKey: "selected")
+        UserDefaults.standard.set(uiSelectedContainer?.folderName, forKey: "selectedContainer")
+        if let selectedLanguage = self.appInfo.selectedLanguage {
+            // save livecontainer's own language
+            UserDefaults.standard.set(UserDefaults.standard.object(forKey: "AppleLanguages"), forKey:"LCLastLanguages")
+            // set user selected language
+            UserDefaults.standard.set([selectedLanguage], forKey: "AppleLanguages")
+        }
+        
         if appInfo.isJITNeeded {
             await self.jitLaunch()
         } else {
@@ -88,16 +136,27 @@ class LCAppModel: ObservableObject, Hashable {
         }
         isAppRunning = true
         defer {
-            isAppRunning = false
+            DispatchQueue.main.async {
+                self.isAppRunning = false
+            }
+
         }
         try await signApp(force: true)
     }
     
     func signApp(force: Bool = false) async throws {
         var signError : String? = nil
+        var signSuccess = false
+        defer {
+            DispatchQueue.main.async {
+                self.isSigningInProgress = false
+            }
+        }
+        
         await withCheckedContinuation({ c in
-            appInfo.patchExecAndSignIfNeed(completionHandler: { error in
+            appInfo.patchExecAndSignIfNeed(completionHandler: { success, error in
                 signError = error;
+                signSuccess = success;
                 c.resume()
             }, progressHandler: { signProgress in
                 guard let signProgress else {
@@ -111,10 +170,37 @@ class LCAppModel: ObservableObject, Hashable {
                 }
             }, forceSign: force)
         })
-        self.isSigningInProgress = false
         if let signError {
-            throw signError
+            if !signSuccess {
+                throw signError
+            }
         }
+        
+        // sign its tweak
+        guard let tweakFolder = appInfo.tweakFolder() else {
+            return
+        }
+        
+        let tweakFolderUrl : URL
+        if(appInfo.isShared) {
+            tweakFolderUrl = LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder)
+        } else {
+            tweakFolderUrl = LCPath.tweakPath.appendingPathComponent(tweakFolder)
+        }
+        try await LCUtils.signTweaks(tweakFolderUrl: tweakFolderUrl, force: force, signer: self.appInfo.signer) { p in
+            DispatchQueue.main.async {
+                self.isSigningInProgress = true
+            }
+        }
+        
+        // sign global tweak
+        try await LCUtils.signTweaks(tweakFolderUrl: LCPath.tweakPath, force: force, signer: self.appInfo.signer) { p in
+            DispatchQueue.main.async {
+                self.isSigningInProgress = true
+            }
+        }
+        
+        
     }
     
     func jitLaunch() async {
@@ -167,5 +253,22 @@ class LCAppModel: ObservableObject, Hashable {
             uiIsHidden = true
         }
         delegate?.changeAppVisibility(app: self)
+    }
+    
+    func loadSupportedLanguages() throws {
+        let fm = FileManager.default
+        if supportedLanaguages != nil {
+            return
+        }
+        supportedLanaguages = []
+        let fileURLs = try fm.contentsOfDirectory(at: URL(fileURLWithPath: appInfo.bundlePath()!) , includingPropertiesForKeys: nil)
+        for fileURL in fileURLs {
+            let attributes = try fm.attributesOfItem(atPath: fileURL.path)
+            let fileType = attributes[.type] as? FileAttributeType
+            if(fileType == .typeDirectory && fileURL.lastPathComponent.hasSuffix(".lproj")) {
+                supportedLanaguages?.append(fileURL.deletingPathExtension().lastPathComponent)
+            }
+        }
+        
     }
 }

@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import "utils.h"
+#import <VideoSubscriberAccount/VideoSubscriberAccount.h>
 
 @interface FBSSerialQueue1 : NSObject
 -(void)assertBarrierOnQueue1;
@@ -13,6 +14,14 @@
 - (void)assertBarrierOnQueue2 {
 
 }
+@end
+
+@implementation VSSubscriptionRegistrationCenter(LiveContainerHook)
+
+- (void)setCurrentSubscription:(id)sub {
+    
+}
+
 @end
 
 __attribute__((constructor))

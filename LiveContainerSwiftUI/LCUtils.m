@@ -5,6 +5,15 @@
 #import "AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
 #import "LCVersionInfo.h"
+#import "../ZSign/zsigner.h"
+
+// make SFSafariView happy and open data: URLs
+@implementation NSURL(hack)
+- (BOOL)safari_isHTTPFamilyURL {
+    // Screw it, Apple
+    return YES;
+}
+@end
 
 @implementation LCUtils
 
@@ -43,21 +52,7 @@
     }
 }
 
-+ (void)setCertificateData:(NSData *)certData {
-    [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] setObject:certData forKey:@"LCCertificateData"];
-    [NSUserDefaults.standardUserDefaults setObject:certData forKey:@"LCCertificateData"];
-}
-
-+ (NSData *)certificateDataFile {
-    // it seems that alstore never changes its ALTCertificate.p12 and the one it shipped with is invalid so we ignore it anyhow.
-    if ([NSUserDefaults.standardUserDefaults boolForKey:@"LCIgnoreALTCertificate"] || [self store] == AltStore) {
-        return nil;
-    }
-    NSURL *url = [self.storeBundlePath URLByAppendingPathComponent:@"ALTCertificate.p12"];
-    return [NSData dataWithContentsOfURL:url];
-}
-
-+ (NSData *)certificateDataProperty {
++ (NSData *)certificateData {
     NSData* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
     if(ans) {
         return ans;
@@ -67,19 +62,9 @@
     
 }
 
-+ (NSData *)certificateData {
-    // Prefer certificate file over keychain data
-    return self.certificateDataFile ?: self.certificateDataProperty;
-}
-
 + (NSString *)certificatePassword {
-    if (self.certificateDataFile) {
-        NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
-        if(ans) {
-            return ans;
-        }
-        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
-    } else if (self.certificateDataProperty) {
+    // password of cert retrieved from the store tweak is always @"". We just keep this function so we can check if certificate presents without changing codes.
+    if([[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"]) {
         return @"";
     } else {
         return nil;
@@ -113,7 +98,7 @@
 
     NSArray *signerFrameworks;
     
-    if([self store] == AltStore) {
+    if([NSFileManager.defaultManager fileExistsAtPath:[self.storeBundlePath URLByAppendingPathComponent:@"Frameworks/KeychainAccess.framework"].path]) {
         // AltStore requires 1 more framework than sidestore
         signerFrameworks = @[@"OpenSSL.framework", @"Roxas.framework", @"KeychainAccess.framework", @"AltStoreCore.framework"];
     } else {
@@ -131,6 +116,16 @@
         [frameworkBundle loadAndReturnError:error];
         if (error && *error) return;
     }
+    loaded = YES;
+}
+
++ (void)loadStoreFrameworksWithError2:(NSError **)error {
+    // too lazy to use dispatch_once
+    static BOOL loaded = NO;
+    if (loaded) return;
+
+    dlopen("@executable_path/Frameworks/ZSign.dylib", RTLD_GLOBAL);
+    
     loaded = YES;
 }
 
@@ -199,7 +194,7 @@
     }
 }
 
-+ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
++ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
     NSError *error;
 
     // I'm too lazy to reimplement signer, so let's borrow everything from SideStore
@@ -209,28 +204,53 @@
     // Load libraries from Documents, yeah
     [self loadStoreFrameworksWithError:&error];
     if (error) {
-        completionHandler(NO, error);
+        completionHandler(NO, nil, error);
         return nil;
     }
 
     ALTCertificate *cert = [[NSClassFromString(@"ALTCertificate") alloc] initWithP12Data:self.certificateData password:self.certificatePassword];
     if (!cert) {
-        error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTCertificate"}];
-        completionHandler(NO, error);
+        error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTCertificate. Please try: 1. make sure your store is patched 2. reopen your store 3. refresh all apps"}];
+        completionHandler(NO, nil, error);
         return nil;
     }
     ALTProvisioningProfile *profile = [[NSClassFromString(@"ALTProvisioningProfile") alloc] initWithURL:profilePath];
     if (!profile) {
-        error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:2 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTProvisioningProfile"}];
-        completionHandler(NO, error);
+        error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:2 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTProvisioningProfile. Please try: 1. make sure your store is patched 2. reopen your store 3. refresh all apps"}];
+        completionHandler(NO, nil, error);
         return nil;
     }
 
     ALTAccount *account = [NSClassFromString(@"ALTAccount") new];
     ALTTeam *team = [[NSClassFromString(@"ALTTeam") alloc] initWithName:@"" identifier:@"" /*profile.teamIdentifier*/ type:ALTTeamTypeUnknown account:account];
     ALTSigner *signer = [[NSClassFromString(@"ALTSigner") alloc] initWithTeam:team certificate:cert];
+    
+    void (^signCompletionHandler)(BOOL success, NSError *error)  = ^(BOOL success, NSError *_Nullable error) {
+        completionHandler(success, [profile expirationDate], error);
+    };
 
-    return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:completionHandler];
+    return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:signCompletionHandler];
+}
+
++ (NSProgress *)signAppBundleWithZSign:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
+    NSError *error;
+
+    // use zsign as our signer~
+    NSURL *profilePath = [NSBundle.mainBundle URLForResource:@"embedded" withExtension:@"mobileprovision"];
+    NSData *profileData = [NSData dataWithContentsOfURL:profilePath];
+    // Load libraries from Documents, yeah
+    [self loadStoreFrameworksWithError2:&error];
+
+    if (error) {
+        completionHandler(NO, nil, error);
+        return nil;
+    }
+
+    NSLog(@"[LC] starting signing...");
+    
+    NSProgress* ans = [NSClassFromString(@"ZSigner") signWithAppPath:[path path] prov:profileData key: self.certificateData pass:self.certificatePassword completionHandler:completionHandler];
+    
+    return ans;
 }
 
 #pragma mark Setup
@@ -306,10 +326,10 @@
     [data writeToURL:execPath options:0 error:error];
 }
 
-+ (void)validateJITLessSetupWithCompletionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
++ (void)validateJITLessSetupWithSigner:(Signer)signer completionHandler:(void (^)(BOOL success, NSError *error))completionHandler {
     // Verify that the certificate is usable
     // Create a test app bundle
-    NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:@"CertificateValidation"];
+    NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:@"CertificateValidation.app"];
     [NSFileManager.defaultManager createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
     NSString *tmpExecPath = [path stringByAppendingPathComponent:@"LiveContainer.tmp"];
     NSString *tmpLibPath = [path stringByAppendingPathComponent:@"TestJITLess.dylib"];
@@ -321,12 +341,23 @@
     [info writeToFile:tmpInfoPath atomically:YES];
 
     // Sign the test app bundle
-    [LCUtils signAppBundle:[NSURL fileURLWithPath:path]
-    completionHandler:^(BOOL success, NSError *_Nullable error) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completionHandler(success, error);
-        });
-    }];
+    if(signer == AltSign) {
+        [LCUtils signAppBundle:[NSURL fileURLWithPath:path]
+        completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completionHandler(success, error);
+            });
+        }];
+    } else {
+        [LCUtils signAppBundleWithZSign:[NSURL fileURLWithPath:path]
+        completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completionHandler(success, error);
+            });
+        }];
+    }
+    
+
 }
 
 + (NSURL *)archiveIPAWithBundleName:(NSString*)newBundleName error:(NSError **)error {
