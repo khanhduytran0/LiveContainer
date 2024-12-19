@@ -5,27 +5,30 @@
 #import <LocalAuthentication/LocalAuthentication.h>
 #import "Localization.h"
 
-UIInterfaceOrientation orientationLock = UIInterfaceOrientationUnknown;
+UIInterfaceOrientation LCOrientationLock = UIInterfaceOrientationUnknown;
+NSMutableArray<NSString*>* LCSupportedUrlSchemes = nil;
 
 __attribute__((constructor))
 static void UIKitGuestHooksInit() {
     swizzle(UIApplication.class, @selector(_applicationOpenURLAction:payload:origin:), @selector(hook__applicationOpenURLAction:payload:origin:));
     swizzle(UIApplication.class, @selector(_connectUISceneFromFBSScene:transitionContext:), @selector(hook__connectUISceneFromFBSScene:transitionContext:));
+    swizzle(UIApplication.class, @selector(openURL:options:completionHandler:), @selector(hook_openURL:options:completionHandler:));
     swizzle(UIScene.class, @selector(scene:didReceiveActions:fromTransitionContext:), @selector(hook_scene:didReceiveActions:fromTransitionContext:));
+    swizzle(UIScene.class, @selector(openURL:options:completionHandler:), @selector(hook_openURL:options:completionHandler:));
 
-    NSInteger orientationLockDirection = [NSBundle.mainBundle.infoDictionary[@"LCOrientationLock"] integerValue];
+    NSInteger LCOrientationLockDirection = [NSBundle.mainBundle.infoDictionary[@"LCOrientationLock"] integerValue];
     if([UIDevice.currentDevice userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-        switch (orientationLockDirection) {
+        switch (LCOrientationLockDirection) {
             case 1:
-                orientationLock = UIInterfaceOrientationLandscapeRight;
+                LCOrientationLock = UIInterfaceOrientationLandscapeRight;
                 break;
             case 2:
-                orientationLock = UIInterfaceOrientationPortrait;
+                LCOrientationLock = UIInterfaceOrientationPortrait;
                 break;
             default:
                 break;
         }
-        if(orientationLock != UIInterfaceOrientationUnknown) {
+        if(LCOrientationLock != UIInterfaceOrientationUnknown) {
             swizzle(UIApplication.class, @selector(_handleDelegateCallbacksWithOptions:isSuspended:restoreState:), @selector(hook__handleDelegateCallbacksWithOptions:isSuspended:restoreState:));
             swizzle(FBSSceneParameters.class, @selector(initWithXPCDictionary:), @selector(hook_initWithXPCDictionary:));
             swizzle(UIViewController.class, @selector(__supportedInterfaceOrientations), @selector(hook___supportedInterfaceOrientations));
@@ -258,6 +261,22 @@ void handleLiveContainerLaunch(NSURL* url) {
     }
 }
 
+BOOL canAppOpenItself(NSURL* url) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
+        NSArray *urlTypes = [infoDictionary objectForKey:@"CFBundleURLTypes"];
+        LCSupportedUrlSchemes = [[NSMutableArray alloc] init];
+        for (NSDictionary *urlType in urlTypes) {
+            NSArray *schemes = [urlType objectForKey:@"CFBundleURLSchemes"];
+            for(NSString* scheme in schemes) {
+                [LCSupportedUrlSchemes addObject:[scheme lowercaseString]];
+            }
+        }
+    });
+    return [LCSupportedUrlSchemes containsObject:[url.scheme lowercaseString]];
+}
+
 // Handler for AppDelegate
 @implementation UIApplication(LiveContainerHook)
 - (void)hook__applicationOpenURLAction:(id)action payload:(NSDictionary *)payload origin:(id)origin {
@@ -323,6 +342,18 @@ void handleLiveContainerLaunch(NSURL* url) {
 
     return ans;
 }
+
+- (void)hook_openURL:(NSURL *)url options:(NSDictionary<NSString *,id> *)options completionHandler:(void (^)(_Bool))completion {
+    if(canAppOpenItself(url)) {
+        NSData *data = [url.absoluteString dataUsingEncoding:NSUTF8StringEncoding];
+        NSString *encodedUrl = [data base64EncodedStringWithOptions:0];
+        NSString* finalUrlStr = [NSString stringWithFormat:@"%@://open-url?url=%@", NSUserDefaults.lcAppUrlScheme, encodedUrl];
+        NSURL* finalUrl = [NSURL URLWithString:finalUrlStr];
+        [self hook_openURL:finalUrl options:options completionHandler:completion];
+    } else {
+        [self hook_openURL:url options:options completionHandler:completion];
+    }
+}
 @end
 
 // Handler for SceneDelegate
@@ -382,6 +413,18 @@ void handleLiveContainerLaunch(NSURL* url) {
     [newActions removeObject:urlAction];
     [self hook_scene:scene didReceiveActions:newActions fromTransitionContext:context];
 }
+
+- (void)hook_openURL:(NSURL *)url options:(UISceneOpenExternalURLOptions *)options completionHandler:(void (^)(BOOL success))completion {
+    if(canAppOpenItself(url)) {
+        NSData *data = [url.absoluteString dataUsingEncoding:NSUTF8StringEncoding];
+        NSString *encodedUrl = [data base64EncodedStringWithOptions:0];
+        NSString* finalUrlStr = [NSString stringWithFormat:@"%@://open-url?url=%@", NSUserDefaults.lcAppUrlScheme, encodedUrl];
+        NSURL* finalUrl = [NSURL URLWithString:finalUrlStr];
+        [self hook_openURL:finalUrl options:options completionHandler:completion];
+    } else {
+        [self hook_openURL:url options:options completionHandler:completion];
+    }
+}
 @end
 
 @implementation FBSSceneParameters(LiveContainerHook)
@@ -390,8 +433,8 @@ void handleLiveContainerLaunch(NSURL* url) {
     FBSSceneParameters* ans = [self hook_initWithXPCDictionary:dict];
     UIMutableApplicationSceneSettings* settings = [ans.settings mutableCopy];
     UIMutableApplicationSceneClientSettings* clientSettings = [ans.clientSettings mutableCopy];
-    [settings setInterfaceOrientation:orientationLock];
-    [clientSettings setInterfaceOrientation:orientationLock];
+    [settings setInterfaceOrientation:LCOrientationLock];
+    [clientSettings setInterfaceOrientation:LCOrientationLock];
     ans.settings = settings;
     ans.clientSettings = clientSettings;
     return ans;
@@ -403,7 +446,7 @@ void handleLiveContainerLaunch(NSURL* url) {
 @implementation UIViewController(LiveContainerHook)
 
 - (UIInterfaceOrientationMask)hook___supportedInterfaceOrientations {
-    if(orientationLock == UIInterfaceOrientationLandscapeRight) {
+    if(LCOrientationLock == UIInterfaceOrientationLandscapeRight) {
         return UIInterfaceOrientationMaskLandscape;
     } else {
         return UIInterfaceOrientationMaskPortrait;
