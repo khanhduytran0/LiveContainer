@@ -32,8 +32,6 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header);
 + (NSURL *)archiveTweakedAltStoreWithError:(NSError **)error;
 + (NSData *)certificateData;
 + (NSString *)certificatePassword;
-+ (BOOL)deleteKeychainItem:(NSString *)key ofStore:(NSString *)store;
-+ (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store;
 
 + (BOOL)askForJIT;
 + (BOOL)launchToGuestApp;

@@ -61,6 +61,7 @@ static void LCAltstoreHookInit(void) {
     NSUserDefaults* appGroupUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appGroupId];
     [appGroupUserDefaults setObject:certData forKey:@"LCCertificateData"];
     [appGroupUserDefaults setObject:[NSString stringWithUTF8String:certPassword.bytes] forKey:@"LCCertificatePassword"];
+    [appGroupUserDefaults setObject:NSDate.now forKey:@"LCCertificateUpdateDate"];
     NSLog(@"[LC] Successfully updated JIT-Less certificate!");
     synced = YES;
 }

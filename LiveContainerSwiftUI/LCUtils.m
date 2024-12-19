@@ -20,60 +20,26 @@
 #pragma mark Certificate & password
 
 + (NSURL *)appGroupPath {
-    return [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-}
-
-+ (BOOL)deleteKeychainItem:(NSString *)key ofStore:(NSString *)store {
-    NSDictionary *dict = @{
-        (id)kSecClass: (id)kSecClassGenericPassword,
-        (id)kSecAttrService: store,
-        (id)kSecAttrAccount: key,
-        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny
-    };
-    OSStatus status = SecItemDelete((__bridge CFDictionaryRef)dict);
-    return status == errSecSuccess;
-}
-
-+ (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store {
-    NSDictionary *dict = @{
-        (id)kSecClass: (id)kSecClassGenericPassword,
-        (id)kSecAttrService: store,
-        (id)kSecAttrAccount: key,
-        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
-        (id)kSecMatchLimit: (id)kSecMatchLimitOne,
-        (id)kSecReturnData: (id)kCFBooleanTrue
-    };
-    CFTypeRef result = nil;
-    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)dict, &result);
-    if (status == errSecSuccess) {
-        return (__bridge NSData *)result;
-    } else {
-        return nil;
-    }
+    return [NSClassFromString(@"LCSharedUtils") appGroupPath];
 }
 
 + (NSData *)certificateData {
     NSData* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
-    if(ans) {
-        return ans;
-    } else {
-        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
-    }
+    return ans;
     
 }
 
 + (NSString *)certificatePassword {
-    // password of cert retrieved from the store tweak is always @"". We just keep this function so we can check if certificate presents without changing codes.
-    if([[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"]) {
-        return @"";
-    } else {
-        return nil;
-    }
+    return [NSClassFromString(@"LCSharedUtils") certificatePassword];
 }
 
 + (void)setCertificatePassword:(NSString *)certPassword {
     [NSUserDefaults.standardUserDefaults setObject:certPassword forKey:@"LCCertificatePassword"];
     [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] setObject:certPassword forKey:@"LCCertificatePassword"];
+}
+
++ (NSString *)appGroupID {
+    return [NSClassFromString(@"LCSharedUtils") appGroupID];
 }
 
 #pragma mark LCSharedUtils wrappers
@@ -254,23 +220,6 @@
 }
 
 #pragma mark Setup
-
-+ (NSString *)appGroupID {
-    static dispatch_once_t once;
-    static NSString *appGroupID = @"group.com.SideStore.SideStore";;
-    dispatch_once(&once, ^{
-        for (NSString *group in NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"]) {
-            NSURL *path = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:group];
-            NSURL *bundlePath = [path URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app"];
-            if ([NSFileManager.defaultManager fileExistsAtPath:bundlePath.path]) {
-                // This will fail if LiveContainer is installed in both stores, but it should never be the case
-                appGroupID = group;
-                return;
-            }
-        }
-    });
-    return appGroupID;
-}
 
 + (Store) store {
     static Store ans;

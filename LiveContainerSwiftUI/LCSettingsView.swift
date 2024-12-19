@@ -31,7 +31,6 @@ struct LCSettingsView: View {
     
     @State var isJitLessEnabled = false
     @State var defaultSigner = Signer.ZSign
-    @State var isJITLessTestInProgress = false
     @State var isSignOnlyOnExpiration = true
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
@@ -96,13 +95,13 @@ struct LCSettingsView: View {
                             }
                         }
                         
+                        NavigationLink {
+                            LCJITLessDiagnoseView()
+                        } label: {
+                            Text("lc.settings.jitlessDiagnose".loc)
+                        }
+                        
                         if isAltStorePatched {
-                            Button {
-                                testJITLessMode()
-                            } label: {
-                                Text("lc.settings.testJitLess".loc)
-                            }
-                            .disabled(isJITLessTestInProgress)
                             Toggle(isOn: $isSignOnlyOnExpiration) {
                                 Text("lc.settings.signOnlyOnExpiration".loc)
                             }
@@ -387,32 +386,6 @@ struct LCSettingsView: View {
     
     func saveAppGroupItem(key: String, val: Any) {
         LCUtils.appGroupUserDefault.setValue(val, forKey: key)
-    }
-    
-    func testJITLessMode() {
-        if !LCUtils.isAppGroupAltStoreLike() {
-            errorInfo = "lc.settings.unsupportedInstallMethod".loc
-            errorShow = true
-            return;
-        }
-        
-        if !isAltStorePatched {
-            errorInfo = "lc.settings.error.storeNotPatched %@".localizeWithFormat(storeName)
-            errorShow = true
-            return;
-        }
-        isJITLessTestInProgress = true
-        LCUtils.validateJITLessSetup(with: defaultSigner) { success, error in
-            if success {
-                successInfo = "lc.jitlessSetup.success".loc
-                successShow = true
-            } else {
-                errorInfo = "lc.jitlessSetup.error.testLibLoadFailed %@ %@ %@".localizeWithFormat(storeName, storeName, storeName) + "\n" + (error?.localizedDescription ?? "")
-                errorShow = true
-            }
-            isJITLessTestInProgress = false
-        }
-    
     }
     
     func installAnotherLC() {

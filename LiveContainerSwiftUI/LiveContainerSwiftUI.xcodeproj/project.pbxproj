@@ -29,6 +29,7 @@
 		179765E12CF8192600D40B95 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179765E02CF8192200D40B95 /* AppDelegate.swift */; };
 		17A7640C2C9D1B6C00456519 /* LCAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A7640B2C9D1B6C00456519 /* LCAppModel.swift */; };
 		17C536F42C98529D006C2C75 /* LCAppSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C536F32C98529D006C2C75 /* LCAppSettingsView.swift */; };
+		17EC1CE02D13BE9800A17824 /* LCJITLessDiagnoseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EC1CDF2D13BE9000A17824 /* LCJITLessDiagnoseView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +63,7 @@
 		17A7640B2C9D1B6C00456519 /* LCAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCAppModel.swift; sourceTree = "<group>"; };
 		17B9B88D2C760678009D079E /* LiveContainerSwiftUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveContainerSwiftUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		17C536F32C98529D006C2C75 /* LCAppSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCAppSettingsView.swift; sourceTree = "<group>"; };
+		17EC1CDF2D13BE9000A17824 /* LCJITLessDiagnoseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCJITLessDiagnoseView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +80,7 @@
 		173564BB2C76FE1500C6C918 /* LiveContainerSwiftUI */ = {
 			isa = PBXGroup;
 			children = (
+				17EC1CDF2D13BE9000A17824 /* LCJITLessDiagnoseView.swift */,
 				170D51B42D02E291009000A6 /* LCSelectContainerView.swift */,
 				173F183F2C7B7B74002953AA /* LCWebView.swift */,
 				173564C82C76FE3500C6C918 /* Assets.xcassets */,
@@ -205,6 +208,7 @@
 				179765E12CF8192600D40B95 /* AppDelegate.swift in Sources */,
 				171014242CE9B63100673269 /* LCMachOUtils.m in Sources */,
 				178B4C3E2C77654400DD1F74 /* Shared.swift in Sources */,
+				17EC1CE02D13BE9800A17824 /* LCJITLessDiagnoseView.swift in Sources */,
 				170D51B52D02E29F009000A6 /* LCSelectContainerView.swift in Sources */,
 				171510872D01D61E00ED4B2E /* LCContainer.swift in Sources */,
 				171014182CE9B42000673269 /* LCVersionInfo.m in Sources */,

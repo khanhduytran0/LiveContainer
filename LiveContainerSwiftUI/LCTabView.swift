@@ -40,20 +40,21 @@ struct LCTabView: View {
                     tempApps.append(LCAppModel(appInfo: newApp))
                 }
             }
-            
-            try fm.createDirectory(at: LCPath.lcGroupBundlePath, withIntermediateDirectories: true)
-            let appDirsShared = try fm.contentsOfDirectory(atPath: LCPath.lcGroupBundlePath.path)
-            for appDir in appDirsShared {
-                if !appDir.hasSuffix(".app") {
-                    continue
-                }
-                let newApp = LCAppInfo(bundlePath: "\(LCPath.lcGroupBundlePath.path)/\(appDir)")!
-                newApp.relativeBundlePath = appDir
-                newApp.isShared = true
-                if newApp.isHidden {
-                    tempHiddenApps.append(LCAppModel(appInfo: newApp))
-                } else {
-                    tempApps.append(LCAppModel(appInfo: newApp))
+            if LCPath.lcGroupDocPath != LCPath.docPath {
+                try fm.createDirectory(at: LCPath.lcGroupBundlePath, withIntermediateDirectories: true)
+                let appDirsShared = try fm.contentsOfDirectory(atPath: LCPath.lcGroupBundlePath.path)
+                for appDir in appDirsShared {
+                    if !appDir.hasSuffix(".app") {
+                        continue
+                    }
+                    let newApp = LCAppInfo(bundlePath: "\(LCPath.lcGroupBundlePath.path)/\(appDir)")!
+                    newApp.relativeBundlePath = appDir
+                    newApp.isShared = true
+                    if newApp.isHidden {
+                        tempHiddenApps.append(LCAppModel(appInfo: newApp))
+                    } else {
+                        tempApps.append(LCAppModel(appInfo: newApp))
+                    }
                 }
             }
             // load document folders

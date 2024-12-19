@@ -2,6 +2,7 @@
 
 @interface LCSharedUtils : NSObject
 + (NSString *)appGroupID;
++ (NSURL*) appGroupPath;
 + (NSString *)certificatePassword;
 + (BOOL)askForJIT;
 + (BOOL)launchToGuestApp;

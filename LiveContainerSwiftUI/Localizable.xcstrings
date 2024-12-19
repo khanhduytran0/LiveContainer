@@ -2231,7 +2231,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Frame Short Icon"
+            "value" : "Frame Shortcut Icon"
           }
         },
         "zh_CN" : {
@@ -2374,6 +2374,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "配置免JIT模式后，LiveContainer无需JIT即可使用。给SideStore或AltStore打补丁后即可使用。"
+          }
+        }
+      }
+    },
+    "lc.settings.jitlessDiagnose" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JIT-Less Mode Diagnose"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免JIT模式诊断"
           }
         }
       }

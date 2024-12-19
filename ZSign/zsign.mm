@@ -185,13 +185,13 @@ void zsign(NSString *appPath,
 	
 	string strPath = [appPath cStringUsingEncoding:NSUTF8StringEncoding];
     
-    bool _ = ZLog::logs.empty();
+    ZLog::logs.clear();
 
 	__block ZSignAsset zSignAsset;
 	
     if (!zSignAsset.InitSimple(strPKeyFileData, (int)[key length], strProvFileData, (int)[prov length], strPassword)) {
         completionHandler(NO, nil, makeErrorFromLog(ZLog::logs));
-        bool _ = ZLog::logs.empty();
+        ZLog::logs.clear();
 		return;
 	}
     NSDate *date = [NSDate dateWithTimeIntervalSince1970:zSignAsset.expirationDate];
@@ -204,7 +204,7 @@ void zsign(NSString *appPath,
 
     if(!success) {
         completionHandler(NO, nil, makeErrorFromLog(ZLog::logs));
-        bool _ = ZLog::logs.empty();
+        ZLog::logs.clear();
         return;
     }
     
@@ -230,7 +230,7 @@ void zsign(NSString *appPath,
     }
     
     completionHandler(YES, date, signError);
-    _ = ZLog::logs.empty();
+    ZLog::logs.clear();
     
 	return;
 }
