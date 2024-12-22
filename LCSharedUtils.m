@@ -7,14 +7,22 @@ extern NSBundle *lcMainBundle;
 
 @implementation LCSharedUtils
 
++ (NSString*) teamIdentifier {
+    static NSString* ans = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        ans = [[lcMainBundle.bundleIdentifier componentsSeparatedByString:@"."] lastObject];
+    });
+    return ans;
+}
+
 + (NSString *)appGroupID {
     static dispatch_once_t once;
     static NSString *appGroupID = @"group.com.SideStore.SideStore";
     dispatch_once(&once, ^{
-        NSString* teamIdentifier = [[lcMainBundle.bundleIdentifier componentsSeparatedByString:@"."] lastObject];
         NSArray* possibleAppGroups = @[
-            [@"group.com.SideStore.SideStore." stringByAppendingString:teamIdentifier],
-            [@"group.com.rileytestut.AltStore." stringByAppendingString:teamIdentifier]
+            [@"group.com.SideStore.SideStore." stringByAppendingString:[self teamIdentifier]],
+            [@"group.com.rileytestut.AltStore." stringByAppendingString:[self teamIdentifier]]
         ];
 
         for (NSString *group in possibleAppGroups) {

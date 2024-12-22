@@ -892,23 +892,6 @@
         }
       }
     },
-    "lc.appSettings.languageLoading" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading Available Languages…"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在加载可选语言"
-          }
-        }
-      }
-    },
     "lc.appSettings.launchWithJit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1351,6 +1334,23 @@
         }
       }
     },
+    "lc.common.loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading…"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载中…"
+          }
+        }
+      }
+    },
     "lc.common.miscellaneous" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1381,6 +1381,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "移动"
+          }
+        }
+      }
+    },
+    "lc.common.no" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "否"
           }
         }
       }
@@ -1449,6 +1466,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "成功"
+          }
+        }
+      }
+    },
+    "lc.common.unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知"
+          }
+        }
+      }
+    },
+    "lc.common.yes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "是"
           }
         }
       }
@@ -1857,6 +1908,159 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开网页并打开App需要先终止当前App，要继续吗？若App支持，你也可以在当前App内打开。"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.appGroupAccessible" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Group Accessible"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Group可访问"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.appGroupId" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Group ID"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Group名"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.bundleId" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle Identifier"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包名"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.certDataFound" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Data Found"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测到证书数据"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.certLastUpdate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Last Update Date"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "证书上次更新时间"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.certPassFound" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Password Found"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测到证书密码"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.getHelp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get Help"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取帮助"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.patchDetected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch Detected"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测到补丁"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.store" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Store"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装方式"
           }
         }
       }

@@ -14,7 +14,7 @@ struct LCJITLessDiagnoseView : View {
     @State var certificateDataFound = false
     @State var certificatePasswordFound = false
     @State var appGroupAccessible = false
-    @State var certLastUpdateDateStr = "Unknown"
+    @State var certLastUpdateDateStr = "lc.common.unknown".loc
     
     @State var isJITLessTestInProgress = false
     
@@ -28,69 +28,80 @@ struct LCJITLessDiagnoseView : View {
     var body: some View {
         if loaded {
             Form {
-                HStack {
-                    Text("Bundle Identifier")
-                    Spacer()
-                    Text(Bundle.main.bundleIdentifier ?? "Unknown")
-                        .foregroundStyle(.gray)
-                }
-                HStack {
-                    Text("App Group ID")
-                    Spacer()
-                    Text(appGroupId)
-                        .foregroundStyle(.gray)
-                }
-                HStack {
-                    Text("App Group Accessible")
-                    Spacer()
-                    Text(appGroupAccessible ? "YES" : "NO")
-                        .foregroundStyle(.gray)
-                }
-                HStack {
-                    Text("Store")
-                    Spacer()
-                    if store == .AltStore {
-                        Text("AltStore")
-                            .foregroundStyle(.gray)
-                    } else {
-                        Text("SideStore")
+                Section {
+                    HStack {
+                        Text("lc.jitlessDiag.bundleId".loc)
+                        Spacer()
+                        Text(Bundle.main.bundleIdentifier ?? "lc.common.unknown".loc)
                             .foregroundStyle(.gray)
                     }
-                }
-                HStack {
-                    Text("Patch Detected")
-                    Spacer()
-                    Text(isPatchDetected ? "YES" : "NO")
-                        .foregroundStyle(.gray)
-                }
-                
-                HStack {
-                    Text("Certificate Data Found")
-                    Spacer()
-                    Text(certificateDataFound ? "YES" : "NO")
-                        .foregroundStyle(.gray)
+                    HStack {
+                        Text("lc.jitlessDiag.appGroupId".loc)
+                        Spacer()
+                        Text(appGroupId)
+                            .foregroundStyle(.gray)
+                    }
+                    HStack {
+                        Text("lc.jitlessDiag.appGroupAccessible".loc)
+                        Spacer()
+                        Text(appGroupAccessible ? "lc.common.yes".loc : "lc.common.no".loc)
+                            .foregroundStyle(.gray)
+                    }
+                    HStack {
+                        Text("lc.jitlessDiag.store".loc)
+                        Spacer()
+                        if store == .AltStore {
+                            Text("AltStore")
+                                .foregroundStyle(.gray)
+                        } else {
+                            Text("SideStore")
+                                .foregroundStyle(.gray)
+                        }
+                    }
+                    HStack {
+                        Text("lc.jitlessDiag.patchDetected".loc)
+                        Spacer()
+                        Text(isPatchDetected ? "lc.common.yes".loc : "lc.common.no".loc)
+                            .foregroundStyle(.gray)
+                    }
                     
-                }
-                HStack {
-                    Text("Certificate Password Found")
-                    Spacer()
-                    Text(certificatePasswordFound ? "YES" : "NO")
-                        .foregroundStyle(.gray)
+                    HStack {
+                        Text("lc.jitlessDiag.certDataFound".loc)
+                        Spacer()
+                        Text(certificateDataFound ? "lc.common.yes".loc : "lc.common.no".loc)
+                            .foregroundStyle(.gray)
+                        
+                    }
+                    HStack {
+                        Text("lc.jitlessDiag.certPassFound".loc)
+                        Spacer()
+                        Text(certificatePasswordFound ? "lc.common.yes".loc : "lc.common.no".loc)
+                            .foregroundStyle(.gray)
+                    }
+                    
+                    HStack {
+                        Text("lc.jitlessDiag.certLastUpdate".loc)
+                        Spacer()
+                        Text(certLastUpdateDateStr)
+                            .foregroundStyle(.gray)
+                    }
+                    
+                    Button {
+                        testJITLessMode()
+                    } label: {
+                        Text("lc.settings.testJitLess".loc)
+                    }
+                    .disabled(isJITLessTestInProgress)
                 }
                 
-                HStack {
-                    Text("Certificate Last Update Date")
-                    Spacer()
-                    Text(certLastUpdateDateStr)
-                        .foregroundStyle(.gray)
+                Section {
+                    Button {
+                        getHelp()
+                    } label: {
+                        Text("lc.jitlessDiag.getHelp".loc)
+                    }
                 }
-                
-                Button {
-                    testJITLessMode()
-                } label: {
-                    Text("lc.settings.testJitLess".loc)
-                }
-                .disabled(isJITLessTestInProgress)
+
             }
             .navigationTitle("lc.settings.jitlessDiagnose".loc)
             .navigationBarTitleDisplayMode(.inline)
@@ -114,7 +125,7 @@ struct LCJITLessDiagnoseView : View {
             }
             
         } else {
-            Text("Loading...")
+            Text("lc.common.loading".loc)
                 .onAppear() {
                     onAppear()
                 }
@@ -123,7 +134,7 @@ struct LCJITLessDiagnoseView : View {
     }
     
     func onAppear() {
-        appGroupId = LCUtils.appGroupID() ?? "Unknown"
+        appGroupId = LCUtils.appGroupID() ?? "lc.common.unknown".loc
         store = LCUtils.store()
         isPatchDetected = checkIsPatched()
         appGroupAccessible = LCUtils.appGroupPath() != nil
@@ -135,7 +146,7 @@ struct LCJITLessDiagnoseView : View {
             formatter1.timeStyle = .medium
             certLastUpdateDateStr = formatter1.string(from: lastUpdateDate)
         } else {
-            certLastUpdateDateStr = "Unknown"
+            certLastUpdateDateStr = "lc.common.unknown".loc
         }
             
 
@@ -180,5 +191,9 @@ struct LCJITLessDiagnoseView : View {
             isJITLessTestInProgress = false
         }
     
+    }
+    
+    func getHelp() {
+        UIApplication.shared.open(URL(string: "https://github.com/khanhduytran0/LiveContainer/issues/265")!)
     }
 }

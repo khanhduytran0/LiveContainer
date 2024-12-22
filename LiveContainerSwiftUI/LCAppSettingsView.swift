@@ -201,7 +201,7 @@ struct LCAppSettingsView : View{
                         }
 
                     } else {
-                        Text("lc.appSettings.languageLoading".loc)
+                        Text("lc.common.loading".loc)
                             .onAppear() {
                                 Task{ loadSupportedLanguages() }
                             }

@@ -240,7 +240,8 @@
     int signRevision = 1;
 
     NSDate* expirationDate = info[@"LCExpirationDate"];
-    if(expirationDate && [[[NSUserDefaults alloc] initWithSuiteName:[LCUtils appGroupID]] boolForKey:@"LCSignOnlyOnExpiration"] && !forceSign) {
+    NSString* teamId = info[@"LCTeamId"];
+    if(expirationDate && [teamId isEqualToString:[LCUtils teamIdentifier]] && [[[NSUserDefaults alloc] initWithSuiteName:[LCUtils appGroupID]] boolForKey:@"LCSignOnlyOnExpiration"] && !forceSign) {
         if([expirationDate laterDate:[NSDate now]] == expirationDate) {
             // not expired yet, don't sign again
             completetionHandler(YES, nil);
@@ -280,7 +281,7 @@
             [info removeObjectForKey:@"LCBundleExecutable"];
             [info removeObjectForKey:@"LCBundleIdentifier"];
             
-            void (^signCompletionHandler)(BOOL success, NSDate* expirationDate, NSError *error)  = ^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
+            void (^signCompletionHandler)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error)  = ^(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *_Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (success) {
                         info[@"LCJITLessSignID"] = @(signID);
@@ -292,6 +293,9 @@
 
                     if(success && expirationDate) {
                         info[@"LCExpirationDate"] = expirationDate;
+                    }
+                    if(success && teamId) {
+                        info[@"LCTeamId"] = teamId;
                     }
                     // Save sign ID and restore bundle ID
                     [self save];

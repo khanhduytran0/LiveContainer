@@ -50,7 +50,7 @@ struct LCSelectContainerView : View{
                             isPresent = false
                             delegate.addContainers(containers: multiSelection)
                         } label: {
-                            Text("lc.common.ok".loc)
+                            Text("lc.common.done".loc)
                         }
                     }
                 }

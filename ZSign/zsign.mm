@@ -160,7 +160,7 @@ void zsign(NSString *appPath,
           NSData *key,
           NSString *pass,
           NSProgress* progress,
-          void(^completionHandler)(BOOL success, NSDate* expirationDate, NSError *error)
+          void(^completionHandler)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error)
           )
 {
     ZTimer gtimer;
@@ -190,11 +190,12 @@ void zsign(NSString *appPath,
 	__block ZSignAsset zSignAsset;
 	
     if (!zSignAsset.InitSimple(strPKeyFileData, (int)[key length], strProvFileData, (int)[prov length], strPassword)) {
-        completionHandler(NO, nil, makeErrorFromLog(ZLog::logs));
+        completionHandler(NO, nil, nil, makeErrorFromLog(ZLog::logs));
         ZLog::logs.clear();
 		return;
 	}
     NSDate *date = [NSDate dateWithTimeIntervalSince1970:zSignAsset.expirationDate];
+    NSString* teamId = [NSString stringWithUTF8String:zSignAsset.m_strTeamId.c_str()];
     
 	bool bEnableCache = true;
 	string strFolder = strPath;
@@ -203,7 +204,7 @@ void zsign(NSString *appPath,
 	bool success = bundle.ConfigureFolderSign(&zSignAsset, strFolder, "", "", "", strDyLibFile, bForce, bWeakInject, bEnableCache, bDontGenerateEmbeddedMobileProvision);
 
     if(!success) {
-        completionHandler(NO, nil, makeErrorFromLog(ZLog::logs));
+        completionHandler(NO, nil, nil,makeErrorFromLog(ZLog::logs));
         ZLog::logs.clear();
         return;
     }
@@ -229,7 +230,7 @@ void zsign(NSString *appPath,
         signError = [NSError errorWithDomain:@"Failed to Sign" code:-1 userInfo:userInfo];
     }
     
-    completionHandler(YES, date, signError);
+    completionHandler(YES, date, teamId, signError);
     ZLog::logs.clear();
     
 	return;

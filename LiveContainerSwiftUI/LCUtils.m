@@ -2,7 +2,7 @@
 @import MachO;
 @import UIKit;
 
-#import "AltStoreCore/ALTSigner.h"
+#import "../AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
 #import "LCVersionInfo.h"
 #import "../ZSign/zsigner.h"
@@ -18,6 +18,9 @@
 @implementation LCUtils
 
 #pragma mark Certificate & password
++ (NSString *)teamIdentifier {
+    return [NSClassFromString(@"LCSharedUtils") teamIdentifier];
+}
 
 + (NSURL *)appGroupPath {
     return [NSClassFromString(@"LCSharedUtils") appGroupPath];
@@ -160,7 +163,7 @@
     }
 }
 
-+ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
++ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error))completionHandler {
     NSError *error;
 
     // I'm too lazy to reimplement signer, so let's borrow everything from SideStore
@@ -170,20 +173,20 @@
     // Load libraries from Documents, yeah
     [self loadStoreFrameworksWithError:&error];
     if (error) {
-        completionHandler(NO, nil, error);
+        completionHandler(NO, nil, nil, error);
         return nil;
     }
 
     ALTCertificate *cert = [[NSClassFromString(@"ALTCertificate") alloc] initWithP12Data:self.certificateData password:self.certificatePassword];
     if (!cert) {
         error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTCertificate. Please try: 1. make sure your store is patched 2. reopen your store 3. refresh all apps"}];
-        completionHandler(NO, nil, error);
+        completionHandler(NO, nil, nil, error);
         return nil;
     }
     ALTProvisioningProfile *profile = [[NSClassFromString(@"ALTProvisioningProfile") alloc] initWithURL:profilePath];
     if (!profile) {
         error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:2 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTProvisioningProfile. Please try: 1. make sure your store is patched 2. reopen your store 3. refresh all apps"}];
-        completionHandler(NO, nil, error);
+        completionHandler(NO, nil, nil, error);
         return nil;
     }
 
@@ -192,13 +195,13 @@
     ALTSigner *signer = [[NSClassFromString(@"ALTSigner") alloc] initWithTeam:team certificate:cert];
     
     void (^signCompletionHandler)(BOOL success, NSError *error)  = ^(BOOL success, NSError *_Nullable error) {
-        completionHandler(success, [profile expirationDate], error);
+        completionHandler(success, [profile expirationDate], [profile teamIdentifier], error);
     };
 
     return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:signCompletionHandler];
 }
 
-+ (NSProgress *)signAppBundleWithZSign:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
++ (NSProgress *)signAppBundleWithZSign:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error))completionHandler {
     NSError *error;
 
     // use zsign as our signer~
@@ -208,7 +211,7 @@
     [self loadStoreFrameworksWithError2:&error];
 
     if (error) {
-        completionHandler(NO, nil, error);
+        completionHandler(NO, nil, nil, error);
         return nil;
     }
 
@@ -292,14 +295,14 @@
     // Sign the test app bundle
     if(signer == AltSign) {
         [LCUtils signAppBundle:[NSURL fileURLWithPath:path]
-        completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
+        completionHandler:^(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *_Nullable error) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 completionHandler(success, error);
             });
         }];
     } else {
         [LCUtils signAppBundleWithZSign:[NSURL fileURLWithPath:path]
-        completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
+        completionHandler:^(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *_Nullable error) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 completionHandler(success, error);
             });

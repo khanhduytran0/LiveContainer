@@ -408,7 +408,7 @@ extension LCUtils {
         }
         var ansDate : Date? = nil
         await withCheckedContinuation { c in
-            func compeletionHandler(success: Bool, expirationDate: Date?, error: Error?){
+            func compeletionHandler(success: Bool, expirationDate: Date?, teamId : String?, error: Error?){
                 do {
                     if let error = error {
                         ans = error.localizedDescription
