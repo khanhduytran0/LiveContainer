@@ -33,7 +33,6 @@ void NUDGuestHooksInit() {
     swizzle(NSUserDefaults.class, @selector(dictionaryRepresentation), @selector(hook_dictionaryRepresentation));
     swizzle(NSUserDefaults.class, @selector(persistentDomainForName:), @selector(hook_persistentDomainForName:));
     swizzle(NSUserDefaults.class, @selector(removePersistentDomainForName:), @selector(hook_removePersistentDomainForName:));
-    swizzle(NSUserDefaults.class, @selector(registerDefaults:), @selector(hook_registerDefaults:));
     LCPreferences = [[NSMutableDictionary alloc] init];
     NSFileManager* fm = NSFileManager.defaultManager;
     NSURL* libraryPath = [fm URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
@@ -209,23 +208,6 @@ void LCSavePreference(void) {
             NSError* error;
             [fm removeItemAtURL:preferenceFilePath error:&error];
         }
-    }
-}
-
-- (void) hook_registerDefaults:(NSDictionary<NSString *,id> *)registrationDictionary {
-    NSString* identifier = [self _identifier];
-    @synchronized (LCPreferences) {
-        NSMutableDictionary* preferenceDict = LCGetPreference(identifier);
-        if(!preferenceDict) {
-            preferenceDict = [[NSMutableDictionary alloc] init];
-            LCPreferences[identifier] = preferenceDict;
-        }
-        for(NSString* key in registrationDictionary) {
-            if(![preferenceDict objectForKey:key]) {
-                preferenceDict[key] = registrationDictionary[key];
-            }
-        }
-        LCSavePreference();
     }
 }
 
