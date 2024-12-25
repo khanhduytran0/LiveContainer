@@ -14,6 +14,8 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include "TPRO.h"
+#include "fishhook/fishhook.h"
+#include <mach-o/ldsyms.h>
 
 static int (*appMain)(int, char**);
 static const char *dyldImageName;
@@ -191,6 +193,18 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     }
     assert(entryoff > 0);
     return (void *)header + entryoff;
+}
+
+uint32_t appMainImageIndex = 0;
+void* (*orig_dlsym)(void * __handle, const char * __symbol);
+void* new_dlsym(void * __handle, const char * __symbol) {
+    if(__handle == (void*)RTLD_MAIN_ONLY) {
+        if(strcmp(__symbol, MH_EXECUTE_SYM) == 0) {
+            return (void*)_dyld_get_image_header(appMainImageIndex);
+        }
+        return orig_dlsym(RTLD_DEFAULT, __symbol);
+    }
+    return orig_dlsym(__handle, __symbol);
 }
 
 static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContainer, int argc, char *argv[]) {
@@ -378,6 +392,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
+    appMainImageIndex = appIndex;
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
     const char *dlerr = dlerror();
     if (!appHandle || (uint64_t)appHandle > 0xf00000000000 || dlerr) {
@@ -390,6 +405,9 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         *path = oldPath;
         return appError;
     }
+    // hook dlsym to solve RTLD_MAIN_ONLY
+    rebind_symbols((struct rebinding[1]){{"dlsym", (void *)new_dlsym, (void **)&orig_dlsym}},1);
+    
     // Fix dynamic properties of some apps
     [NSUserDefaults performSelector:@selector(initialize)];
 
