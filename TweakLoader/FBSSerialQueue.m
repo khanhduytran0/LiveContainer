@@ -26,7 +26,7 @@
 
 __attribute__((constructor))
 static void NSFMGuestHooksInit() {
-    if(![[NSBundle.mainBundle infoDictionary][@"bypassAssertBarrierOnQueue"] boolValue]) {
+    if(![NSUserDefaults.guestAppInfo[@"bypassAssertBarrierOnQueue"] boolValue]) {
         return;
     }
     

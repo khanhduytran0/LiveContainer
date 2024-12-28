@@ -479,6 +479,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             finalNewApp.selectedLanguage = appToReplace.appInfo.selectedLanguage
             finalNewApp.dataUUID = appToReplace.appInfo.dataUUID
             finalNewApp.orientationLock = appToReplace.appInfo.orientationLock
+            finalNewApp.ignoreDlopenError = appToReplace.appInfo.ignoreDlopenError
             finalNewApp.autoSaveDisabled = false
             finalNewApp.save()
         }

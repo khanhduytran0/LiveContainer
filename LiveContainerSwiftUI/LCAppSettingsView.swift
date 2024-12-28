@@ -250,6 +250,28 @@ struct LCAppSettingsView : View{
                     })
                 }
             }
+            
+            Section {
+                Toggle(isOn: $model.uiIgnoreDlopenError) {
+                    Text("lc.appSettings.ignoreDlopenError".loc)
+                }
+                .onChange(of: model.uiIgnoreDlopenError, perform: { newValue in
+                    Task { await setIgnoreDlopenError(newValue) }
+                })
+            } footer: {
+                Text("lc.appSettings.ignoreDlopenErrorDesc".loc)
+            }
+            
+            Section {
+                Toggle(isOn: $model.uiFixBlackScreen) {
+                    Text("lc.appSettings.fixBlackScreen".loc)
+                }
+                .onChange(of: model.uiFixBlackScreen, perform: { newValue in
+                    Task { await setFixBlackScreen(newValue) }
+                })
+            } footer: {
+                Text("lc.appSettings.fixBlackScreenDesc".loc)
+            }
 
             
             Section {
@@ -490,6 +512,16 @@ struct LCAppSettingsView : View{
     func setDoUseLCBundleId(_ doUseLCBundleId : Bool) async {
         appInfo.doUseLCBundleId = doUseLCBundleId
         model.uiUseLCBundleId = doUseLCBundleId
+    }
+    
+    func setIgnoreDlopenError(_ ignoreDlopenError : Bool) async {
+        appInfo.ignoreDlopenError = ignoreDlopenError
+        model.uiIgnoreDlopenError = ignoreDlopenError
+    }
+    
+    func setFixBlackScreen(_ fixBlackScreen : Bool) async {
+        appInfo.fixBlackScreen = fixBlackScreen
+        model.uiFixBlackScreen = fixBlackScreen
     }
     
     func setOrientationLock(_ lock : LCOrientationLock) async {

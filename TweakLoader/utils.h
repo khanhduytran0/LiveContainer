@@ -10,4 +10,5 @@ void swizzle(Class class, SEL originalAction, SEL swizzledAction);
 + (NSString *)lcAppUrlScheme;
 + (NSString *)lcAppGroupPath;
 + (NSBundle *)lcMainBundle;
++ (NSDictionary*)guestAppInfo;
 @end

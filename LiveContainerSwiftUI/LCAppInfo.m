@@ -11,7 +11,46 @@
     self.isShared = false;
 	if(self) {
         _bundlePath = bundlePath;
-        _info = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
+        _infoPlist = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
+        _info = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/LCAppInfo.plist", bundlePath]];
+        if(!_info) {
+            _info = [[NSMutableDictionary alloc] init];
+        }
+        if(!_infoPlist) {
+            _infoPlist = [[NSMutableDictionary alloc] init];
+        }
+        
+        // migrate old appInfo
+        if(_infoPlist[@"LCPatchRevision"]) {
+            NSArray* lcAppInfoKeys = @[
+                @"LCPatchRevision",
+                @"LCOrignalBundleIdentifier",
+                @"LCDataUUID",
+                @"LCTweakFolder",
+                @"LCJITLessSignID",
+                @"LCSelectedLanguage",
+                @"LCExpirationDate",
+                @"LCTeamId",
+                @"isJITNeeded",
+                @"isLocked",
+                @"isHidden",
+                @"doUseLCBundleId",
+                @"doSymlinkInbox",
+                @"bypassAssertBarrierOnQueue",
+                @"signer",
+                @"LCOrientationLock",
+                @"cachedColor",
+                @"LCContainers",
+                @"ignoreDlopenError"
+            ];
+            for(NSString* key in lcAppInfoKeys) {
+                _info[key] = _infoPlist[key];
+                [_infoPlist removeObjectForKey:key];
+            }
+            [_infoPlist writeToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
+            [self save];
+        }
+        
         _autoSaveDisabled = false;
     }
     return self;
@@ -25,8 +64,8 @@
     // find all url schemes
     NSMutableArray* urlSchemes = [[NSMutableArray alloc] init];
     int nowSchemeCount = 0;
-    if (_info[@"CFBundleURLTypes"]) {
-        NSMutableArray* urlTypes = _info[@"CFBundleURLTypes"];
+    if (_infoPlist[@"CFBundleURLTypes"]) {
+        NSMutableArray* urlTypes = _infoPlist[@"CFBundleURLTypes"];
 
         for(int i = 0; i < [urlTypes count]; ++i) {
             NSMutableDictionary* nowUrlType = [urlTypes objectAtIndex:i];
@@ -45,21 +84,21 @@
 }
 
 - (NSString*)displayName {
-    if (_info[@"CFBundleDisplayName"]) {
-        return _info[@"CFBundleDisplayName"];
-    } else if (_info[@"CFBundleName"]) {
-        return _info[@"CFBundleName"];
-    } else if (_info[@"CFBundleExecutable"]) {
-        return _info[@"CFBundleExecutable"];
+    if (_infoPlist[@"CFBundleDisplayName"]) {
+        return _infoPlist[@"CFBundleDisplayName"];
+    } else if (_infoPlist[@"CFBundleName"]) {
+        return _infoPlist[@"CFBundleName"];
+    } else if (_infoPlist[@"CFBundleExecutable"]) {
+        return _infoPlist[@"CFBundleExecutable"];
     } else {
-        return nil;
+        return @"Unknown";
     }
 }
 
 - (NSString*)version {
-    NSString* version = _info[@"CFBundleShortVersionString"];
+    NSString* version = _infoPlist[@"CFBundleShortVersionString"];
     if (!version) {
-        version = _info[@"CFBundleVersion"];
+        version = _infoPlist[@"CFBundleVersion"];
     }
     return version;
 }
@@ -68,7 +107,7 @@
     if([self doUseLCBundleId]) {
         return _info[@"LCOrignalBundleIdentifier"];
     } else {
-        return _info[@"CFBundleIdentifier"];
+        return _infoPlist[@"CFBundleIdentifier"];
     }
 }
 
@@ -113,13 +152,13 @@
 }
 
 - (UIImage*)icon {
-    UIImage* icon = [UIImage imageNamed:[_info valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+    UIImage* icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
     if(!icon) {
-        icon = [UIImage imageNamed:[_info valueForKeyPath:@"CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+        icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
     }
     
     if(!icon) {
-        icon = [UIImage imageNamed:[_info valueForKeyPath:@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconName"] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+        icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconName"] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
     }
     
     if(!icon) {
@@ -188,7 +227,7 @@
 
 - (void)save {
     if(!_autoSaveDisabled) {
-        [_info writeToFile:[NSString stringWithFormat:@"%@/Info.plist", _bundlePath] atomically:YES];
+        [_info writeToFile:[NSString stringWithFormat:@"%@/LCAppInfo.plist", _bundlePath] atomically:YES];
     }
 
 }
@@ -212,6 +251,7 @@
     NSString *appPath = self.bundlePath;
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = _info;
+    NSMutableDictionary *infoPlist = _infoPlist;
     if (!info) {
         completetionHandler(NO, @"Info.plist not found");
         return;
@@ -220,7 +260,7 @@
     // Update patch
     int currentPatchRev = 5;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
-        NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, info[@"CFBundleExecutable"]];
+        NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, _infoPlist[@"CFBundleExecutable"]];
         NSString *error = LCParseMachO(execPath.UTF8String, ^(const char *path, struct mach_header_64 *header) {
             LCPatchExecSlice(path, header);
         });
@@ -270,16 +310,16 @@
                 // Don't let main executable get entitlements
                 [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
 
-                info[@"LCBundleExecutable"] = info[@"CFBundleExecutable"];
-                info[@"LCBundleIdentifier"] = info[@"CFBundleIdentifier"];
-                info[@"CFBundleExecutable"] = tmpExecPath.lastPathComponent;
-                info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
-                [info writeToFile:infoPath atomically:YES];
+                infoPlist[@"LCBundleExecutable"] = infoPlist[@"CFBundleExecutable"];
+                infoPlist[@"LCBundleIdentifier"] = infoPlist[@"CFBundleIdentifier"];
+                infoPlist[@"CFBundleExecutable"] = tmpExecPath.lastPathComponent;
+                infoPlist[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+                [infoPlist writeToFile:infoPath atomically:YES];
             }
-            info[@"CFBundleExecutable"] = info[@"LCBundleExecutable"];
-            info[@"CFBundleIdentifier"] = info[@"LCBundleIdentifier"];
-            [info removeObjectForKey:@"LCBundleExecutable"];
-            [info removeObjectForKey:@"LCBundleIdentifier"];
+            infoPlist[@"CFBundleExecutable"] = infoPlist[@"LCBundleExecutable"];
+            infoPlist[@"CFBundleIdentifier"] = infoPlist[@"LCBundleIdentifier"];
+            [infoPlist removeObjectForKey:@"LCBundleExecutable"];
+            [infoPlist removeObjectForKey:@"LCBundleIdentifier"];
             
             void (^signCompletionHandler)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error)  = ^(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *_Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
@@ -299,7 +339,7 @@
                     }
                     // Save sign ID and restore bundle ID
                     [self save];
-                    
+                    [infoPlist writeToFile:infoPath atomically:YES];
                     completetionHandler(success, error.localizedDescription);
 
                 });
@@ -384,6 +424,31 @@
     
 }
 
+- (bool)ignoreDlopenError {
+    if(_info[@"ignoreDlopenError"] != nil) {
+        return [_info[@"ignoreDlopenError"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setIgnoreDlopenError:(bool)ignoreDlopenError {
+    _info[@"ignoreDlopenError"] = [NSNumber numberWithBool:ignoreDlopenError];
+    [self save];
+}
+
+- (bool)fixBlackScreen {
+    if(_info[@"fixBlackScreen"] != nil) {
+        return [_info[@"fixBlackScreen"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setFixBlackScreen:(bool)fixBlackScreen {
+    _info[@"fixBlackScreen"] = [NSNumber numberWithBool:fixBlackScreen];
+    [self save];
+}
+
+
 - (bool)doUseLCBundleId {
     if(_info[@"doUseLCBundleId"] != nil) {
         return [_info[@"doUseLCBundleId"] boolValue];
@@ -393,13 +458,15 @@
 }
 - (void)setDoUseLCBundleId:(bool)doUseLCBundleId {
     _info[@"doUseLCBundleId"] = [NSNumber numberWithBool:doUseLCBundleId];
+    NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", self.bundlePath];
     if(doUseLCBundleId) {
-        _info[@"LCOrignalBundleIdentifier"] = _info[@"CFBundleIdentifier"];
-        _info[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+        _info[@"LCOrignalBundleIdentifier"] = _infoPlist[@"CFBundleIdentifier"];
+        _infoPlist[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
     } else if (_info[@"LCOrignalBundleIdentifier"]) {
-        _info[@"CFBundleIdentifier"] = _info[@"LCOrignalBundleIdentifier"];
+        _infoPlist[@"CFBundleIdentifier"] = _info[@"LCOrignalBundleIdentifier"];
         [_info removeObjectForKey:@"LCOrignalBundleIdentifier"];
     }
+    [_infoPlist writeToFile:infoPath atomically:YES];
     [self save];
 }
 

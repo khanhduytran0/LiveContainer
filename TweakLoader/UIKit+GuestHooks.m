@@ -13,10 +13,10 @@ static void UIKitGuestHooksInit() {
     swizzle(UIApplication.class, @selector(_applicationOpenURLAction:payload:origin:), @selector(hook__applicationOpenURLAction:payload:origin:));
     swizzle(UIApplication.class, @selector(_connectUISceneFromFBSScene:transitionContext:), @selector(hook__connectUISceneFromFBSScene:transitionContext:));
     swizzle(UIApplication.class, @selector(openURL:options:completionHandler:), @selector(hook_openURL:options:completionHandler:));
+    swizzle(UIApplication.class, @selector(canOpenURL:), @selector(hook_canOpenURL:));
     swizzle(UIScene.class, @selector(scene:didReceiveActions:fromTransitionContext:), @selector(hook_scene:didReceiveActions:fromTransitionContext:));
     swizzle(UIScene.class, @selector(openURL:options:completionHandler:), @selector(hook_openURL:options:completionHandler:));
-
-    NSInteger LCOrientationLockDirection = [NSBundle.mainBundle.infoDictionary[@"LCOrientationLock"] integerValue];
+    NSInteger LCOrientationLockDirection = [NSUserDefaults.guestAppInfo[@"LCOrientationLock"] integerValue];
     if([UIDevice.currentDevice userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
         switch (LCOrientationLockDirection) {
             case 1:
@@ -45,12 +45,12 @@ NSString* findDefaultContainerWithBundleId(NSString* bundleId) {
     NSString *appGroupPath = [NSUserDefaults lcAppGroupPath];
     NSString* appGroupFolder = [appGroupPath stringByAppendingPathComponent:@"LiveContainer"];
     
-    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", appGroupFolder, bundleId];
+    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/LCAppInfo.plist", appGroupFolder, bundleId];
     NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
     if(!infoDict) {
         NSString* lcDocFolder = [[NSString stringWithUTF8String:getenv("LC_HOME_PATH")] stringByAppendingPathComponent:@"Documents"];
         
-        bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", lcDocFolder, bundleId];
+        bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/LCAppInfo.plist", lcDocFolder, bundleId];
         infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
     }
     
@@ -238,9 +238,14 @@ void handleLiveContainerLaunch(NSURL* url) {
         }
         
         NSBundle* bundle = [NSClassFromString(@"LCSharedUtils") findBundleWithBundleId: bundleName];
-        if(!bundle || ([bundle.infoDictionary[@"isHidden"] boolValue] && [NSUserDefaults.lcSharedDefaults boolForKey:@"LCStrictHiding"])) {
+        NSDictionary* lcAppInfo;
+        if(bundle) {
+            lcAppInfo = [NSDictionary dictionaryWithContentsOfURL:[bundle URLForResource:@"LCAppInfo" withExtension:@"plist"]];
+        }
+        
+        if(!bundle || ([lcAppInfo[@"isHidden"] boolValue] && [NSUserDefaults.lcSharedDefaults boolForKey:@"LCStrictHiding"])) {
             LCShowAppNotFoundAlert(bundleName);
-        } else if ([bundle.infoDictionary[@"isLocked"] boolValue]) {
+        } else if ([lcAppInfo[@"isLocked"] boolValue]) {
             // need authentication
             authenticateUser(^(BOOL success, NSError *error) {
                 if (success) {
@@ -354,6 +359,14 @@ BOOL canAppOpenItself(NSURL* url) {
         [self hook_openURL:url options:options completionHandler:completion];
     }
 }
+- (BOOL)hook_canOpenURL:(NSURL *) url {
+    if(canAppOpenItself(url)) {
+        return YES;
+    } else {
+        return [self hook_canOpenURL:url];
+    }
+}
+
 @end
 
 // Handler for SceneDelegate

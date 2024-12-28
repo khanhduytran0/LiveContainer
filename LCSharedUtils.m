@@ -70,10 +70,12 @@ extern NSBundle *lcMainBundle;
         urlScheme = @"sidestore://sidejit-enable?bid=%@";
     }
     NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
-    if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
+
+    UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
+    if ([application canOpenURL:launchURL]) {
         //[UIApplication.sharedApplication suspend];
         for (int i = 0; i < tries; i++) {
-        [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:^(BOOL b) {
+        [application openURL:launchURL options:@{} completionHandler:^(BOOL b) {
             exit(0);
         }];
         }
@@ -88,8 +90,9 @@ extern NSBundle *lcMainBundle;
     if (!access(tsPath.UTF8String, F_OK)) {
         urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
         NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
-        if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
-            [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:nil];
+        UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
+        if ([application canOpenURL:launchURL]) {
+            [application openURL:launchURL options:@{} completionHandler:nil];
             [LCSharedUtils launchToGuestApp];
             return YES;
         }
@@ -346,7 +349,7 @@ extern NSBundle *lcMainBundle;
     // find app's default container
     NSURL* appGroupFolder = [[LCSharedUtils appGroupPath] URLByAppendingPathComponent:@"LiveContainer"];
     
-    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", appGroupFolder.path, bundleId];
+    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/LCAppInfo.plist", appGroupFolder.path, bundleId];
     NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
     return infoDict[@"LCDataUUID"];
 }

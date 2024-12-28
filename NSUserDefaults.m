@@ -5,9 +5,8 @@
 //  Created by s s on 2024/11/29.
 //
 
-#import <Foundation/Foundation.h>
+#import "FoundationPrivate.h"
 #import "LCSharedUtils.h"
-#import "UIKitPrivate.h"
 #import "utils.h"
 #import "LCSharedUtils.h"
 
@@ -42,7 +41,7 @@ void NUDGuestHooksInit() {
         [fm createDirectoryAtPath:preferenceFolderPath.path withIntermediateDirectories:YES attributes:@{} error:&error];
     }
     
-    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationWillTerminateNotification
+    [[NSNotificationCenter defaultCenter] addObserverForName:@"UIApplicationWillTerminateNotification"
                                                       object:nil
                                                        queue:[NSOperationQueue mainQueue]
                                                   usingBlock:^(NSNotification * _Nonnull notification) {

@@ -773,6 +773,40 @@
         }
       }
     },
+    "lc.appSettings.fixBlackScreen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix Black Screen"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复黑屏"
+          }
+        }
+      }
+    },
+    "lc.appSettings.fixBlackScreenDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If app shows a black screen when launching and crash after about 10s, enable this option."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果App启动时黑屏，并在10秒后崩溃，启用这个选项。"
+          }
+        }
+      }
+    },
     "lc.appSettings.fixes" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -888,6 +922,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要完全隐藏App，请在设置中启用严格隐藏模式。"
+          }
+        }
+      }
+    },
+    "lc.appSettings.ignoreDlopenError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore Error During dlopen"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "忽略dlopen时的错误"
+          }
+        }
+      }
+    },
+    "lc.appSettings.ignoreDlopenErrorDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Might solve error like dlsym(xxxx, xxxx): symbol not found"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可能解决类似dlsym(xxxx,xxxx): symbol not found的问题"
           }
         }
       }
