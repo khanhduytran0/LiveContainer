@@ -1017,7 +1017,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "New data folder"
+            "value" : "New Data Folder"
           }
         },
         "zh_CN" : {
@@ -1704,6 +1704,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "容器当前正在被%@使用。"
+          }
+        }
+      }
+    },
+    "lc.container.isolateAppGroup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isolate App Group"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "独立AppGroup"
           }
         }
       }

@@ -106,7 +106,7 @@ struct LCSelectContainerView : View{
         }
         
         unusedContainers = unusedFolders.map { folder in
-            let ans = LCContainer(folderName: folder, name: folder, isShared: false)
+            let ans = LCContainer(folderName: folder, name: folder, isShared: false, isolateAppGroup: false)
             ans.loadName()
             return ans;
         }

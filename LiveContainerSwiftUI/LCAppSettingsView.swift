@@ -380,7 +380,7 @@ struct LCAppSettingsView : View{
         }
         
         self.appDataFolders.append(newName)
-        let newContainer = LCContainer(folderName: newName, name: displayName, isShared: model.uiIsShared)
+        let newContainer = LCContainer(folderName: newName, name: displayName, isShared: model.uiIsShared, isolateAppGroup: false)
         // assign keychain group
         var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
         for i in 0...2 {
@@ -636,7 +636,7 @@ extension LCAppSettingsView : LCSelectContainerViewDelegate {
         }
         
         for folderName in containers {
-            let newContainer = LCContainer(folderName: folderName, name: folderName, isShared: false)
+            let newContainer = LCContainer(folderName: folderName, name: folderName, isShared: false, isolateAppGroup: false)
             newContainer.loadName()
             if newContainer.keychainGroupId == -1 {
                 // assign keychain group for old containers

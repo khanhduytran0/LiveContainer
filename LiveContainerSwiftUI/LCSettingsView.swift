@@ -143,6 +143,14 @@ struct LCSettingsView: View {
 
                     }
                     .disabled(sharedModel.multiLCStatus == 2)
+                    
+                    if(sharedModel.multiLCStatus == 2) {
+                        NavigationLink {
+                            LCJITLessDiagnoseView()
+                        } label: {
+                            Text("lc.settings.jitlessDiagnose".loc)
+                        }
+                    }
                 } header: {
                     Text("lc.settings.multiLC".loc)
                 } footer: {

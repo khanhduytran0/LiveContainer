@@ -638,7 +638,13 @@ extension LCUtils {
         } else {
             // Biometric authentication is not available
             DispatchQueue.main.async {
-                completion(false, error)
+                if let evaluationError = error as? LAError, evaluationError.code == LAError.passcodeNotSet {
+                    // No passcode set, we also define this as successful Authentication
+                    completion(true, nil)
+                } else {
+                    completion(false, error)
+                }
+
             }
         }
     }

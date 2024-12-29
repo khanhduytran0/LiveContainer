@@ -199,7 +199,11 @@ void authenticateUser(void (^completion)(BOOL success, NSError *error)) {
         }];
     } else {
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(NO, error);
+            if([error code] == LAErrorPasscodeNotSet) {
+                completion(YES, nil);
+            } else {
+                completion(NO, error);
+            }
         });
     }
 }

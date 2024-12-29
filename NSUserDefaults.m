@@ -84,10 +84,19 @@ void LCSavePreference(void) {
 
 @implementation NSUserDefaults(LiveContainerHooks)
 
+- (NSString*)realIdentifier {
+    NSString* identifier = [self _identifier];
+    if([identifier hasPrefix:@"com.kdt.livecontainer"]) {
+        return NSUserDefaults.standardUserDefaults._identifier;
+    } else {
+        return identifier;
+    }
+}
+
 - (id)hook_objectForKey:(NSString*)key {
     // let LiveContainer itself bypass
-    NSString* identifier = [self _identifier];
-    if([identifier isEqualToString:(__bridge id)kCFPreferencesCurrentApplication]) {
+    NSString* identifier = [self realIdentifier];
+    if(self == [NSUserDefaults lcUserDefaults]) {
         return [self hook_objectForKey:key];
     }
     
@@ -133,8 +142,8 @@ void LCSavePreference(void) {
 
 - (void)hook_setObject:(id)obj forKey:(NSString*)key {
     // let LiveContainer itself bypess
-    NSString* identifier = [self _identifier];
-    if([identifier isEqualToString:(__bridge id)kCFPreferencesCurrentApplication]) {
+    NSString* identifier = [self realIdentifier];
+    if(self == [NSUserDefaults lcUserDefaults]) {
         return [self hook_setObject:obj forKey:key];
     }
     @synchronized (LCPreferences) {
@@ -149,7 +158,7 @@ void LCSavePreference(void) {
 }
 
 - (void)hook_removeObjectForKey:(NSString*)key {
-    NSString* identifier = [self _identifier];
+    NSString* identifier = [self realIdentifier];
     if([self hook_objectForKey:key]) {
         [self hook_removeObjectForKey:key];
         return;
@@ -165,7 +174,7 @@ void LCSavePreference(void) {
 }
 
 - (NSDictionary*) hook_dictionaryRepresentation {
-    NSString* identifier = [self _identifier];
+    NSString* identifier = [self realIdentifier];
     NSMutableDictionary* ans = [[self hook_dictionaryRepresentation] mutableCopy];
     if(ans) {
         @synchronized (LCPreferences) {
@@ -179,6 +188,10 @@ void LCSavePreference(void) {
 }
 
 - (NSDictionary*) hook_persistentDomainForName:(NSString*)domainName {
+    if([domainName hasPrefix:@"com.kdt.livecontainer"]) {
+        domainName = NSUserDefaults.standardUserDefaults._identifier;
+    }
+    
     NSMutableDictionary* ans = [[self hook_persistentDomainForName:domainName] mutableCopy];
     if(ans) {
         @synchronized (LCPreferences) {
