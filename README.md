@@ -139,6 +139,9 @@ The [original thought was 256](https://github.com/hugeBlack/LiveContainer/blob/2
 - Remote push notification might not work. ~~If you have a paid developer account then you don't even have to use LiveContainer~~
 - Querying custom URL schemes might not work(?)
 
+## Livecontainer Nightly
+To download nightly versions of Livecontainer (beta versions), visit this repo which contains expiremental features that have a high chance of entering a stable release. (https://github.com/hugeBlack/LiveContainer)
+
 ## TODO
 - Use ChOma instead of custom MachO parser
 
