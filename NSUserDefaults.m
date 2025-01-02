@@ -211,7 +211,7 @@ void LCSavePreference(void) {
             [self hook_removePersistentDomainForName:domainName];
         } else {
             // empty dictionary means deletion
-            [LCPreferences setObject:[[NSMutableArray alloc] init] forKey:domainName];
+            [LCPreferences setObject:[[NSMutableDictionary alloc] init] forKey:domainName];
             LCSavePreference();
         }
         NSURL* preferenceFilePath = LCGetPreferencePath(domainName);

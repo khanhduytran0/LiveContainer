@@ -34,6 +34,7 @@ struct LCSettingsView: View {
     @State var isSignOnlyOnExpiration = true
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
+    @State var silentOpenWebPage = false
     @State var injectToLCItelf = false
     @State var strictHiding = false
     @AppStorage("dynamicColors") var dynamicColors = true
@@ -58,6 +59,7 @@ struct LCSettingsView: View {
         _isSignOnlyOnExpiration = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCSignOnlyOnExpiration"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
+        _silentOpenWebPage = State(initialValue: UserDefaults.standard.bool(forKey: "LCOpenWebPageWithoutAsking"))
         _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
         
         _isSideStore = State(initialValue: LCUtils.store() == .SideStore)
@@ -202,6 +204,15 @@ struct LCSettingsView: View {
                 } footer: {
                     Text("lc.settings.silentSwitchAppDesc".loc)
                 }
+                
+                Section {
+                    Toggle(isOn: $silentOpenWebPage) {
+                        Text("lc.settings.silentOpenWebPage".loc)
+                    }
+                } footer: {
+                    Text("lc.settings.silentOpenWebPageDesc".loc)
+                }
+                
                 if sharedModel.developerMode {
                     Section {
                         Toggle(isOn: $injectToLCItelf) {
@@ -364,6 +375,9 @@ struct LCSettingsView: View {
             }
             .onChange(of: silentSwitchApp) { newValue in
                 saveItem(key: "LCSwitchAppWithoutAsking", val: newValue)
+            }
+            .onChange(of: silentOpenWebPage) { newValue in
+                saveItem(key: "LCOpenWebPageWithoutAsking", val: newValue)
             }
             .onChange(of: frameShortIcon) { newValue in
                 saveItem(key: "LCFrameShortcutIcons", val: newValue)

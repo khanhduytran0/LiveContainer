@@ -3091,6 +3091,40 @@
         }
       }
     },
+    "lc.settings.silentOpenWebPage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always Open URL in Current App"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总是在当前App打开链接"
+          }
+        }
+      }
+    },
+    "lc.settings.silentOpenWebPageDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By default, LiveContainer asks you how to open an URL. Enable this automatically open URL in current app."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer在打开链接时会询问你如何打开。启用此选项来自动在当前App中打开。"
+          }
+        }
+      }
+    },
     "lc.settings.silentSwitchApp" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -141,6 +141,11 @@ void openUniversalLink(NSString* decodedUrl) {
 }
 
 void LCOpenWebPage(NSString* webPageUrlString, NSString* originalUrl) {
+    if ([NSUserDefaults.lcUserDefaults boolForKey:@"LCOpenWebPageWithoutAsking"]) {
+        openUniversalLink(webPageUrlString);
+        return;
+    }
+    
     NSString *message = @"lc.guestTweak.openWebPageTip".loc;
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
