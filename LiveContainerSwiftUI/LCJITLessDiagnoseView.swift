@@ -14,7 +14,7 @@ struct LCJITLessDiagnoseView : View {
     @State var certificateDataFound = false
     @State var certificatePasswordFound = false
     @State var appGroupAccessible = false
-    @State var certLastUpdateDateStr = "lc.common.unknown".loc
+    @State var certLastUpdateDateStr : String? = nil
     
     @State var isJITLessTestInProgress = false
     
@@ -39,13 +39,13 @@ struct LCJITLessDiagnoseView : View {
                         Text("lc.jitlessDiag.appGroupId".loc)
                         Spacer()
                         Text(appGroupId)
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(appGroupId == "Unknown" ? .red : .green)
                     }
                     HStack {
                         Text("lc.jitlessDiag.appGroupAccessible".loc)
                         Spacer()
                         Text(appGroupAccessible ? "lc.common.yes".loc : "lc.common.no".loc)
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(appGroupAccessible ? .green : .red)
                     }
                     HStack {
                         Text("lc.jitlessDiag.store".loc)
@@ -62,28 +62,34 @@ struct LCJITLessDiagnoseView : View {
                         Text("lc.jitlessDiag.patchDetected".loc)
                         Spacer()
                         Text(isPatchDetected ? "lc.common.yes".loc : "lc.common.no".loc)
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(isPatchDetected ? .green : .red)
                     }
                     
                     HStack {
                         Text("lc.jitlessDiag.certDataFound".loc)
                         Spacer()
                         Text(certificateDataFound ? "lc.common.yes".loc : "lc.common.no".loc)
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(certificateDataFound ? .green : .red)
                         
                     }
                     HStack {
                         Text("lc.jitlessDiag.certPassFound".loc)
                         Spacer()
                         Text(certificatePasswordFound ? "lc.common.yes".loc : "lc.common.no".loc)
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(certificatePasswordFound ? .green : .red)
                     }
                     
                     HStack {
                         Text("lc.jitlessDiag.certLastUpdate".loc)
                         Spacer()
-                        Text(certLastUpdateDateStr)
-                            .foregroundStyle(.gray)
+                        if let certLastUpdateDateStr {
+                            Text(certLastUpdateDateStr)
+                                .foregroundStyle(.green)
+                        } else {
+                            Text("lc.common.unknown".loc)
+                                .foregroundStyle(.red)
+                        }
+
                     }
                     
                     Button {
@@ -145,8 +151,6 @@ struct LCJITLessDiagnoseView : View {
             formatter1.dateStyle = .short
             formatter1.timeStyle = .medium
             certLastUpdateDateStr = formatter1.string(from: lastUpdateDate)
-        } else {
-            certLastUpdateDateStr = "lc.common.unknown".loc
         }
             
 
@@ -194,6 +198,6 @@ struct LCJITLessDiagnoseView : View {
     }
     
     func getHelp() {
-        UIApplication.shared.open(URL(string: "https://github.com/khanhduytran0/LiveContainer/issues/265")!)
+        UIApplication.shared.open(URL(string: "https://github.com/khanhduytran0/LiveContainer/issues/265#issuecomment-2558409380")!)
     }
 }

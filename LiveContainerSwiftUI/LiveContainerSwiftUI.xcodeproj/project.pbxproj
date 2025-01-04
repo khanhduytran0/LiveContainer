@@ -24,6 +24,7 @@
 		173564D22C76FE3500C6C918 /* LCAppBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564C72C76FE3500C6C918 /* LCAppBanner.swift */; };
 		173564D32C76FE3500C6C918 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 173564C82C76FE3500C6C918 /* Assets.xcassets */; };
 		173F18402C7B7B74002953AA /* LCWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173F183F2C7B7B74002953AA /* LCWebView.swift */; };
+		1747D7522D2965FE005694C7 /* LCHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1747D7512D2965F3005694C7 /* LCHelpView.swift */; };
 		17583D342D08555000FBA7F0 /* LCAppPreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17583D332D08554400FBA7F0 /* LCAppPreferenceView.swift */; };
 		178B4C3E2C77654400DD1F74 /* Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178B4C3D2C77654400DD1F74 /* Shared.swift */; };
 		179765E12CF8192600D40B95 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179765E02CF8192200D40B95 /* AppDelegate.swift */; };
@@ -56,6 +57,7 @@
 		173564C72C76FE3500C6C918 /* LCAppBanner.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCAppBanner.swift; sourceTree = "<group>"; };
 		173564C82C76FE3500C6C918 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		173F183F2C7B7B74002953AA /* LCWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCWebView.swift; sourceTree = "<group>"; };
+		1747D7512D2965F3005694C7 /* LCHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCHelpView.swift; sourceTree = "<group>"; };
 		17583D332D08554400FBA7F0 /* LCAppPreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCAppPreferenceView.swift; sourceTree = "<group>"; };
 		178B4C3D2C77654400DD1F74 /* Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared.swift; sourceTree = "<group>"; };
 		178B4C3F2C7766A300DD1F74 /* LiveContainerSwiftUI-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "LiveContainerSwiftUI-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -80,6 +82,7 @@
 		173564BB2C76FE1500C6C918 /* LiveContainerSwiftUI */ = {
 			isa = PBXGroup;
 			children = (
+				1747D7512D2965F3005694C7 /* LCHelpView.swift */,
 				17EC1CDF2D13BE9000A17824 /* LCJITLessDiagnoseView.swift */,
 				170D51B42D02E291009000A6 /* LCSelectContainerView.swift */,
 				173F183F2C7B7B74002953AA /* LCWebView.swift */,
@@ -214,6 +217,7 @@
 				171014182CE9B42000673269 /* LCVersionInfo.m in Sources */,
 				173564D22C76FE3500C6C918 /* LCAppBanner.swift in Sources */,
 				173F18402C7B7B74002953AA /* LCWebView.swift in Sources */,
+				1747D7522D2965FE005694C7 /* LCHelpView.swift in Sources */,
 				173564CE2C76FE3500C6C918 /* Makefile in Sources */,
 				17A7640C2C9D1B6C00456519 /* LCAppModel.swift in Sources */,
 				17C536F42C98529D006C2C75 /* LCAppSettingsView.swift in Sources */,

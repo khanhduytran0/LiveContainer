@@ -7,6 +7,8 @@
 #import "LCVersionInfo.h"
 #import "../ZSign/zsigner.h"
 
+Class LCSharedUtilsClass = nil;
+
 // make SFSafariView happy and open data: URLs
 @implementation NSURL(hack)
 - (BOOL)safari_isHTTPFamilyURL {
@@ -17,13 +19,17 @@
 
 @implementation LCUtils
 
++ (void)load {
+    LCSharedUtilsClass = NSClassFromString(@"LCSharedUtils");
+}
+
 #pragma mark Certificate & password
 + (NSString *)teamIdentifier {
-    return [NSClassFromString(@"LCSharedUtils") teamIdentifier];
+    return [LCSharedUtilsClass teamIdentifier];
 }
 
 + (NSURL *)appGroupPath {
-    return [NSClassFromString(@"LCSharedUtils") appGroupPath];
+    return [LCSharedUtilsClass appGroupPath];
 }
 
 + (NSData *)certificateData {
@@ -33,7 +39,7 @@
 }
 
 + (NSString *)certificatePassword {
-    return [NSClassFromString(@"LCSharedUtils") certificatePassword];
+    return [LCSharedUtilsClass certificatePassword];
 }
 
 + (void)setCertificatePassword:(NSString *)certPassword {
@@ -42,20 +48,20 @@
 }
 
 + (NSString *)appGroupID {
-    return [NSClassFromString(@"LCSharedUtils") appGroupID];
+    return [LCSharedUtilsClass appGroupID];
 }
 
 #pragma mark LCSharedUtils wrappers
 + (BOOL)launchToGuestApp {
-    return [NSClassFromString(@"LCSharedUtils") launchToGuestApp];
+    return [LCSharedUtilsClass launchToGuestApp];
 }
 
 + (BOOL)askForJIT {
-    return [NSClassFromString(@"LCSharedUtils") askForJIT];
+    return [LCSharedUtilsClass askForJIT];
 }
 
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url {
-    return [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
+    return [LCSharedUtilsClass launchToGuestAppWithURL:url];
 }
 
 #pragma mark Code signing
@@ -98,18 +104,16 @@
     loaded = YES;
 }
 
-+ (NSString *)storeBundleID {
-    // Assuming this format never changes...
-    // group.BUNDLEID.YOURTEAMID
-    return [self.appGroupID substringWithRange:NSMakeRange(6, self.appGroupID.length - 17)];
-}
-
 + (NSURL *)storeBundlePath {
-    return [self.appGroupPath URLByAppendingPathComponent:[NSString stringWithFormat:@"Apps/%@/App.app", self.storeBundleID]];
+    if ([self store] == SideStore) {
+        return [self.appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app"];
+    } else {
+        return [self.appGroupPath URLByAppendingPathComponent:@"Apps/com.rileytestut.AltStore/App.app"];
+    }
 }
 
 + (NSString *)storeInstallURLScheme {
-    if ([self.storeBundleID containsString:@"SideStore"]) {
+    if ([self store] == SideStore) {
         return @"sidestore://install?url=%@";
     } else {
         return @"altstore://install?url=%@";
@@ -388,6 +392,14 @@
 
     NSFileManager *manager = NSFileManager.defaultManager;
     NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    if(!appGroupPath) {
+        NSDictionary* userInfo = @{
+            NSLocalizedDescriptionKey : @"Unable to access App Group. Please check JITLess diagnose page for more information."
+        };
+        *error = [NSError errorWithDomain:@"Unable to Access App Group" code:-1 userInfo:userInfo];
+        return nil;
+    }
+    
     NSURL *lcBundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
     NSURL *bundlePath;
     if ([self store] == SideStore) {

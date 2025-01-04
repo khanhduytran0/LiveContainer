@@ -91,7 +91,7 @@
     } else if (_infoPlist[@"CFBundleExecutable"]) {
         return _infoPlist[@"CFBundleExecutable"];
     } else {
-        return @"Unknown";
+        return @"App Corrupted, Please Reinstall This App";
     }
 }
 
@@ -100,14 +100,24 @@
     if (!version) {
         version = _infoPlist[@"CFBundleVersion"];
     }
-    return version;
+    if(version) {
+        return version;
+    } else {
+        return @"Unknown";
+    }
 }
 
 - (NSString*)bundleIdentifier {
+    NSString* ans = nil;
     if([self doUseLCBundleId]) {
-        return _info[@"LCOrignalBundleIdentifier"];
+        ans = _info[@"LCOrignalBundleIdentifier"];
     } else {
-        return _infoPlist[@"CFBundleIdentifier"];
+        ans = _infoPlist[@"CFBundleIdentifier"];
+    }
+    if(ans) {
+        return ans;
+    } else {
+        return @"Unknown";
     }
 }
 
@@ -269,7 +279,6 @@
             return;
         }
         info[@"LCPatchRevision"] = @(currentPatchRev);
-        [info writeToFile:infoPath atomically:YES];
     }
 
     if (!LCUtils.certificatePassword) {

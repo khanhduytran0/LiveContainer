@@ -18,7 +18,7 @@ extern NSBundle *lcMainBundle;
 
 + (NSString *)appGroupID {
     static dispatch_once_t once;
-    static NSString *appGroupID = @"group.com.SideStore.SideStore";
+    static NSString *appGroupID = @"Unknown";
     dispatch_once(&once, ^{
         NSArray* possibleAppGroups = @[
             [@"group.com.SideStore.SideStore." stringByAppendingString:[self teamIdentifier]],

@@ -1997,6 +1997,57 @@
         }
       }
     },
+    "lc.helpView.text1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setup JITLess mode (Patch Store) in settings to use LiveContainer without JIT.\n\n**Check JITLess Diagnose page in settings if you have trouble enabling JITLess mode.**\n\nPress plus button to install apps.\n\nLong press app for app-specific settings, fixes and adding apps to homescreen."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在设置中配置免JIT模式(打补丁)来使得LiveContainer无需JIT权限即可使用。\n\n**如果配置免JIT模式时遇到问题，请查看免JIT模式诊断页面。**\n\n点击加号按钮来安装App。\n\n长按App可查看App设置，修复App问题，以及将App添加到主屏幕。"
+          }
+        }
+      }
+    },
+    "lc.helpView.text2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Check [LiveContainer FAQ](https://github.com/khanhduytran0/LiveContainer/issues/265) for common issues.**\n                         \nIf you encounters a bug or competibility issue please submit on [GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**遇到问题时请先查看[LiveContainer常见问题（英语）](https://github.com/khanhduytran0/LiveContainer/issues/265)。**\n                         \n如果你遇到Bug或者App兼容性问题，请到[GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)提交。"
+          }
+        }
+      }
+    },
+    "lc.helpView.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer Help"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer帮助"
+          }
+        }
+      }
+    },
     "lc.jitlessDiag.appGroupAccessible" : {
       "extractionState" : "manual",
       "localizations" : {

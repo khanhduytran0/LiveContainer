@@ -221,7 +221,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
             usleep(1000*100);
         }
         if (!checkJITEnabled()) {
-            appError = @"JIT was not enabled";
+            appError = @"JIT was not enabled. If you want to use LiveContainer without JIT, setup JITLess mode in settings.";
             return appError;
         }
     }
