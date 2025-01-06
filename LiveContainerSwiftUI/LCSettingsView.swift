@@ -35,7 +35,6 @@ struct LCSettingsView: View {
     @State var frameShortIcon = false
     @State var silentSwitchApp = false
     @State var silentOpenWebPage = false
-    @State var injectToLCItelf = false
     @State var strictHiding = false
     @AppStorage("dynamicColors") var dynamicColors = true
     
@@ -43,6 +42,9 @@ struct LCSettingsView: View {
     @State var deviceUDID: String
     
     @State var isSideStore : Bool = true
+    
+    @State var injectToLCItelf = false
+    @State var ignoreJITOnLaunch = false
     
     @EnvironmentObject private var sharedModel : SharedModel
     
@@ -61,6 +63,7 @@ struct LCSettingsView: View {
         _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
         _silentOpenWebPage = State(initialValue: UserDefaults.standard.bool(forKey: "LCOpenWebPageWithoutAsking"))
         _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
+        _ignoreJITOnLaunch = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreJITOnLaunch"))
         
         _isSideStore = State(initialValue: LCUtils.store() == .SideStore)
         
@@ -108,14 +111,6 @@ struct LCSettingsView: View {
                                 Text("lc.settings.signOnlyOnExpiration".loc)
                             }
                         }
-                        if sharedModel.developerMode {
-                            Button {
-                                export()
-                            } label: {
-                                Text("export cert")
-                            }
-                        }
-
                         
                         Picker(selection: $defaultSigner) {
                             Text("AltSign").tag(Signer.AltSign)
@@ -213,16 +208,6 @@ struct LCSettingsView: View {
                     Text("lc.settings.silentOpenWebPageDesc".loc)
                 }
                 
-                if sharedModel.developerMode {
-                    Section {
-                        Toggle(isOn: $injectToLCItelf) {
-                            Text("lc.settings.injectLCItself".loc)
-                        }
-                    } footer: {
-                        Text("lc.settings.injectLCItselfDesc".loc)
-                    }
-                }
-
                 if sharedModel.isHiddenAppUnlocked {
                     Section {
                         Toggle(isOn: $strictHiding) {
@@ -262,6 +247,26 @@ struct LCSettingsView: View {
                         Task { await removeKeyChain() }
                     } label: {
                         Text("lc.settings.cleanKeychain".loc)
+                    }
+                }
+                
+                if sharedModel.developerMode {
+                    Section {
+                        Toggle(isOn: $injectToLCItelf) {
+                            Text("lc.settings.injectLCItself".loc)
+                        }
+                        Toggle(isOn: $ignoreJITOnLaunch) {
+                            Text("Ignore JIT on Launching App")
+                        }
+                        Button {
+                            export()
+                        } label: {
+                            Text("export cert")
+                        }
+                    } header: {
+                        Text("Developer Settings")
+                    } footer: {
+                        Text("lc.settings.injectLCItselfDesc".loc)
                     }
                 }
                 
@@ -384,6 +389,9 @@ struct LCSettingsView: View {
             }
             .onChange(of: injectToLCItelf) { newValue in
                 saveItem(key: "LCLoadTweaksToSelf", val: newValue)
+            }
+            .onChange(of: ignoreJITOnLaunch) { newValue in
+                saveItem(key: "LCIgnoreJITOnLaunch", val: newValue)
             }
             .onChange(of: strictHiding) { newValue in
                 saveAppGroupItem(key: "LCStrictHiding", val: newValue)

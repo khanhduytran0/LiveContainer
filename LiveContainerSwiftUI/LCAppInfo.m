@@ -21,7 +21,7 @@
         }
         
         // migrate old appInfo
-        if(_infoPlist[@"LCPatchRevision"]) {
+        if(_infoPlist[@"LCPatchRevision"] && [_info count] == 0) {
             NSArray* lcAppInfoKeys = @[
                 @"LCPatchRevision",
                 @"LCOrignalBundleIdentifier",
@@ -279,6 +279,7 @@
             return;
         }
         info[@"LCPatchRevision"] = @(currentPatchRev);
+        [self save];
     }
 
     if (!LCUtils.certificatePassword) {

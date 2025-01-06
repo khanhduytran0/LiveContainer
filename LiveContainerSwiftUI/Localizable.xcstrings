@@ -949,7 +949,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Might solve error like dlsym(xxxx, xxxx): symbol not found"
+            "value" : "Might solve errors like dlsym(xxxx, xxxx): symbol not found"
           }
         },
         "zh_CN" : {
@@ -2020,7 +2020,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "**Check [LiveContainer FAQ](https://github.com/khanhduytran0/LiveContainer/issues/265) for common issues.**\n                         \nIf you encounters a bug or competibility issue please submit on [GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)."
+            "value" : "**Check [LiveContainer FAQ](https://github.com/khanhduytran0/LiveContainer/issues/265) for common issues.**\n                         \nIf you encounters a bug or compatibility issue please submit on [GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)."
           }
         },
         "zh_CN" : {

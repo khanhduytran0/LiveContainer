@@ -50,6 +50,9 @@ void NUDGuestHooksInit();
 @end
 
 static BOOL checkJITEnabled() {
+    if([lcUserDefaults boolForKey:@"LCIgnoreJITOnLaunch"]) {
+        return NO;
+    }
     // check if jailbroken
     if (access("/var/mobile", R_OK) == 0) {
         return YES;
