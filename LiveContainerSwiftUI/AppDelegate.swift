@@ -52,6 +52,7 @@ import SwiftUI
         let contentView = LCTabView()
         window.rootViewController = UIHostingController(rootView: contentView)
         window.makeKeyAndVisible()
+        application.shortcutItems = nil
         return true
     }
     

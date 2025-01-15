@@ -44,6 +44,8 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     @State private var navigateTo : AnyView?
     @State private var isNavigationActive = false
     
+    @State private var helpPresent = false
+    
     @EnvironmentObject private var sharedModel : SharedModel
 
     init(appDataFolderNames: Binding<[String]>, tweakFolderNames: Binding<[String]>) {
@@ -169,6 +171,12 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                         }
                     }
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Help", systemImage: "questionmark") {
+                        helpPresent = true
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("lc.appList.openLink".loc, systemImage: "link", action: {
                         Task { await onOpenWebViewTapped() }
@@ -227,6 +235,9 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         }
         .fullScreenCover(isPresented: $safariViewOpened) {
             SafariView(url: $safariViewURL)
+        }
+        .sheet(isPresented: $helpPresent) {
+            LCHelpView(isPresent: $helpPresent)
         }
 
     }
@@ -479,6 +490,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             finalNewApp.selectedLanguage = appToReplace.appInfo.selectedLanguage
             finalNewApp.dataUUID = appToReplace.appInfo.dataUUID
             finalNewApp.orientationLock = appToReplace.appInfo.orientationLock
+            finalNewApp.ignoreDlopenError = appToReplace.appInfo.ignoreDlopenError
             finalNewApp.autoSaveDisabled = false
             finalNewApp.save()
         }

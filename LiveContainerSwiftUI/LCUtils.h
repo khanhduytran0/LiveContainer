@@ -32,18 +32,17 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header);
 + (NSURL *)archiveTweakedAltStoreWithError:(NSError **)error;
 + (NSData *)certificateData;
 + (NSString *)certificatePassword;
-+ (BOOL)deleteKeychainItem:(NSString *)key ofStore:(NSString *)store;
-+ (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store;
 
 + (BOOL)askForJIT;
 + (BOOL)launchToGuestApp;
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url;
 
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL;
-+ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler;
-+ (NSProgress *)signAppBundleWithZSign:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler;
++ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error))completionHandler;
++ (NSProgress *)signAppBundleWithZSign:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error))completionHandler;
 + (BOOL)isAppGroupAltStoreLike;
 + (Store)store;
++ (NSString *)teamIdentifier;
 + (NSString *)appGroupID;
 + (NSString *)appUrlScheme;
 + (NSURL *)appGroupPath;

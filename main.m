@@ -1,4 +1,4 @@
-#import <Foundation/Foundation.h>
+#import "FoundationPrivate.h"
 #import "LCSharedUtils.h"
 #import "UIKitPrivate.h"
 #import "utils.h"
@@ -14,6 +14,8 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include "TPRO.h"
+#include "fishhook/fishhook.h"
+#include <mach-o/ldsyms.h>
 
 static int (*appMain)(int, char**);
 static const char *dyldImageName;
@@ -22,6 +24,7 @@ NSUserDefaults *lcSharedDefaults;
 NSString *lcAppGroupPath;
 NSString* lcAppUrlScheme;
 NSBundle* lcMainBundle;
+NSDictionary* guestAppInfo;
 
 void NUDGuestHooksInit();
 
@@ -41,9 +44,15 @@ void NUDGuestHooksInit();
 + (NSBundle *)lcMainBundle {
     return lcMainBundle;
 }
++ (NSDictionary *)guestAppInfo {
+    return guestAppInfo;
+}
 @end
 
 static BOOL checkJITEnabled() {
+    if([lcUserDefaults boolForKey:@"LCIgnoreJITOnLaunch"]) {
+        return NO;
+    }
     // check if jailbroken
     if (access("/var/mobile", R_OK) == 0) {
         return YES;
@@ -193,6 +202,20 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     return (void *)header + entryoff;
 }
 
+uint32_t appMainImageIndex = 0;
+void* appExecutableHandle = 0;
+void* (*orig_dlsym)(void * __handle, const char * __symbol);
+void* new_dlsym(void * __handle, const char * __symbol) {
+    if(__handle == (void*)RTLD_MAIN_ONLY) {
+        if(strcmp(__symbol, MH_EXECUTE_SYM) == 0) {
+            return (void*)_dyld_get_image_header(appMainImageIndex);
+        }
+        return orig_dlsym(appExecutableHandle, __symbol);
+    }
+    
+    return orig_dlsym(__handle, __symbol);
+}
+
 static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContainer, int argc, char *argv[]) {
     NSString *appError = nil;
     if (!LCSharedUtils.certificatePassword) {
@@ -201,7 +224,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
             usleep(1000*100);
         }
         if (!checkJITEnabled()) {
-            appError = @"JIT was not enabled";
+            appError = @"JIT was not enabled. If you want to use LiveContainer without JIT, setup JITLess mode in settings.";
             return appError;
         }
     }
@@ -224,6 +247,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         appBundle = [[NSBundle alloc] initWithPath:bundlePath];
         isSharedBundle = true;
     }
+    guestAppInfo = [NSDictionary dictionaryWithContentsOfURL:[appBundle URLForResource:@"LCAppInfo" withExtension:@"plist"]];
     
     if(!appBundle) {
         return @"App not found";
@@ -232,7 +256,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     // find container in Info.plist
     NSString* dataUUID = selectedContainer;
     if(!dataUUID) {
-        dataUUID = appBundle.infoDictionary[@"LCDataUUID"];
+        dataUUID = guestAppInfo[@"LCDataUUID"];
     }
 
     if(dataUUID == nil) {
@@ -285,8 +309,8 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     overwriteExecPath(appBundle.bundlePath);
     
     // Overwrite NSUserDefaults
-    if([appBundle.infoDictionary[@"doUseLCBundleId"] boolValue]) {
-        NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.infoDictionary[@"LCOrignalBundleIdentifier"]];
+    if([guestAppInfo[@"doUseLCBundleId"] boolValue]) {
+        NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:guestAppInfo[@"LCOrignalBundleIdentifier"]];
     } else {
         NSUserDefaults.standardUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:appBundle.bundleIdentifier];
     }
@@ -310,7 +334,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     remove(newTmpPath.UTF8String);
     symlink(getenv("TMPDIR"), newTmpPath.UTF8String);
     
-    if([appBundle.infoDictionary[@"doSymlinkInbox"] boolValue]) {
+    if([guestAppInfo[@"doSymlinkInbox"] boolValue]) {
         NSString* inboxSymlinkPath = [NSString stringWithFormat:@"%s/%@-Inbox", getenv("TMPDIR"), [appBundle bundleIdentifier]];
         NSString* inboxPath = [newHomePath stringByAppendingPathComponent:@"Inbox"];
         
@@ -339,6 +363,11 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
             }
         }
 
+    }
+    
+    if([guestAppInfo[@"fixBlackScreen"] boolValue]) {
+        dlopen("/System/Library/Frameworks/UIKit.framework/UIKit", RTLD_GLOBAL);
+        NSLog(@"[LC] Fix BlackScreen2 %@", [NSClassFromString(@"UIScreen") mainScreen]);
     }
 
     setenv("CFFIXED_USER_HOME", newHomePath.UTF8String, 1);
@@ -378,9 +407,12 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
+    appMainImageIndex = appIndex;
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
+    appExecutableHandle = appHandle;
     const char *dlerr = dlerror();
-    if (!appHandle || (uint64_t)appHandle > 0xf00000000000 || dlerr) {
+
+    if (!appHandle || (uint64_t)appHandle > 0xf00000000000 || (dlerr && ![guestAppInfo[@"ignoreDlopenError"] boolValue]) ) {
         if (dlerr) {
             appError = @(dlerr);
         } else {
@@ -390,6 +422,9 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         *path = oldPath;
         return appError;
     }
+    // hook dlsym to solve RTLD_MAIN_ONLY
+    rebind_symbols((struct rebinding[1]){{"dlsym", (void *)new_dlsym, (void **)&orig_dlsym}},1);
+    
     // Fix dynamic properties of some apps
     [NSUserDefaults performSelector:@selector(initialize)];
 
@@ -425,13 +460,13 @@ static void exceptionHandler(NSException *exception) {
 
 int LiveContainerMain(int argc, char *argv[]) {
     // This strangely fixes some apps getting stuck on black screen
-    NSLog(@"Ignore this: %@", UIScreen.mainScreen);
+    NSLog(@"Ignore this: %@", dispatch_get_main_queue());
 
+    lcMainBundle = [NSBundle mainBundle];
     lcUserDefaults = NSUserDefaults.standardUserDefaults;
     lcSharedDefaults = [[NSUserDefaults alloc] initWithSuiteName: [LCSharedUtils appGroupID]];
     lcAppUrlScheme = NSBundle.mainBundle.infoDictionary[@"CFBundleURLTypes"][0][@"CFBundleURLSchemes"][0];
     lcAppGroupPath = [[NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[NSClassFromString(@"LCSharedUtils") appGroupID]] path];
-    lcMainBundle = [NSBundle mainBundle];
     
     NSString* lastLaunchDataUUID = [lcUserDefaults objectForKey:@"lastLaunchDataUUID"];
     if(lastLaunchDataUUID) {
@@ -475,8 +510,8 @@ int LiveContainerMain(int argc, char *argv[]) {
             }
             
             NSURL* url = [NSURL URLWithString:urlStr];
-            if([[UIApplication sharedApplication] canOpenURL:url]){
-                [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+            if([[NSClassFromString(@"UIApplication") sharedApplication] canOpenURL:url]){
+                [[NSClassFromString(@"UIApplication") sharedApplication] openURL:url options:@{} completionHandler:nil];
                 
                 NSString *launchUrl = [lcUserDefaults stringForKey:@"launchAppUrlScheme"];
                 // also pass url scheme to another lc
@@ -490,7 +525,7 @@ int LiveContainerMain(int argc, char *argv[]) {
                     NSString* finalUrl = [NSString stringWithFormat:@"%@://open-url?url=%@", runningLC, encodedUrl];
                     NSURL* url = [NSURL URLWithString: finalUrl];
                     
-                    [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                    [[NSClassFromString(@"UIApplication") sharedApplication] openURL:url options:@{} completionHandler:nil];
 
                 }
             } else {
@@ -518,7 +553,7 @@ int LiveContainerMain(int argc, char *argv[]) {
                 NSString* finalUrl = [NSString stringWithFormat:@"%@://open-url?url=%@", lcAppUrlScheme, encodedUrl];
                 NSURL* url = [NSURL URLWithString: finalUrl];
                 
-                [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                [[NSClassFromString(@"UIApplication") sharedApplication] openURL:url options:@{} completionHandler:nil];
             });
         }
         NSSetUncaughtExceptionHandler(&exceptionHandler);
@@ -547,6 +582,9 @@ int LiveContainerMain(int argc, char *argv[]) {
         if ([lcUserDefaults boolForKey:@"LCLoadTweaksToSelf"]) {
             dlopen("@executable_path/Frameworks/TweakLoader.dylib", RTLD_LAZY);
         }
+
+        void *uikitHandle = dlopen("/System/Library/Frameworks/UIKit.framework/UIKit", RTLD_GLOBAL);
+        int (*UIApplicationMain)(int, char**, NSString *, NSString *) = dlsym(uikitHandle, "UIApplicationMain");
         return UIApplicationMain(argc, argv, nil, @"LiveContainerSwiftUI.AppDelegate");
     }
 }

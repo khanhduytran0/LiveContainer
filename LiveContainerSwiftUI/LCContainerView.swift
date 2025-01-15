@@ -61,6 +61,13 @@ struct LCContainerView : View {
                     Text(container.folderName)
                         .foregroundStyle(.gray)
                 }
+                Toggle(isOn: $container.isolateAppGroup) {
+                    Text("lc.container.isolateAppGroup".loc)
+                }
+                .onChange(of: container.isolateAppGroup) { newValue in
+                    saveContainer()
+                }
+                
                 if let settingsBundle {
                     NavigationLink {
                         AppPreferenceView(bundleId: delegate.getBundleId(), settingsBundle: settingsBundle, userDefaultsURL: delegate.getUserDefaultsURL(container: container))

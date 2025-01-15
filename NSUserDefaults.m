@@ -5,9 +5,8 @@
 //  Created by s s on 2024/11/29.
 //
 
-#import <Foundation/Foundation.h>
+#import "FoundationPrivate.h"
 #import "LCSharedUtils.h"
-#import "UIKitPrivate.h"
 #import "utils.h"
 #import "LCSharedUtils.h"
 
@@ -33,7 +32,6 @@ void NUDGuestHooksInit() {
     swizzle(NSUserDefaults.class, @selector(dictionaryRepresentation), @selector(hook_dictionaryRepresentation));
     swizzle(NSUserDefaults.class, @selector(persistentDomainForName:), @selector(hook_persistentDomainForName:));
     swizzle(NSUserDefaults.class, @selector(removePersistentDomainForName:), @selector(hook_removePersistentDomainForName:));
-    swizzle(NSUserDefaults.class, @selector(registerDefaults:), @selector(hook_registerDefaults:));
     LCPreferences = [[NSMutableDictionary alloc] init];
     NSFileManager* fm = NSFileManager.defaultManager;
     NSURL* libraryPath = [fm URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask].lastObject;
@@ -43,7 +41,7 @@ void NUDGuestHooksInit() {
         [fm createDirectoryAtPath:preferenceFolderPath.path withIntermediateDirectories:YES attributes:@{} error:&error];
     }
     
-    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationWillTerminateNotification
+    [[NSNotificationCenter defaultCenter] addObserverForName:@"UIApplicationWillTerminateNotification"
                                                       object:nil
                                                        queue:[NSOperationQueue mainQueue]
                                                   usingBlock:^(NSNotification * _Nonnull notification) {
@@ -86,10 +84,19 @@ void LCSavePreference(void) {
 
 @implementation NSUserDefaults(LiveContainerHooks)
 
+- (NSString*)realIdentifier {
+    NSString* identifier = [self _identifier];
+    if([identifier hasPrefix:@"com.kdt.livecontainer"]) {
+        return NSUserDefaults.standardUserDefaults._identifier;
+    } else {
+        return identifier;
+    }
+}
+
 - (id)hook_objectForKey:(NSString*)key {
     // let LiveContainer itself bypass
-    NSString* identifier = [self _identifier];
-    if([identifier isEqualToString:(__bridge id)kCFPreferencesCurrentApplication]) {
+    NSString* identifier = [self realIdentifier];
+    if(self == [NSUserDefaults lcUserDefaults]) {
         return [self hook_objectForKey:key];
     }
     
@@ -135,8 +142,8 @@ void LCSavePreference(void) {
 
 - (void)hook_setObject:(id)obj forKey:(NSString*)key {
     // let LiveContainer itself bypess
-    NSString* identifier = [self _identifier];
-    if([identifier isEqualToString:(__bridge id)kCFPreferencesCurrentApplication]) {
+    NSString* identifier = [self realIdentifier];
+    if(self == [NSUserDefaults lcUserDefaults]) {
         return [self hook_setObject:obj forKey:key];
     }
     @synchronized (LCPreferences) {
@@ -151,7 +158,7 @@ void LCSavePreference(void) {
 }
 
 - (void)hook_removeObjectForKey:(NSString*)key {
-    NSString* identifier = [self _identifier];
+    NSString* identifier = [self realIdentifier];
     if([self hook_objectForKey:key]) {
         [self hook_removeObjectForKey:key];
         return;
@@ -167,7 +174,7 @@ void LCSavePreference(void) {
 }
 
 - (NSDictionary*) hook_dictionaryRepresentation {
-    NSString* identifier = [self _identifier];
+    NSString* identifier = [self realIdentifier];
     NSMutableDictionary* ans = [[self hook_dictionaryRepresentation] mutableCopy];
     if(ans) {
         @synchronized (LCPreferences) {
@@ -181,6 +188,10 @@ void LCSavePreference(void) {
 }
 
 - (NSDictionary*) hook_persistentDomainForName:(NSString*)domainName {
+    if([domainName hasPrefix:@"com.kdt.livecontainer"]) {
+        domainName = NSUserDefaults.standardUserDefaults._identifier;
+    }
+    
     NSMutableDictionary* ans = [[self hook_persistentDomainForName:domainName] mutableCopy];
     if(ans) {
         @synchronized (LCPreferences) {
@@ -200,7 +211,7 @@ void LCSavePreference(void) {
             [self hook_removePersistentDomainForName:domainName];
         } else {
             // empty dictionary means deletion
-            [LCPreferences setObject:[[NSMutableArray alloc] init] forKey:domainName];
+            [LCPreferences setObject:[[NSMutableDictionary alloc] init] forKey:domainName];
             LCSavePreference();
         }
         NSURL* preferenceFilePath = LCGetPreferencePath(domainName);
@@ -209,23 +220,6 @@ void LCSavePreference(void) {
             NSError* error;
             [fm removeItemAtURL:preferenceFilePath error:&error];
         }
-    }
-}
-
-- (void) hook_registerDefaults:(NSDictionary<NSString *,id> *)registrationDictionary {
-    NSString* identifier = [self _identifier];
-    @synchronized (LCPreferences) {
-        NSMutableDictionary* preferenceDict = LCGetPreference(identifier);
-        if(!preferenceDict) {
-            preferenceDict = [[NSMutableDictionary alloc] init];
-            LCPreferences[identifier] = preferenceDict;
-        }
-        for(NSString* key in registrationDictionary) {
-            if(![preferenceDict objectForKey:key]) {
-                preferenceDict[key] = registrationDictionary[key];
-            }
-        }
-        LCSavePreference();
     }
 }
 

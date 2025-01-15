@@ -1,7 +1,9 @@
 @import Foundation;
 
 @interface LCSharedUtils : NSObject
++ (NSString*) teamIdentifier;
 + (NSString *)appGroupID;
++ (NSURL*) appGroupPath;
 + (NSString *)certificatePassword;
 + (BOOL)askForJIT;
 + (BOOL)launchToGuestApp;

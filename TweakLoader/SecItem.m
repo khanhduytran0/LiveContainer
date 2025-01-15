@@ -84,8 +84,11 @@ static void SecItemGuestHooksInit()  {
         accessGroup = [NSString stringWithFormat:@"%@.com.kdt.livecontainer.shared.%d", groupId, keychainGroupId];
     }
 
-    rebind_symbols((struct rebinding[1]){{"SecItemAdd", (void *)new_SecItemAdd, (void **)&orig_SecItemAdd}},1);
-    rebind_symbols((struct rebinding[1]){{"SecItemCopyMatching", (void *)new_SecItemCopyMatching, (void **)&orig_SecItemCopyMatching}},1);
-    rebind_symbols((struct rebinding[1]){{"SecItemUpdate", (void *)new_SecItemUpdate, (void **)&orig_SecItemUpdate}},1);
-    rebind_symbols((struct rebinding[1]){{"SecItemDelete", (void *)new_SecItemDelete, (void **)&orig_SecItemDelete}},1);
+    struct rebinding rebindings[] = (struct rebinding[]){
+        {"SecItemAdd", (void *)new_SecItemAdd, (void **)&orig_SecItemAdd},
+        {"SecItemCopyMatching", (void *)new_SecItemCopyMatching, (void **)&orig_SecItemCopyMatching},
+        {"SecItemUpdate", (void *)new_SecItemUpdate, (void **)&orig_SecItemUpdate},
+        {"SecItemDelete", (void *)new_SecItemDelete, (void **)&orig_SecItemDelete}
+    };
+    rebind_symbols(rebindings, sizeof(rebindings)/sizeof(struct rebinding));
 }

@@ -2,6 +2,7 @@
 #import <UIKit/UIKit.h>
 #include <dlfcn.h>
 #include <objc/runtime.h>
+#include "utils.h"
 
 static NSString *loadTweakAtURL(NSURL *url) {
     NSString *tweakPath = url.path;
@@ -70,7 +71,7 @@ static void TweakLoaderConstructor() {
     }
 
     // Load selected tweak folder, recursively
-    NSString *tweakFolderName = NSBundle.mainBundle.infoDictionary[@"LCTweakFolder"];
+    NSString *tweakFolderName = NSUserDefaults.guestAppInfo[@"LCTweakFolder"];
     if (tweakFolderName.length > 0) {
         NSLog(@"Loading tweaks from the selected folder");
         NSString *tweakFolder = [globalTweakFolder stringByAppendingPathComponent:tweakFolderName];
@@ -93,24 +94,4 @@ static void TweakLoaderConstructor() {
             showDlerrAlert(error);
         });
     }
-}
-
-// fix dlsym(RTLD_DEFAULT, bd_requestURLParameters): symbol not found
-// by declearing a dummy funtion that generates trash data since it's just a user tracking function
-// see https://github.com/volcengine/datarangers-sdk-ios/blob/7ca475f90be36016d35281a02b4e44b6f99f4c72/BDAutoTracker/Classes/Core/Network/BDAutoTrackNetworkRequest.m#L22
-NSMutableDictionary * bd_requestURLParameters(NSString *appID) {
-    NSMutableDictionary *result = [NSMutableDictionary new];
-    [result setValue:@"ios" forKey:@"platform"];
-    [result setValue:@"ios" forKey:@"sdk_lib"];
-    [result setValue:@"iPhone" forKey:@"device_platform"];
-    [result setValue:@(61002) forKey:@"sdk_version"];
-    [result setValue:@"iOS" forKey:@"os"];
-    [result setValue:@"18.0" forKey:@"os_version"];
-    [result setValue:@"6.9.69" forKey:@"app_version"];
-    [result setValue:@"iPhone14,2" forKey:@"device_model"];
-    [result setValue:@(NO) forKey:@"is_upgrade_user"];
-    [result setValue:@"00000000-0000-0000-0000-000000000000" forKey:@"idfa"];
-    [result setValue:@"00000000-0000-0000-0000-000000000000" forKey:@"idfv"];
-    [result setValue:@"6.9.69" forKey:@"version_code"];
-    return result;
 }

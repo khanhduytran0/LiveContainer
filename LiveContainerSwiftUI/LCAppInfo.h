@@ -9,8 +9,9 @@ typedef NS_ENUM(NSInteger, LCOrientationLock){
 };
 
 @interface LCAppInfo : NSObject {
-   NSMutableDictionary* _info;
-   NSString* _bundlePath;
+    NSMutableDictionary* _info;
+    NSMutableDictionary* _infoPlist;
+    NSString* _bundlePath;
 }
 @property NSString* relativeBundlePath;
 @property bool isShared;
@@ -18,6 +19,8 @@ typedef NS_ENUM(NSInteger, LCOrientationLock){
 @property bool isLocked;
 @property bool isHidden;
 @property bool doSymlinkInbox;
+@property bool ignoreDlopenError;
+@property bool fixBlackScreen;
 @property bool bypassAssertBarrierOnQueue;
 @property UIColor* cachedColor;
 @property Signer signer;

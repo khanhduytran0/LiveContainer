@@ -2,10 +2,12 @@
 @import MachO;
 @import UIKit;
 
-#import "AltStoreCore/ALTSigner.h"
+#import "../AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
 #import "LCVersionInfo.h"
 #import "../ZSign/zsigner.h"
+
+Class LCSharedUtilsClass = nil;
 
 // make SFSafariView happy and open data: URLs
 @implementation NSURL(hack)
@@ -17,58 +19,27 @@
 
 @implementation LCUtils
 
++ (void)load {
+    LCSharedUtilsClass = NSClassFromString(@"LCSharedUtils");
+}
+
 #pragma mark Certificate & password
++ (NSString *)teamIdentifier {
+    return [LCSharedUtilsClass teamIdentifier];
+}
 
 + (NSURL *)appGroupPath {
-    return [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
-}
-
-+ (BOOL)deleteKeychainItem:(NSString *)key ofStore:(NSString *)store {
-    NSDictionary *dict = @{
-        (id)kSecClass: (id)kSecClassGenericPassword,
-        (id)kSecAttrService: store,
-        (id)kSecAttrAccount: key,
-        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny
-    };
-    OSStatus status = SecItemDelete((__bridge CFDictionaryRef)dict);
-    return status == errSecSuccess;
-}
-
-+ (NSData *)keychainItem:(NSString *)key ofStore:(NSString *)store {
-    NSDictionary *dict = @{
-        (id)kSecClass: (id)kSecClassGenericPassword,
-        (id)kSecAttrService: store,
-        (id)kSecAttrAccount: key,
-        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
-        (id)kSecMatchLimit: (id)kSecMatchLimitOne,
-        (id)kSecReturnData: (id)kCFBooleanTrue
-    };
-    CFTypeRef result = nil;
-    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)dict, &result);
-    if (status == errSecSuccess) {
-        return (__bridge NSData *)result;
-    } else {
-        return nil;
-    }
+    return [LCSharedUtilsClass appGroupPath];
 }
 
 + (NSData *)certificateData {
     NSData* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
-    if(ans) {
-        return ans;
-    } else {
-        return [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
-    }
+    return ans;
     
 }
 
 + (NSString *)certificatePassword {
-    // password of cert retrieved from the store tweak is always @"". We just keep this function so we can check if certificate presents without changing codes.
-    if([[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"]) {
-        return @"";
-    } else {
-        return nil;
-    }
+    return [LCSharedUtilsClass certificatePassword];
 }
 
 + (void)setCertificatePassword:(NSString *)certPassword {
@@ -76,17 +47,21 @@
     [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] setObject:certPassword forKey:@"LCCertificatePassword"];
 }
 
++ (NSString *)appGroupID {
+    return [LCSharedUtilsClass appGroupID];
+}
+
 #pragma mark LCSharedUtils wrappers
 + (BOOL)launchToGuestApp {
-    return [NSClassFromString(@"LCSharedUtils") launchToGuestApp];
+    return [LCSharedUtilsClass launchToGuestApp];
 }
 
 + (BOOL)askForJIT {
-    return [NSClassFromString(@"LCSharedUtils") askForJIT];
+    return [LCSharedUtilsClass askForJIT];
 }
 
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url {
-    return [NSClassFromString(@"LCSharedUtils") launchToGuestAppWithURL:url];
+    return [LCSharedUtilsClass launchToGuestAppWithURL:url];
 }
 
 #pragma mark Code signing
@@ -129,18 +104,16 @@
     loaded = YES;
 }
 
-+ (NSString *)storeBundleID {
-    // Assuming this format never changes...
-    // group.BUNDLEID.YOURTEAMID
-    return [self.appGroupID substringWithRange:NSMakeRange(6, self.appGroupID.length - 17)];
-}
-
 + (NSURL *)storeBundlePath {
-    return [self.appGroupPath URLByAppendingPathComponent:[NSString stringWithFormat:@"Apps/%@/App.app", self.storeBundleID]];
+    if ([self store] == SideStore) {
+        return [self.appGroupPath URLByAppendingPathComponent:@"Apps/com.SideStore.SideStore/App.app"];
+    } else {
+        return [self.appGroupPath URLByAppendingPathComponent:@"Apps/com.rileytestut.AltStore/App.app"];
+    }
 }
 
 + (NSString *)storeInstallURLScheme {
-    if ([self.storeBundleID containsString:@"SideStore"]) {
+    if ([self store] == SideStore) {
         return @"sidestore://install?url=%@";
     } else {
         return @"altstore://install?url=%@";
@@ -194,7 +167,7 @@
     }
 }
 
-+ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
++ (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error))completionHandler {
     NSError *error;
 
     // I'm too lazy to reimplement signer, so let's borrow everything from SideStore
@@ -204,20 +177,20 @@
     // Load libraries from Documents, yeah
     [self loadStoreFrameworksWithError:&error];
     if (error) {
-        completionHandler(NO, nil, error);
+        completionHandler(NO, nil, nil, error);
         return nil;
     }
 
     ALTCertificate *cert = [[NSClassFromString(@"ALTCertificate") alloc] initWithP12Data:self.certificateData password:self.certificatePassword];
     if (!cert) {
         error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTCertificate. Please try: 1. make sure your store is patched 2. reopen your store 3. refresh all apps"}];
-        completionHandler(NO, nil, error);
+        completionHandler(NO, nil, nil, error);
         return nil;
     }
     ALTProvisioningProfile *profile = [[NSClassFromString(@"ALTProvisioningProfile") alloc] initWithURL:profilePath];
     if (!profile) {
         error = [NSError errorWithDomain:NSBundle.mainBundle.bundleIdentifier code:2 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ALTProvisioningProfile. Please try: 1. make sure your store is patched 2. reopen your store 3. refresh all apps"}];
-        completionHandler(NO, nil, error);
+        completionHandler(NO, nil, nil, error);
         return nil;
     }
 
@@ -226,13 +199,13 @@
     ALTSigner *signer = [[NSClassFromString(@"ALTSigner") alloc] initWithTeam:team certificate:cert];
     
     void (^signCompletionHandler)(BOOL success, NSError *error)  = ^(BOOL success, NSError *_Nullable error) {
-        completionHandler(success, [profile expirationDate], error);
+        completionHandler(success, [profile expirationDate], [profile teamIdentifier], error);
     };
 
     return [signer signAppAtURL:path provisioningProfiles:@[(id)profile] completionHandler:signCompletionHandler];
 }
 
-+ (NSProgress *)signAppBundleWithZSign:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSError *error))completionHandler {
++ (NSProgress *)signAppBundleWithZSign:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error))completionHandler {
     NSError *error;
 
     // use zsign as our signer~
@@ -242,7 +215,7 @@
     [self loadStoreFrameworksWithError2:&error];
 
     if (error) {
-        completionHandler(NO, nil, error);
+        completionHandler(NO, nil, nil, error);
         return nil;
     }
 
@@ -254,23 +227,6 @@
 }
 
 #pragma mark Setup
-
-+ (NSString *)appGroupID {
-    static dispatch_once_t once;
-    static NSString *appGroupID = @"group.com.SideStore.SideStore";;
-    dispatch_once(&once, ^{
-        for (NSString *group in NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"]) {
-            NSURL *path = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:group];
-            NSURL *bundlePath = [path URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app"];
-            if ([NSFileManager.defaultManager fileExistsAtPath:bundlePath.path]) {
-                // This will fail if LiveContainer is installed in both stores, but it should never be the case
-                appGroupID = group;
-                return;
-            }
-        }
-    });
-    return appGroupID;
-}
 
 + (Store) store {
     static Store ans;
@@ -343,14 +299,14 @@
     // Sign the test app bundle
     if(signer == AltSign) {
         [LCUtils signAppBundle:[NSURL fileURLWithPath:path]
-        completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
+        completionHandler:^(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *_Nullable error) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 completionHandler(success, error);
             });
         }];
     } else {
         [LCUtils signAppBundleWithZSign:[NSURL fileURLWithPath:path]
-        completionHandler:^(BOOL success, NSDate* expirationDate, NSError *_Nullable error) {
+        completionHandler:^(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *_Nullable error) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 completionHandler(success, error);
             });
@@ -436,6 +392,14 @@
 
     NSFileManager *manager = NSFileManager.defaultManager;
     NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:self.appGroupID];
+    if(!appGroupPath) {
+        NSDictionary* userInfo = @{
+            NSLocalizedDescriptionKey : @"Unable to access App Group. Please check JITLess diagnose page for more information."
+        };
+        *error = [NSError errorWithDomain:@"Unable to Access App Group" code:-1 userInfo:userInfo];
+        return nil;
+    }
+    
     NSURL *lcBundlePath = [appGroupPath URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer"];
     NSURL *bundlePath;
     if ([self store] == SideStore) {

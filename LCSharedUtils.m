@@ -3,14 +3,29 @@
 
 extern NSUserDefaults *lcUserDefaults;
 extern NSString *lcAppUrlScheme;
+extern NSBundle *lcMainBundle;
 
 @implementation LCSharedUtils
 
++ (NSString*) teamIdentifier {
+    static NSString* ans = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        ans = [[lcMainBundle.bundleIdentifier componentsSeparatedByString:@"."] lastObject];
+    });
+    return ans;
+}
+
 + (NSString *)appGroupID {
     static dispatch_once_t once;
-    static NSString *appGroupID = @"group.com.SideStore.SideStore";
+    static NSString *appGroupID = @"Unknown";
     dispatch_once(&once, ^{
-        for (NSString *group in NSBundle.mainBundle.infoDictionary[@"ALTAppGroups"]) {
+        NSArray* possibleAppGroups = @[
+            [@"group.com.SideStore.SideStore." stringByAppendingString:[self teamIdentifier]],
+            [@"group.com.rileytestut.AltStore." stringByAppendingString:[self teamIdentifier]]
+        ];
+
+        for (NSString *group in possibleAppGroups) {
             NSURL *path = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:group];
             NSURL *bundlePath = [path URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app"];
             if ([NSFileManager.defaultManager fileExistsAtPath:bundlePath.path]) {
@@ -23,12 +38,22 @@ extern NSString *lcAppUrlScheme;
     return appGroupID;
 }
 
++ (NSURL*) appGroupPath {
+    static NSURL *appGroupPath = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
+    });
+    return appGroupPath;
+}
+
 + (NSString *)certificatePassword {
+    // password of cert retrieved from the store tweak is always @"". We just keep this function so we can check if certificate presents without changing codes.
     NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
     if(ans) {
-        return ans;
+        return @"";
     } else {
-        return [lcUserDefaults objectForKey:@"LCCertificatePassword"];
+        return nil;
     }
 }
 
@@ -45,10 +70,12 @@ extern NSString *lcAppUrlScheme;
         urlScheme = @"sidestore://sidejit-enable?bid=%@";
     }
     NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
-    if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
+
+    UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
+    if ([application canOpenURL:launchURL]) {
         //[UIApplication.sharedApplication suspend];
         for (int i = 0; i < tries; i++) {
-        [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:^(BOOL b) {
+        [application openURL:launchURL options:@{} completionHandler:^(BOOL b) {
             exit(0);
         }];
         }
@@ -63,8 +90,9 @@ extern NSString *lcAppUrlScheme;
     if (!access(tsPath.UTF8String, F_OK)) {
         urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
         NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
-        if ([UIApplication.sharedApplication canOpenURL:launchURL]) {
-            [UIApplication.sharedApplication openURL:launchURL options:@{} completionHandler:nil];
+        UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
+        if ([application canOpenURL:launchURL]) {
+            [application openURL:launchURL options:@{} completionHandler:nil];
             [LCSharedUtils launchToGuestApp];
             return YES;
         }
@@ -131,8 +159,7 @@ extern NSString *lcAppUrlScheme;
     static NSURL *infoPath;
     
     dispatch_once(&once, ^{
-        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
-        infoPath = [appGroupPath URLByAppendingPathComponent:@"LiveContainer/appLock.plist"];
+        infoPath = [[LCSharedUtils appGroupPath] URLByAppendingPathComponent:@"LiveContainer/appLock.plist"];
     });
     return infoPath;
 }
@@ -142,8 +169,7 @@ extern NSString *lcAppUrlScheme;
     static NSURL *infoPath;
     
     dispatch_once(&once, ^{
-        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
-        infoPath = [appGroupPath URLByAppendingPathComponent:@"LiveContainer/containerLock.plist"];
+        infoPath = [[LCSharedUtils appGroupPath] URLByAppendingPathComponent:@"LiveContainer/containerLock.plist"];
     });
     return infoPath;
 }
@@ -250,8 +276,7 @@ extern NSString *lcAppUrlScheme;
         .lastObject;
     NSURL *docPathUrl = [fm URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask]
         .lastObject;
-    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
-    NSURL *appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
+    NSURL *appGroupFolder = [[LCSharedUtils appGroupPath] URLByAppendingPathComponent:@"LiveContainer"];
     
     NSError *error;
     NSString *sharedAppDataFolderPath = [libraryPathUrl.path stringByAppendingPathComponent:@"SharedDocuments"];
@@ -289,8 +314,7 @@ extern NSString *lcAppUrlScheme;
     NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
     // not found locally, let's look for the app in shared folder
     if (!appBundle) {
-        NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
-        appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
+        appGroupFolder = [[LCSharedUtils appGroupPath] URLByAppendingPathComponent:@"LiveContainer"];
         
         bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, bundleId];
         appBundle = [[NSBundle alloc] initWithPath:bundlePath];
@@ -323,10 +347,9 @@ extern NSString *lcAppUrlScheme;
 
 + (NSString*)findDefaultContainerWithBundleId:(NSString*)bundleId {
     // find app's default container
-    NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
-    NSURL* appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
+    NSURL* appGroupFolder = [[LCSharedUtils appGroupPath] URLByAppendingPathComponent:@"LiveContainer"];
     
-    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/Info.plist", appGroupFolder.path, bundleId];
+    NSString* bundleInfoPath = [NSString stringWithFormat:@"%@/Applications/%@/LCAppInfo.plist", appGroupFolder.path, bundleId];
     NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:bundleInfoPath];
     return infoDict[@"LCDataUUID"];
 }

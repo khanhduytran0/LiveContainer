@@ -201,7 +201,7 @@ struct LCAppSettingsView : View{
                         }
 
                     } else {
-                        Text("lc.appSettings.languageLoading".loc)
+                        Text("lc.common.loading".loc)
                             .onAppear() {
                                 Task{ loadSupportedLanguages() }
                             }
@@ -249,6 +249,28 @@ struct LCAppSettingsView : View{
                         Task { await setOrientationLock(newValue) }
                     })
                 }
+            }
+            
+            Section {
+                Toggle(isOn: $model.uiIgnoreDlopenError) {
+                    Text("lc.appSettings.ignoreDlopenError".loc)
+                }
+                .onChange(of: model.uiIgnoreDlopenError, perform: { newValue in
+                    Task { await setIgnoreDlopenError(newValue) }
+                })
+            } footer: {
+                Text("lc.appSettings.ignoreDlopenErrorDesc".loc)
+            }
+            
+            Section {
+                Toggle(isOn: $model.uiFixBlackScreen) {
+                    Text("lc.appSettings.fixBlackScreen".loc)
+                }
+                .onChange(of: model.uiFixBlackScreen, perform: { newValue in
+                    Task { await setFixBlackScreen(newValue) }
+                })
+            } footer: {
+                Text("lc.appSettings.fixBlackScreenDesc".loc)
             }
 
             
@@ -358,7 +380,7 @@ struct LCAppSettingsView : View{
         }
         
         self.appDataFolders.append(newName)
-        let newContainer = LCContainer(folderName: newName, name: displayName, isShared: model.uiIsShared)
+        let newContainer = LCContainer(folderName: newName, name: displayName, isShared: model.uiIsShared, isolateAppGroup: false)
         // assign keychain group
         var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
         for i in 0...2 {
@@ -492,6 +514,16 @@ struct LCAppSettingsView : View{
         model.uiUseLCBundleId = doUseLCBundleId
     }
     
+    func setIgnoreDlopenError(_ ignoreDlopenError : Bool) async {
+        appInfo.ignoreDlopenError = ignoreDlopenError
+        model.uiIgnoreDlopenError = ignoreDlopenError
+    }
+    
+    func setFixBlackScreen(_ fixBlackScreen : Bool) async {
+        appInfo.fixBlackScreen = fixBlackScreen
+        model.uiFixBlackScreen = fixBlackScreen
+    }
+    
     func setOrientationLock(_ lock : LCOrientationLock) async {
         appInfo.orientationLock = lock
         model.uiOrientationLock = lock
@@ -604,7 +636,7 @@ extension LCAppSettingsView : LCSelectContainerViewDelegate {
         }
         
         for folderName in containers {
-            let newContainer = LCContainer(folderName: folderName, name: folderName, isShared: false)
+            let newContainer = LCContainer(folderName: folderName, name: folderName, isShared: false, isolateAppGroup: false)
             newContainer.loadName()
             if newContainer.keychainGroupId == -1 {
                 // assign keychain group for old containers

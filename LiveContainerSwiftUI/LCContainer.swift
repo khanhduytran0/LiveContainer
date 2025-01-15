@@ -12,6 +12,7 @@ class LCContainer : ObservableObject, Hashable {
     @Published var folderName : String
     @Published var name : String
     @Published var isShared : Bool
+    @Published var isolateAppGroup : Bool
     private var infoDict : [String:Any]?
     public var containerURL : URL {
         if isShared {
@@ -47,20 +48,26 @@ class LCContainer : ObservableObject, Hashable {
         }
     }
     
-    init(folderName: String, name: String, isShared : Bool) {
+    init(folderName: String, name: String, isShared : Bool, isolateAppGroup: Bool) {
         self.folderName = folderName
         self.name = name
         self.isShared = isShared
+        self.isolateAppGroup = isolateAppGroup
     }
     
     convenience init(infoDict : [String : Any], isShared : Bool) {
-        self.init(folderName: infoDict["folderName"] as? String ?? "ERROR", name: infoDict["name"] as? String ?? "ERROR", isShared: isShared)
+        self.init(folderName: infoDict["folderName"] as? String ?? "ERROR",
+                  name: infoDict["name"] as? String ?? "ERROR",
+                  isShared: isShared,
+                  isolateAppGroup: infoDict["isolateAppGroup"] as? Bool ?? false
+        )
     }
     
     func toDict() -> [String : Any] {
         return [
             "folderName" : folderName,
             "name" : name,
+            "isolateAppGroup" : isolateAppGroup
         ]
     }
     
@@ -68,7 +75,8 @@ class LCContainer : ObservableObject, Hashable {
         infoDict = [
             "appIdentifier" : appIdentifier,
             "name" : name,
-            "keychainGroupId" : keychainGroupId
+            "keychainGroupId" : keychainGroupId,
+            "isolateAppGroup" : isolateAppGroup,
         ]
         do {
             let fm = FileManager.default
@@ -94,6 +102,7 @@ class LCContainer : ObservableObject, Hashable {
             return
         }
         name = infoDict["name"] as? String ?? "ERROR"
+        isolateAppGroup = infoDict["isolateAppGroup"] as? Bool ?? false
     }
     
     static func == (lhs: LCContainer, rhs: LCContainer) -> Bool {
@@ -114,6 +123,7 @@ extension LCAppInfo {
                 containerInfo = [[
                     "folderName": oldDataUUID,
                     "name": oldDataUUID,
+                    "isolateAppGroup": false
                 ]]
                 upgrade = true
             }

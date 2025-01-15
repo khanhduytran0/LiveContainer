@@ -7,7 +7,7 @@
 BOOL fixFilePicker;
 __attribute__((constructor))
 static void NSFMGuestHooksInit() {
-    fixFilePicker = [NSBundle.mainBundle.infoDictionary[@"doSymlinkInbox"] boolValue];
+    fixFilePicker = [NSUserDefaults.guestAppInfo[@"doSymlinkInbox"] boolValue];
     
     swizzle(UIDocumentPickerViewController.class, @selector(initForOpeningContentTypes:asCopy:), @selector(hook_initForOpeningContentTypes:asCopy:));
     swizzle(UIDocumentPickerViewController.class, @selector(initWithDocumentTypes:inMode:), @selector(hook_initWithDocumentTypes:inMode:));

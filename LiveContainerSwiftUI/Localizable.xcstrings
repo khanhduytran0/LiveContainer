@@ -773,6 +773,40 @@
         }
       }
     },
+    "lc.appSettings.fixBlackScreen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix Black Screen"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复黑屏"
+          }
+        }
+      }
+    },
+    "lc.appSettings.fixBlackScreenDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If app shows a black screen when launching and crash after about 10s, enable this option."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果App启动时黑屏，并在10秒后崩溃，启用这个选项。"
+          }
+        }
+      }
+    },
     "lc.appSettings.fixes" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -892,19 +926,36 @@
         }
       }
     },
-    "lc.appSettings.languageLoading" : {
+    "lc.appSettings.ignoreDlopenError" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loading Available Languages…"
+            "value" : "Ignore Error During dlopen"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在加载可选语言"
+            "value" : "忽略dlopen时的错误"
+          }
+        }
+      }
+    },
+    "lc.appSettings.ignoreDlopenErrorDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Might solve errors like dlsym(xxxx, xxxx): symbol not found"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可能解决类似dlsym(xxxx,xxxx): symbol not found的问题"
           }
         }
       }
@@ -966,7 +1017,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "New data folder"
+            "value" : "New Data Folder"
           }
         },
         "zh_CN" : {
@@ -1351,6 +1402,23 @@
         }
       }
     },
+    "lc.common.loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading…"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载中…"
+          }
+        }
+      }
+    },
     "lc.common.miscellaneous" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1381,6 +1449,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "移动"
+          }
+        }
+      }
+    },
+    "lc.common.no" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "否"
           }
         }
       }
@@ -1449,6 +1534,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "成功"
+          }
+        }
+      }
+    },
+    "lc.common.unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知"
+          }
+        }
+      }
+    },
+    "lc.common.yes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "是"
           }
         }
       }
@@ -1585,6 +1704,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "容器当前正在被%@使用。"
+          }
+        }
+      }
+    },
+    "lc.container.isolateAppGroup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isolate App Group"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "独立AppGroup"
           }
         }
       }
@@ -1857,6 +1993,210 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开网页并打开App需要先终止当前App，要继续吗？若App支持，你也可以在当前App内打开。"
+          }
+        }
+      }
+    },
+    "lc.helpView.text1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setup JITLess mode (Patch Store) in settings to use LiveContainer without JIT.\n\n**Check JITLess Diagnose page in settings if you have trouble enabling JITLess mode.**\n\nPress plus button to install apps.\n\nLong press app for app-specific settings, fixes and adding apps to homescreen."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在设置中配置免JIT模式(打补丁)来使得LiveContainer无需JIT权限即可使用。\n\n**如果配置免JIT模式时遇到问题，请查看免JIT模式诊断页面。**\n\n点击加号按钮来安装App。\n\n长按App可查看App设置，修复App问题，以及将App添加到主屏幕。"
+          }
+        }
+      }
+    },
+    "lc.helpView.text2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Check [LiveContainer FAQ](https://github.com/khanhduytran0/LiveContainer/issues/265) for common issues.**\n                         \nIf you encounters a bug or compatibility issue please submit on [GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**遇到问题时请先查看[LiveContainer常见问题（英语）](https://github.com/khanhduytran0/LiveContainer/issues/265)。**\n                         \n如果你遇到Bug或者App兼容性问题，请到[GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)提交。"
+          }
+        }
+      }
+    },
+    "lc.helpView.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer Help"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer帮助"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.appGroupAccessible" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Group Accessible"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Group可访问"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.appGroupId" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Group ID"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Group名"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.bundleId" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle Identifier"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包名"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.certDataFound" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Data Found"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测到证书数据"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.certLastUpdate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Last Update Date"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "证书上次更新时间"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.certPassFound" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Password Found"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测到证书密码"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.getHelp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get Help"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取帮助"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.patchDetected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch Detected"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测到补丁"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.store" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Store"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装方式"
           }
         }
       }
@@ -2231,7 +2571,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Frame Short Icon"
+            "value" : "Frame Shortcut Icon"
           }
         },
         "zh_CN" : {
@@ -2374,6 +2714,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "配置免JIT模式后，LiveContainer无需JIT即可使用。给SideStore或AltStore打补丁后即可使用。"
+          }
+        }
+      }
+    },
+    "lc.settings.jitlessDiagnose" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JIT-Less Mode Diagnose"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免JIT模式诊断"
           }
         }
       }
@@ -2781,6 +3138,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果App重新签名过于频繁，可尝试启用此项。"
+          }
+        }
+      }
+    },
+    "lc.settings.silentOpenWebPage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always Open URL in Current App"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总是在当前App打开链接"
+          }
+        }
+      }
+    },
+    "lc.settings.silentOpenWebPageDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By default, LiveContainer asks you how to open an URL. Enable this automatically open URL in current app."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer在打开链接时会询问你如何打开。启用此选项来自动在当前App中打开。"
           }
         }
       }
