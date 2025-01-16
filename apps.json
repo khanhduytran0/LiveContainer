@@ -31,7 +31,9 @@
           "application-identifier",
           "com.apple.security.application-groups",
           "get-task-allow",
-          "keychain-access-groups"
+          "keychain-access-groups",
+          "com.apple.developer.kernel.extended-virtual-addressing",
+          "com.apple.developer.kernel.increased-memory-limit"
         ],
         "privacy": {
           "LSRequiresIPhoneOS": "The guest app is requesting for this permission.",
@@ -67,7 +69,10 @@
           "NSSpeechRecognitionUsageDescription": "The guest app is requesting for this permission.",
           "NSUserTrackingUsageDescription": "The guest app is requesting for this permission.",
           "SBAppUsesLocalNotifications": "The guest app is requesting for this permission.",
-          "UIApplicationSceneManifest": "The guest app is requesting for this permission."
+          "UIApplicationSceneManifest": "The guest app is requesting for this permission.",
+          "NSHealthUpdateUsageDescription": "The guest app is requesting for this permission.",
+          "NSHealthShareUsageDescription": "The guest app is requesting for this permission.",
+          "NSLocationAlwaysAndWhenInUseUsageDescription": "The guest app is requesting for this permission."
         }
       },
       "versions": [
