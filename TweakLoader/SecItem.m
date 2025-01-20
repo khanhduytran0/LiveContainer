@@ -73,17 +73,27 @@ OSStatus new_SecItemDelete(CFDictionaryRef query){
 
 __attribute__((constructor))
 static void SecItemGuestHooksInit()  {
+    // don't separate keychain in Enterprise/ADP certs due to entitlement issues, can be overriden by LCSaparateKeychainWhenCertImported
+    if([NSUserDefaults.lcUserDefaults boolForKey:@"LCCertificateImported"] && ![NSUserDefaults.lcUserDefaults boolForKey:@"LCSaparateKeychainWhenCertImported"]) {
+        return;
+    }
+    
     containerId = [NSString stringWithUTF8String:getenv("HOME")].lastPathComponent;
     NSString* containerInfoPath = [[NSString stringWithUTF8String:getenv("HOME")] stringByAppendingPathComponent:@"LCContainerInfo.plist"];
     NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:containerInfoPath];
     int keychainGroupId = [infoDict[@"keychainGroupId"] intValue];
-    NSString* groupId = [[NSUserDefaults.lcMainBundle.bundleIdentifier componentsSeparatedByString:@"."] lastObject];
+    NSString* groupId;
+    if([NSUserDefaults.lcUserDefaults boolForKey:@"LCCertificateImported"]) {
+        groupId = [NSUserDefaults.lcUserDefaults stringForKey:@"LCCertificateTeamId"];
+    } else {
+        groupId = [[NSUserDefaults.lcMainBundle.bundleIdentifier componentsSeparatedByString:@"."] lastObject];
+    }
     if(keychainGroupId == 0) {
         accessGroup = [NSString stringWithFormat:@"%@.com.kdt.livecontainer.shared", groupId];
     } else {
         accessGroup = [NSString stringWithFormat:@"%@.com.kdt.livecontainer.shared.%d", groupId, keychainGroupId];
     }
-
+    NSLog(@"[LC] access group = %@", accessGroup);
     struct rebinding rebindings[] = (struct rebinding[]){
         {"SecItemAdd", (void *)new_SecItemAdd, (void **)&orig_SecItemAdd},
         {"SecItemCopyMatching", (void *)new_SecItemCopyMatching, (void **)&orig_SecItemCopyMatching},

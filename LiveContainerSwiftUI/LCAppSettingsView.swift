@@ -161,16 +161,19 @@ struct LCAppSettingsView : View{
                         .transition(.opacity.combined(with: .slide))
                 }
             }
-
-            Picker(selection: $model.uiSigner) {
-                Text("AltSign").tag(Signer.AltSign)
-                Text("ZSign").tag(Signer.ZSign)
-            } label: {
-                Text("lc.appSettings.signer".loc)
+            
+            if !sharedModel.certificateImported {
+                Picker(selection: $model.uiSigner) {
+                    Text("AltSign").tag(Signer.AltSign)
+                    Text("ZSign").tag(Signer.ZSign)
+                } label: {
+                    Text("lc.appSettings.signer".loc)
+                }
+                .onChange(of: model.uiSigner, perform: { newValue in
+                    Task { await setSigner(newValue) }
+                })
             }
-            .onChange(of: model.uiSigner, perform: { newValue in
-                Task { await setSigner(newValue) }
-            })
+
             
             Section {
                 NavigationLink {

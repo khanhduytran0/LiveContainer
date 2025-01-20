@@ -29,6 +29,11 @@ struct LCSettingsView: View {
     @StateObject private var patchAltStoreAlert = AlertHelper<PatchChoice>()
     @State private var isAltStorePatched = false
     
+    @StateObject private var certificateImportAlert = YesNoHelper()
+    @StateObject private var certificateRemoveAlert = YesNoHelper()
+    @StateObject private var certificateImportFileAlert = AlertHelper<URL>()
+    @StateObject private var certificateImportPasswordAlert = InputHelper()
+    
     @State var isJitLessEnabled = false
     @State var defaultSigner = Signer.ZSign
     @State var isSignOnlyOnExpiration = true
@@ -45,6 +50,7 @@ struct LCSettingsView: View {
     
     @State var injectToLCItelf = false
     @State var ignoreJITOnLaunch = false
+    @State var doSaparateKeychainWhenCertImported = false
     
     @EnvironmentObject private var sharedModel : SharedModel
     
@@ -56,7 +62,6 @@ struct LCSettingsView: View {
         if(LCUtils.appGroupUserDefault.object(forKey: "LCSignOnlyOnExpiration") == nil) {
             LCUtils.appGroupUserDefault.set(true, forKey: "LCSignOnlyOnExpiration")
         }
-        _defaultSigner = State(initialValue: Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!)
         
         _isSignOnlyOnExpiration = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCSignOnlyOnExpiration"))
         _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
@@ -64,8 +69,15 @@ struct LCSettingsView: View {
         _silentOpenWebPage = State(initialValue: UserDefaults.standard.bool(forKey: "LCOpenWebPageWithoutAsking"))
         _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
         _ignoreJITOnLaunch = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreJITOnLaunch"))
+        _doSaparateKeychainWhenCertImported = State(initialValue: UserDefaults.standard.bool(forKey: "LCSaparateKeychainWhenCertImported"))
         
         _isSideStore = State(initialValue: LCUtils.store() == .SideStore)
+        
+        DataManager.shared.model.certificateImported = UserDefaults.standard.bool(forKey: "LCCertificateImported")
+        if !DataManager.shared.model.certificateImported {
+            // Only ZSign is available to ADP / Enterprise certs
+            _defaultSigner = State(initialValue: Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!)
+        }
         
         _appDataFolderNames = appDataFolderNames
         
@@ -89,14 +101,29 @@ struct LCSettingsView: View {
             Form {
                 if sharedModel.multiLCStatus != 2 {
                     Section{
-                        
-                        Button {
-                            Task { await patchAltStore() }
-                        } label: {
-                            if isAltStorePatched {
-                                Text("lc.settings.patchStoreAgain %@".localizeWithFormat(storeName))
-                            } else {
-                                Text("lc.settings.patchStore %@".localizeWithFormat(storeName))
+                        if !sharedModel.certificateImported {
+                            Button {
+                                Task { await patchAltStore() }
+                            } label: {
+                                if isAltStorePatched {
+                                    Text("lc.settings.patchStoreAgain %@".localizeWithFormat(storeName))
+                                } else {
+                                    Text("lc.settings.patchStore %@".localizeWithFormat(storeName))
+                                }
+                            }
+                            if !isAltStorePatched {
+                                Button {
+                                    Task{ await importCertificate() }
+                                } label: {
+                                    Text("lc.settings.importCertificate".loc)
+                                }
+                            }
+
+                        } else {
+                            Button {
+                                Task{ await removeCertificate() }
+                            } label: {
+                                Text("lc.settings.removeCertificate".loc)
                             }
                         }
                         
@@ -113,7 +140,9 @@ struct LCSettingsView: View {
                         }
                         
                         Picker(selection: $defaultSigner) {
-                            Text("AltSign").tag(Signer.AltSign)
+                            if !sharedModel.certificateImported {
+                                Text("AltSign").tag(Signer.AltSign)
+                            }
                             Text("ZSign").tag(Signer.ZSign)
                         } label: {
                             Text("lc.settings.defaultSigner")
@@ -258,6 +287,9 @@ struct LCSettingsView: View {
                         Toggle(isOn: $ignoreJITOnLaunch) {
                             Text("Ignore JIT on Launching App")
                         }
+                        Toggle(isOn: $doSaparateKeychainWhenCertImported) {
+                            Text("Saparate Keychain When Cert is Imported")
+                        }
                         Button {
                             export()
                         } label: {
@@ -375,6 +407,51 @@ struct LCSettingsView: View {
                 }
 
             }
+            .alert("lc.settings.importCertificate".loc, isPresented: $certificateImportAlert.show) {
+                Button {
+                    certificateImportAlert.close(result: true)
+                } label: {
+                    Text("lc.common.ok".loc)
+                }
+
+                Button("lc.common.cancel".loc, role: .cancel) {
+                    certificateImportAlert.close(result: false)
+                }
+            } message: {
+                Text("lc.settings.importCertificateDesc".loc)
+            }
+            .alert("lc.settings.removeCertificate".loc, isPresented: $certificateRemoveAlert.show) {
+                Button(role: .destructive) {
+                    certificateRemoveAlert.close(result: true)
+                } label: {
+                    Text("lc.common.ok".loc)
+                }
+
+                Button("lc.common.cancel".loc, role: .cancel) {
+                    certificateRemoveAlert.close(result: false)
+                }
+            } message: {
+                Text("lc.settings.removeCertificateDesc".loc)
+            }
+            .betterFileImporter(isPresented: $certificateImportFileAlert.show, types: [.p12], multiple: false, callback: { fileUrls in
+                certificateImportFileAlert.close(result: fileUrls[0])
+            }, onDismiss: {
+                certificateImportFileAlert.close(result: nil)
+            })
+            .textFieldAlert(
+                isPresented: $certificateImportPasswordAlert.show,
+                title: "lc.settings.importCertificateInputPassword".loc,
+                text: $certificateImportPasswordAlert.initVal,
+                placeholder: "",
+                action: { newText in
+                    certificateImportPasswordAlert.close(result: newText)
+                },
+                actionCancel: {_ in
+                    certificateImportPasswordAlert.close(result: nil)
+                    certificateImportPasswordAlert.show = false
+                }
+            )
+            
             .onChange(of: isSignOnlyOnExpiration) { newValue in
                 saveAppGroupItem(key: "LCSignOnlyOnExpiration", val: newValue)
             }
@@ -392,6 +469,9 @@ struct LCSettingsView: View {
             }
             .onChange(of: ignoreJITOnLaunch) { newValue in
                 saveItem(key: "LCIgnoreJITOnLaunch", val: newValue)
+            }
+            .onChange(of: doSaparateKeychainWhenCertImported) { newValue in
+                saveItem(key: "LCSaparateKeychainWhenCertImported", val: newValue)
             }
             .onChange(of: strictHiding) { newValue in
                 saveAppGroupItem(key: "LCStrictHiding", val: newValue)
@@ -713,5 +793,47 @@ struct LCSettingsView: View {
         } else {
             print("certPassword not found in UserDefaults.")
         }
+    }
+    
+    func importCertificate() async {
+        guard let doImport = await certificateImportAlert.open(), doImport else {
+            return
+        }
+        guard let certificateURL = await certificateImportFileAlert.open() else {
+            return
+        }
+        guard let certificatePassword = await certificateImportPasswordAlert.open() else {
+            return
+        }
+        let certificateData : Data
+        do {
+            certificateData = try Data(contentsOf: certificateURL)
+        } catch {
+            errorInfo = error.localizedDescription
+            errorShow = true
+            return
+        }
+        
+        guard let teamId = LCUtils.getCertTeamId(withKeyData: certificateData, password: certificatePassword) else {
+            errorInfo = "lc.settings.invalidCertError".loc
+            errorShow = true
+            return
+        }
+        UserDefaults.standard.set(certificatePassword, forKey: "LCCertificatePassword")
+        UserDefaults.standard.set(certificateData, forKey: "LCCertificateData")
+        UserDefaults.standard.set(teamId, forKey: "LCCertificateTeamId")
+        UserDefaults.standard.set(true, forKey: "LCCertificateImported")
+        sharedModel.certificateImported = true
+    }
+    
+    func removeCertificate() async {
+        guard let doRemove = await certificateRemoveAlert.open(), doRemove else {
+            return
+        }
+        UserDefaults.standard.set(false, forKey: "LCCertificateImported")
+        UserDefaults.standard.set(nil, forKey: "LCCertificatePassword")
+        UserDefaults.standard.set(nil, forKey: "LCCertificateData")
+        UserDefaults.standard.set(nil, forKey: "LCCertificateTeamId")
+        sharedModel.certificateImported = false
     }
 }

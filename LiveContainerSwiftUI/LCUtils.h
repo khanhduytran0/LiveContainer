@@ -40,6 +40,7 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header);
 + (void)removeCodeSignatureFromBundleURL:(NSURL *)appURL;
 + (NSProgress *)signAppBundle:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error))completionHandler;
 + (NSProgress *)signAppBundleWithZSign:(NSURL *)path completionHandler:(void (^)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error))completionHandler;
++ (NSString*)getCertTeamIdWithKeyData:(NSData*)keyData password:(NSString*)password;
 + (BOOL)isAppGroupAltStoreLike;
 + (Store)store;
 + (NSString *)teamIdentifier;

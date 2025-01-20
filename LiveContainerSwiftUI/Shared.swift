@@ -58,6 +58,8 @@ class SharedModel: ObservableObject {
     // 0= not installed, 1= is installed, 2=current liveContainer is the second one
     @Published var multiLCStatus = 0
     
+    @Published var certificateImported = false
+    
     @Published var apps : [LCAppModel] = []
     @Published var hiddenApps : [LCAppModel] = []
     let isPhone: Bool = {
@@ -100,8 +102,12 @@ class AlertHelper<T> : ObservableObject {
     }
     
     func close(result: T?) {
-        self.result = result
-        c?.resume()
+        if let c {
+            self.result = result
+            c.resume()
+            self.c = nil
+        }
+
     }
 }
 
@@ -157,6 +163,7 @@ extension UTType {
     static let dylib = UTType(filenameExtension: "dylib")!
     static let deb = UTType(filenameExtension: "deb")!
     static let lcFramework = UTType(filenameExtension: "framework", conformingTo: .package)!
+    static let p12 = UTType(filenameExtension: "p12")!
 }
 
 struct SafariView: UIViewControllerRepresentable {

@@ -19,4 +19,9 @@ NSProgress* currentZSignProgress;
         });
     return ans;
 }
+
+// this method is used to get teamId for ADP/Enterprise certs ,don't use it in normal jitless
++ (NSString*)getTeamIdWithProv:(NSData *)prov key:(NSData *)key pass:(NSString *)pass {
+    return getTeamId(prov, key, pass);
+}
 @end

@@ -357,7 +357,8 @@
             
             __block NSProgress *progress;
             
-            switch ([self signer]) {
+            Signer currentSigner = [NSUserDefaults.standardUserDefaults boolForKey:@"LCCertificateImported"] ? ZSign : [self signer];
+            switch (currentSigner) {
                 case ZSign:
                     progress = [LCUtils signAppBundleWithZSign:appPathURL completionHandler:signCompletionHandler];
                     break;

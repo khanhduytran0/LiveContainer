@@ -48,12 +48,17 @@ extern NSBundle *lcMainBundle;
 }
 
 + (NSString *)certificatePassword {
-    // password of cert retrieved from the store tweak is always @"". We just keep this function so we can check if certificate presents without changing codes.
-    NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
-    if(ans) {
-        return @"";
+    if([NSUserDefaults.standardUserDefaults boolForKey:@"LCCertificateImported"]) {
+        NSString* ans = [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
+        return ans;
     } else {
-        return nil;
+        // password of cert retrieved from the store tweak is always @"". We just keep this function so we can check if certificate presents without changing codes.
+        NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
+        if(ans) {
+            return @"";
+        } else {
+            return nil;
+        }
     }
 }
 

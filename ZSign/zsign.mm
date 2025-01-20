@@ -236,4 +236,25 @@ void zsign(NSString *appPath,
 	return;
 }
 
+NSString* getTeamId(NSData *prov,
+                    NSData *key,
+                    NSString *pass) {
+    string strPassword;
+
+    const char* strPKeyFileData = (const char*)[key bytes];
+    const char* strProvFileData = (const char*)[prov bytes];
+    strPassword = [pass cStringUsingEncoding:NSUTF8StringEncoding];
+    
+    ZLog::logs.clear();
+
+    __block ZSignAsset zSignAsset;
+    
+    if (!zSignAsset.InitSimple(strPKeyFileData, (int)[key length], strProvFileData, (int)[prov length], strPassword)) {
+        ZLog::logs.clear();
+        return nil;
+    }
+    NSString* teamId = [NSString stringWithUTF8String:zSignAsset.m_strTeamId.c_str()];
+    return teamId;
+}
+
 }

@@ -382,6 +382,23 @@
         }
       }
     },
+    "lc.appList.convertToSharedToShowInLC2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convert Apps to Shared Apps to Use Them in LiveContainer2"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将App转换为共享App以在LiveContainer中使用"
+          }
+        }
+      }
+    },
     "lc.appList.enterUrlTip" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2020,7 +2037,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "**Check [LiveContainer FAQ](https://github.com/khanhduytran0/LiveContainer/issues/265) for common issues.**\n                         \nIf you encounters a bug or compatibility issue please submit on [GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)."
+            "value" : "**Check [LiveContainer FAQ](https://github.com/khanhduytran0/LiveContainer/issues/265) for common issues.**\n                         \nIf you encounter a bug or compatibility issue please submit on [GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)."
           }
         },
         "zh_CN" : {
@@ -2599,6 +2616,57 @@
         }
       }
     },
+    "lc.settings.importCertificate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Certificate"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入证书"
+          }
+        }
+      }
+    },
+    "lc.settings.importCertificateDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To use JITLess mode without AltStore/SideStore, you have to import the certificate used to sign LiveContainer. Continue?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要不通过SideStore/AltStore使用免JIT模式，你需要导入用于签名LiveContainer的证书。要继续吗？"
+          }
+        }
+      }
+    },
+    "lc.settings.importCertificateInputPassword" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please Input Password of the Certificate"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入证书密码"
+          }
+        }
+      }
+    },
     "lc.settings.injectLCItself" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2646,6 +2714,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "外观"
+          }
+        }
+      }
+    },
+    "lc.settings.invalidCertError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to validate certificate. Please check the password and if the selected certificate is used to sign LiveContainer."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证证书失败，请检查密码并确认该证书是签名LiveContainer所使用的证书"
           }
         }
       }
@@ -3074,6 +3159,40 @@
         }
       }
     },
+    "lc.settings.removeCertificate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Certificate"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除证"
+          }
+        }
+      }
+    },
+    "lc.settings.removeCertificateDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You won’t be able to install apps after removing the certificate. Continue?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除证书后你无法签名App，要继续吗？"
+          }
+        }
+      }
+    },
     "lc.settings.renewJitLess" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3097,13 +3216,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "If ZSign reports an error, please try AltSign. Please restart LiveContainer after switching Signer."
+            "value" : "If AltSign reports an error, please try ZSign and vice versa. Please restart LiveContainer after switching Signer."
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "若ZSign签名遇到问题，可尝试使用AltSign。切换签名工具后请重启LiveContainer。"
+            "value" : "若AltSign签名遇到问题，可尝试使用ZSign，反之亦然。切换签名工具后请重启LiveContainer。"
           }
         }
       }
