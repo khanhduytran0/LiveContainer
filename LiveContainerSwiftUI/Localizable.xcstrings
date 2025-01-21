@@ -394,7 +394,7 @@
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将App转换为共享App以在LiveContainer中使用"
+            "value" : "将App转换为共享App以在LiveContainer2中使用"
           }
         }
       }
@@ -1262,6 +1262,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "容器"
+          }
+        }
+      }
+    },
+    "lc.common.continue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续"
           }
         }
       }
@@ -2972,6 +2989,23 @@
         }
       }
     },
+    "lc.settings.multiLCArchiveSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The packed second LiveContainer has been saved to LiveContainer's document folder. Please install it manually."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打包的第二个LiveContainer ipa已经保存到LiveContainer的“文件”文件夹，请将其手动安装。"
+          }
+        }
+      }
+    },
     "lc.settings.multiLCDesc" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3002,6 +3036,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装第二个LiveContainer"
+          }
+        }
+      }
+    },
+    "lc.settings.multiLCInstallAlertDesc %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ will be opened to install the second LiveContainer, Continue?\\n\\nSelect “Archive Only” if you want to do some customization and install manually."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即将跳转到%@来安装第二个LiveContainer，要继续吗？ 可选择“仅打包”来进行自定义并手动安装。"
           }
         }
       }
@@ -3114,13 +3165,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Patched %@ has been saved to LiveContainer's document folder. Please install it with the %@ that LiveContainer is installed with."
+            "value" : "Patched %@ ipa has been saved to LiveContainer's document folder. Please install it with the %@ that LiveContainer is installed with."
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打包的%@已经保存到LiveContainer的“文件”文件夹，请将其手动安装到安装了LiveContainer的那个%@中。"
+            "value" : "打包的%@ ipa已经保存到LiveContainer的“文件”文件夹，请将其手动安装到安装了LiveContainer的那个%@中。"
           }
         }
       }

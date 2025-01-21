@@ -236,18 +236,30 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     NSURL *appGroupFolder = nil;
     
     NSString *bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", docPath, selectedApp];
-    NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+    guestAppInfo = [NSDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/LCAppInfo.plist", bundlePath]];
     bool isSharedBundle = false;
     // not found locally, let's look for the app in shared folder
-    if (!appBundle) {
+    if(!guestAppInfo) {
         NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
         appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
-        
         bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, selectedApp];
-        appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+        guestAppInfo = [NSDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/LCAppInfo.plist", bundlePath]];
         isSharedBundle = true;
     }
-    guestAppInfo = [NSDictionary dictionaryWithContentsOfURL:[appBundle URLForResource:@"LCAppInfo" withExtension:@"plist"]];
+    
+    if(!guestAppInfo) {
+        return @"Unable to read LCAppInfo.plist";
+    }
+    
+    if([guestAppInfo[@"doUseLCBundleId"] boolValue] ) {
+        NSMutableDictionary* infoPlist = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
+        if(![infoPlist[@"CFBundleIdentifier"] isEqualToString:NSBundle.mainBundle.bundleIdentifier]) {
+            infoPlist[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+            [infoPlist writeToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
+        }
+    }
+    
+    NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
     
     if(!appBundle) {
         return @"App not found";

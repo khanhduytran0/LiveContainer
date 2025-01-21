@@ -27,7 +27,7 @@ extern NSBundle *lcMainBundle;
 
         for (NSString *group in possibleAppGroups) {
             NSURL *path = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:group];
-            NSURL *bundlePath = [path URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app"];
+            NSURL *bundlePath = [path URLByAppendingPathComponent:@"Apps"];
             if ([NSFileManager.defaultManager fileExistsAtPath:bundlePath.path]) {
                 // This will fail if LiveContainer is installed in both stores, but it should never be the case
                 appGroupID = group;
