@@ -65,18 +65,22 @@ extern NSBundle *lcMainBundle;
 + (BOOL)launchToGuestApp {
     NSString *urlScheme;
     NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
+    UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
+    
     int tries = 1;
     if (!access(tsPath.UTF8String, F_OK)) {
         urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
     } else if (self.certificatePassword) {
         tries = 2;
         urlScheme = [NSString stringWithFormat:@"%@://livecontainer-relaunch", lcAppUrlScheme];
-    } else {
+    } else if ([application canOpenURL:[NSURL URLWithString:@"sidestore://"]]) {
         urlScheme = @"sidestore://sidejit-enable?bid=%@";
+    } else {
+        tries = 2;
+        urlScheme = [NSString stringWithFormat:@"%@://livecontainer-relaunch", lcAppUrlScheme];
     }
     NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
 
-    UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
     if ([application canOpenURL:launchURL]) {
         //[UIApplication.sharedApplication suspend];
         for (int i = 0; i < tries; i++) {

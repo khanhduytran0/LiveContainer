@@ -5,6 +5,8 @@ import SwiftUI
     var window: UIWindow?
     private static var urlStrToOpen: String? = nil
     private static var openUrlStrFunc: ((String) async -> Void)?
+    private static var installUrl: String? = nil
+    private static var installFromUrlStrFunc: ((String) async -> Void)?
     private static var bundleToLaunch: String? = nil
     private static var containerToLaunch: String? = nil
     private static var launchAppFunc: ((String, String?) async -> Void)?
@@ -17,6 +19,14 @@ import SwiftUI
         } else if let urlStr = UserDefaults.standard.string(forKey: "webPageToOpen") {
             UserDefaults.standard.removeObject(forKey: "webPageToOpen")
             Task { await handler(urlStr) }
+        }
+    }
+    
+    public static func setInstallFromUrlStrFunc(handler: @escaping ((String) async -> Void)){
+        self.installFromUrlStrFunc = handler
+        if let installUrl = self.installUrl {
+            Task { await handler(installUrl) }
+            self.urlStrToOpen = nil
         }
     }
     
@@ -42,6 +52,14 @@ import SwiftUI
             containerToLaunch = container
         } else {
             Task { await launchAppFunc!(bundleId, container) }
+        }
+    }
+    
+    private static func installAppFromUrl(urlStr: String) {
+        if installFromUrlStrFunc == nil {
+            installUrl = urlStr
+        } else {
+            Task { await installFromUrlStrFunc!(urlStr) }
         }
     }
     
@@ -81,6 +99,18 @@ import SwiftUI
                 }
                 if let bundleId {
                     AppDelegate.launchApp(bundleId: bundleId, container: containerName)
+                }
+            }
+        } else if url.host == "install" {
+            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                var installUrl : String? = nil
+                for queryItem in components.queryItems ?? [] {
+                    if queryItem.name == "url", let installUrl1 = queryItem.value {
+                        installUrl = installUrl1
+                    }
+                }
+                if let installUrl {
+                    AppDelegate.installAppFromUrl(urlStr: installUrl)
                 }
             }
         }

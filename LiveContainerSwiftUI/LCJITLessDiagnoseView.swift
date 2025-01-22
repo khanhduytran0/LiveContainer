@@ -6,6 +6,47 @@
 //
 import SwiftUI
 
+struct LCEntitlementView : View {
+    @State var loaded = false
+    @State var entitlementContent = "Failed to Load Entitlement."
+    
+    var body: some View {
+        if loaded {
+            Form {
+                Section {
+                    Button {
+                        UIPasteboard.general.string = entitlementContent
+                    } label: {
+                        Text("lc.common.copy".loc)
+                    }
+                }
+                
+                Section {
+                    Text(entitlementContent)
+                        .font(.system(.subheadline, design: .monospaced))
+                }
+            }
+            .navigationTitle("lc.jielessDiag.entitlement".loc)
+            .navigationBarTitleDisplayMode(.inline)
+        } else {
+            Text("lc.common.loading".loc)
+                .onAppear() {
+                    onAppear()
+                }
+        }
+    }
+    
+    func onAppear() {
+        if let entitlementXML = getLCEntitlementXML() {
+            entitlementContent = entitlementXML
+        } else {
+            entitlementContent = "Failed to load entitlement."
+        }
+        loaded = true
+    }
+    
+}
+
 struct LCJITLessDiagnoseView : View {
     @State var loaded = false
     @State var appGroupId = "Unknown"
@@ -95,17 +136,21 @@ struct LCJITLessDiagnoseView : View {
 
                         }
                     }
-
-                    
+                    NavigationLink {
+                        LCEntitlementView()
+                    } label: {
+                        Text("lc.jielessDiag.entitlement".loc)
+                    }
+                }
+                                
+                Section {
                     Button {
                         testJITLessMode()
                     } label: {
                         Text("lc.settings.testJitLess".loc)
                     }
                     .disabled(isJITLessTestInProgress)
-                }
-                
-                Section {
+                    
                     Button {
                         getHelp()
                     } label: {
@@ -157,7 +202,6 @@ struct LCJITLessDiagnoseView : View {
             formatter1.timeStyle = .medium
             certLastUpdateDateStr = formatter1.string(from: lastUpdateDate)
         }
-            
 
         loaded = true
     }

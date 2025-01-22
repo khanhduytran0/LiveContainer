@@ -94,8 +94,7 @@ void LCShowSwitchAppConfirmation(NSURL *url, NSString* bundleId) {
     objc_setAssociatedObject(alert, @"window", window, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
-void LCShowAppNotFoundAlert(NSString* bundleId) {
-    NSString *message = [@"lc.guestTweak.error.bundleNotFound %@" localizeWithFormat: bundleId];
+void LCShowAlert(NSString* message) {
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"lc.common.ok".loc style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
@@ -108,6 +107,10 @@ void LCShowAppNotFoundAlert(NSString* bundleId) {
     [window makeKeyAndVisible];
     [window.rootViewController presentViewController:alert animated:YES completion:nil];
     objc_setAssociatedObject(alert, @"window", window, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+void LCShowAppNotFoundAlert(NSString* bundleId) {
+    LCShowAlert([@"lc.guestTweak.error.bundleNotFound %@" localizeWithFormat: bundleId]);
 }
 
 void openUniversalLink(NSString* decodedUrl) {
@@ -330,6 +333,9 @@ BOOL canAppOpenItself(NSURL* url) {
         handleLiveContainerLaunch([NSURL URLWithString:url]);
         // Not what we're looking for, pass it
         
+    } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://install", NSUserDefaults.lcAppUrlScheme]]) {
+        LCShowAlert(@"lc.guestTweak.restartToInstall".loc);
+        return;
     }
     [self hook__applicationOpenURLAction:action payload:payload origin:origin];
     return;
@@ -429,6 +435,9 @@ BOOL canAppOpenItself(NSURL* url) {
     } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-launch?bundle-name=", NSUserDefaults.lcAppUrlScheme]]){
         handleLiveContainerLaunch(urlAction.url);
         
+    } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://install", NSUserDefaults.lcAppUrlScheme]]) {
+        LCShowAlert(@"lc.guestTweak.restartToInstall".loc);
+        return;
     }
 
     NSMutableSet *newActions = actions.mutableCopy;

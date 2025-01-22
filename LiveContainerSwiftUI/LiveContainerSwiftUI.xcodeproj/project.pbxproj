@@ -16,6 +16,7 @@
 		171014232CE9B63100673269 /* LCUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 1710141F2CE9B63100673269 /* LCUtils.m */; };
 		171014242CE9B63100673269 /* LCMachOUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 1710141D2CE9B63100673269 /* LCMachOUtils.m */; };
 		171510872D01D61E00ED4B2E /* LCContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171510862D01D61B00ED4B2E /* LCContainer.swift */; };
+		1731100C2D40B79E006B6BC3 /* LCDownloadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1731100B2D40B79A006B6BC3 /* LCDownloadView.swift */; };
 		173564C92C76FE3500C6C918 /* LCAppListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564BC2C76FE3500C6C918 /* LCAppListView.swift */; };
 		173564CA2C76FE3500C6C918 /* LCTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564BD2C76FE3500C6C918 /* LCTabView.swift */; };
 		173564CC2C76FE3500C6C918 /* LCTweaksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173564C02C76FE3500C6C918 /* LCTweaksView.swift */; };
@@ -49,6 +50,7 @@
 		171014252CE9B6ED00673269 /* archive.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = archive.h; sourceTree = "<group>"; };
 		171014262CE9B6ED00673269 /* archive_entry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = archive_entry.h; sourceTree = "<group>"; };
 		171510862D01D61B00ED4B2E /* LCContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCContainer.swift; sourceTree = "<group>"; };
+		1731100B2D40B79A006B6BC3 /* LCDownloadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LCDownloadView.swift; sourceTree = "<group>"; };
 		173564BC2C76FE3500C6C918 /* LCAppListView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCAppListView.swift; sourceTree = "<group>"; };
 		173564BD2C76FE3500C6C918 /* LCTabView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCTabView.swift; sourceTree = "<group>"; };
 		173564C02C76FE3500C6C918 /* LCTweaksView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LCTweaksView.swift; sourceTree = "<group>"; };
@@ -82,6 +84,7 @@
 		173564BB2C76FE1500C6C918 /* LiveContainerSwiftUI */ = {
 			isa = PBXGroup;
 			children = (
+				1731100B2D40B79A006B6BC3 /* LCDownloadView.swift */,
 				1747D7512D2965F3005694C7 /* LCHelpView.swift */,
 				17EC1CDF2D13BE9000A17824 /* LCJITLessDiagnoseView.swift */,
 				170D51B42D02E291009000A6 /* LCSelectContainerView.swift */,
@@ -222,6 +225,7 @@
 				17A7640C2C9D1B6C00456519 /* LCAppModel.swift in Sources */,
 				17C536F42C98529D006C2C75 /* LCAppSettingsView.swift in Sources */,
 				173564C92C76FE3500C6C918 /* LCAppListView.swift in Sources */,
+				1731100C2D40B79E006B6BC3 /* LCDownloadView.swift in Sources */,
 				1710141C2CE9B50C00673269 /* LCAppInfo.m in Sources */,
 				173564CC2C76FE3500C6C918 /* LCTweaksView.swift in Sources */,
 				173564CD2C76FE3500C6C918 /* LCSettingsView.swift in Sources */,

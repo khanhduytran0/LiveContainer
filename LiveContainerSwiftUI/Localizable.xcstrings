@@ -501,6 +501,40 @@
         }
       }
     },
+    "lc.appList.installFromIpa" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install IPA File"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过IPA文件安装"
+          }
+        }
+      }
+    },
+    "lc.appList.installFromUrl" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install from URL"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过链接安装"
+          }
+        }
+      }
+    },
     "lc.appList.installReplaceTip" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -531,6 +565,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "点击加号按钮安装App"
+          }
+        }
+      }
+    },
+    "lc.appList.installUrlInputTip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please Input Install URL"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入安装链接"
           }
         }
       }
@@ -1946,6 +1997,23 @@
         }
       }
     },
+    "lc.download.downloading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载中"
+          }
+        }
+      }
+    },
     "lc.guestTweak.appSwitchTip %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2031,6 +2099,23 @@
         }
       }
     },
+    "lc.guestTweak.restartToInstall" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please restart LiveContainer to install apps."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请重启LiveContainer以安装App。"
+          }
+        }
+      }
+    },
     "lc.helpView.text1" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2078,6 +2163,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "LiveContainer帮助"
+          }
+        }
+      }
+    },
+    "lc.jielessDiag.entitlement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entitlement File"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entitlement 文件"
           }
         }
       }

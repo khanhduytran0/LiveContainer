@@ -152,3 +152,81 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header) {
         insertDylibCommand(LC_LOAD_DYLIB, tweakPath, header);
     }
 }
+
+struct code_signature_command {
+    uint32_t    cmd;
+    uint32_t    cmdsize;
+    uint32_t    dataoff;
+    uint32_t    datasize;
+};
+
+// from zsign
+struct ui_CS_BlobIndex {
+    uint32_t type;                    /* type of entry */
+    uint32_t offset;                /* offset of entry */
+};
+
+struct ui_CS_SuperBlob {
+    uint32_t magic;                    /* magic number */
+    uint32_t length;                /* total length of SuperBlob */
+    uint32_t count;                    /* number of index entries following */
+    //CS_BlobIndex index[];            /* (count) entries */
+    /* followed by Blobs in no particular order as indicated by offsets in index */
+};
+
+struct ui_CS_blob {
+    uint32_t magic;
+    uint32_t length;
+};
+
+
+NSString* getLCEntitlementXML(void) {
+    struct mach_header_64* header = dlsym(RTLD_MAIN_ONLY, MH_EXECUTE_SYM);
+    uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
+    struct load_command *command = (struct load_command *)imageHeaderPtr;
+    struct code_signature_command* codeSignCommand = 0;
+    for(int i = 0; i < header->ncmds > 0; i++) {
+        if(command->cmd == LC_CODE_SIGNATURE) {
+            codeSignCommand = (struct code_signature_command*)command;
+            break;
+        }
+        command = (struct load_command *)((void *)command + command->cmdsize);
+    }
+    if(!codeSignCommand) {
+        return @"Unable to find LC_CODE_SIGNATURE command.";
+    }
+    struct ui_CS_SuperBlob* blob = (void*)header + codeSignCommand->dataoff;
+    if(blob->magic != OSSwapInt32(0xfade0cc0)) {
+        return [NSString stringWithFormat:@"CodeSign blob magic mismatch %8x.", blob->magic];
+        return nil;
+    }
+    struct ui_CS_BlobIndex* entitlementBlobIndex = 0;
+    struct ui_CS_BlobIndex* nowIndex = (void*)blob + sizeof(struct ui_CS_SuperBlob);
+    for(int i = 0; i < OSSwapInt32(blob->count); i++) {
+        if(OSSwapInt32(nowIndex->type) == 5) {
+            entitlementBlobIndex = nowIndex;
+            break;
+        }
+        nowIndex = (void*)nowIndex + sizeof(struct ui_CS_BlobIndex);
+    }
+    if(entitlementBlobIndex == 0) {
+        NSLog(@"[LC] entitlement blob index not found.");
+        return 0;
+    }
+    struct ui_CS_blob* entitlementBlob = (void*)blob + OSSwapInt32(entitlementBlobIndex->offset);
+    if(entitlementBlob->magic != OSSwapInt32(0xfade7171)) {
+        return [NSString stringWithFormat:@"EntitlementBlob magic mismatch %8x.", blob->magic];
+        return nil;
+    };
+    int32_t xmlLength = OSSwapInt32(entitlementBlob->length) - sizeof(struct ui_CS_blob);
+    void* xmlPtr = (void*)entitlementBlob + sizeof(struct ui_CS_blob);
+    
+    // entitlement xml in executable don't have \0 so we have to copy it first
+    char* xmlString = malloc(xmlLength + 1);
+    memcpy(xmlString, xmlPtr, xmlLength);
+    xmlString[xmlLength] = 0;
+
+    NSString* ans = [NSString stringWithUTF8String:xmlString];
+    free(xmlString);
+    return ans;
+}
