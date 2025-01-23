@@ -11,7 +11,7 @@ export CONFIG_COMMIT = $(shell git log --oneline | sed '2,10000000d' | cut -b 1-
 # Build the app
 APPLICATION_NAME = LiveContainer
 
-$(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m LCSharedUtils.m NSUserDefaults.m fishhook/fishhook.c
+$(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m LCSharedUtils.m NSUserDefaults.m SecItem.m
 $(APPLICATION_NAME)_CODESIGN_FLAGS = -Sentitlements.xml
 $(APPLICATION_NAME)_CFLAGS = -fobjc-arc
 $(APPLICATION_NAME)_LDFLAGS = -e _LiveContainerMain -rpath @loader_path/Frameworks

@@ -286,6 +286,8 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         AppDelegate.setLaunchAppFunc(handler: launchAppWithBundleId)
         AppDelegate.setOpenUrlStrFunc(handler: openWebView)
         AppDelegate.setInstallFromUrlStrFunc(handler: installFromUrl)
+        
+        didAppear = true
     }
     
     
@@ -550,6 +552,12 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     }
     
     func installFromUrl(urlStr: String) async {
+        if sharedModel.multiLCStatus == 2 {
+            errorInfo = "lc.appList.manageInPrimaryTip".loc
+            errorShow = true
+            return
+        }
+        
         guard let installUrl = URL(string: urlStr) else {
             errorInfo = "lc.appList.urlInvalidError".loc
             errorShow = true

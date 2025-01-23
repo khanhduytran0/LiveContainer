@@ -6,10 +6,10 @@
 //
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
-#import "../fishhook/fishhook.h"
 #import "utils.h"
 #import <CommonCrypto/CommonDigest.h>
 
+extern void* (*msHookFunction)(void *symbol, void *hook, void **old);
 OSStatus (*orig_SecItemAdd)(CFDictionaryRef attributes, CFTypeRef *result);
 OSStatus (*orig_SecItemCopyMatching)(CFDictionaryRef query, CFTypeRef *result);
 OSStatus (*orig_SecItemUpdate)(CFDictionaryRef query, CFDictionaryRef attributesToUpdate);
@@ -71,8 +71,7 @@ OSStatus new_SecItemDelete(CFDictionaryRef query){
     return status;
 }
 
-__attribute__((constructor))
-static void SecItemGuestHooksInit()  {
+void SecItemGuestHooksInit()  {
     // don't separate keychain in Enterprise/ADP certs due to entitlement issues, can be overriden by LCSaparateKeychainWhenCertImported
     if([NSUserDefaults.lcUserDefaults boolForKey:@"LCCertificateImported"] && ![NSUserDefaults.lcUserDefaults boolForKey:@"LCSaparateKeychainWhenCertImported"]) {
         return;
@@ -93,12 +92,9 @@ static void SecItemGuestHooksInit()  {
     } else {
         accessGroup = [NSString stringWithFormat:@"%@.com.kdt.livecontainer.shared.%d", groupId, keychainGroupId];
     }
-    NSLog(@"[LC] access group = %@", accessGroup);
-    struct rebinding rebindings[] = (struct rebinding[]){
-        {"SecItemAdd", (void *)new_SecItemAdd, (void **)&orig_SecItemAdd},
-        {"SecItemCopyMatching", (void *)new_SecItemCopyMatching, (void **)&orig_SecItemCopyMatching},
-        {"SecItemUpdate", (void *)new_SecItemUpdate, (void **)&orig_SecItemUpdate},
-        {"SecItemDelete", (void *)new_SecItemDelete, (void **)&orig_SecItemDelete}
-    };
-    rebind_symbols(rebindings, sizeof(rebindings)/sizeof(struct rebinding));
+
+    msHookFunction(&SecItemAdd, (void *)new_SecItemAdd, (void **)&orig_SecItemAdd);
+    msHookFunction(&SecItemCopyMatching, (void *)new_SecItemCopyMatching, (void **)&orig_SecItemCopyMatching);
+    msHookFunction(&SecItemUpdate, (void *)new_SecItemUpdate, (void **)&orig_SecItemUpdate);
+    msHookFunction(&SecItemDelete, (void *)new_SecItemDelete, (void **)&orig_SecItemDelete);
 }

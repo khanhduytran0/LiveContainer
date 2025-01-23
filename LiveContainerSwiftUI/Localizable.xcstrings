@@ -3148,13 +3148,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ will be opened to install the second LiveContainer, Continue?\\n\\nSelect “Archive Only” if you want to do some customization and install manually."
+            "value" : "%@ will be opened to install the second LiveContainer, Continue?\n\nSelect “Archive Only” if you want to do some customization and install manually."
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "即将跳转到%@来安装第二个LiveContainer，要继续吗？ 可选择“仅打包”来进行自定义并手动安装。"
+            "value" : "即将跳转到%@来安装第二个LiveContainer，要继续吗？\n\n可选择“仅打包”来进行自定义并手动安装。"
           }
         }
       }
