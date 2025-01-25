@@ -14,6 +14,7 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include "TPRO.h"
+#import "fishhook/fishhook.h"
 #include <mach-o/ldsyms.h>
 
 static int (*appMain)(int, char**);
@@ -25,7 +26,6 @@ NSString* lcAppUrlScheme;
 NSBundle* lcMainBundle;
 NSDictionary* guestAppInfo;
 
-void (*msHookFunction)(void *symbol, void *hook, void **old);
 void NUDGuestHooksInit();
 void SecItemGuestHooksInit();
 
@@ -316,16 +316,6 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         }
     }
     
-    void* cydiaSubstrateHandle = 0;
-    // use app's own CydiaSubstrate if app have one
-    NSString* appCydiaSubstratePath = [NSString stringWithFormat:@"%@/Frameworks/CydiaSubstrate.framework/CydiaSubstrate", appBundle.bundleURL.path];
-    if([fm fileExistsAtPath:appCydiaSubstratePath]) {
-        cydiaSubstrateHandle = dlopen(appCydiaSubstratePath.UTF8String, RTLD_LAZY | RTLD_GLOBAL);
-    } else {
-        cydiaSubstrateHandle = dlopen("@rpath/CydiaSubstrate.framework/CydiaSubstrate", RTLD_LAZY | RTLD_LOCAL);
-    }
-    msHookFunction = dlsym(cydiaSubstrateHandle, "MSHookFunction");
-
     // Overwrite @executable_path
     const char *appExecPath = appBundle.executablePath.UTF8String;
     *path = appExecPath;
@@ -428,10 +418,13 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     // hook NSUserDefault before running libraries' initializers
     NUDGuestHooksInit();
     SecItemGuestHooksInit();
-    
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
     appMainImageIndex = appIndex;
+    
+    // hook dlsym to solve RTLD_MAIN_ONLY
+    rebind_symbols((struct rebinding[1]){{"dlsym", (void *)new_dlsym, (void **)&orig_dlsym}},1);
+    
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
     appExecutableHandle = appHandle;
     const char *dlerr = dlerror();
@@ -446,8 +439,6 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         *path = oldPath;
         return appError;
     }
-    // hook dlsym to solve RTLD_MAIN_ONLY
-    msHookFunction(&dlsym, (void *)new_dlsym, (void **)&orig_dlsym);
     
     // Fix dynamic properties of some apps
     [NSUserDefaults performSelector:@selector(initialize)];

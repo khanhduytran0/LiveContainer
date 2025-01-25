@@ -8,6 +8,7 @@
 #import <Security/Security.h>
 #import "utils.h"
 #import <CommonCrypto/CommonDigest.h>
+#import "fishhook/fishhook.h"
 
 extern void* (*msHookFunction)(void *symbol, void *hook, void **old);
 OSStatus (*orig_SecItemAdd)(CFDictionaryRef attributes, CFTypeRef *result);
@@ -93,8 +94,11 @@ void SecItemGuestHooksInit()  {
         accessGroup = [NSString stringWithFormat:@"%@.com.kdt.livecontainer.shared.%d", groupId, keychainGroupId];
     }
 
-    msHookFunction(&SecItemAdd, (void *)new_SecItemAdd, (void **)&orig_SecItemAdd);
-    msHookFunction(&SecItemCopyMatching, (void *)new_SecItemCopyMatching, (void **)&orig_SecItemCopyMatching);
-    msHookFunction(&SecItemUpdate, (void *)new_SecItemUpdate, (void **)&orig_SecItemUpdate);
-    msHookFunction(&SecItemDelete, (void *)new_SecItemDelete, (void **)&orig_SecItemDelete);
+    struct rebinding rebindings[] = (struct rebinding[]){
+         {"SecItemAdd", (void *)new_SecItemAdd, (void **)&orig_SecItemAdd},
+         {"SecItemCopyMatching", (void *)new_SecItemCopyMatching, (void **)&orig_SecItemCopyMatching},
+         {"SecItemUpdate", (void *)new_SecItemUpdate, (void **)&orig_SecItemUpdate},
+         {"SecItemDelete", (void *)new_SecItemDelete, (void **)&orig_SecItemDelete}
+     };
+     rebind_symbols(rebindings, sizeof(rebindings)/sizeof(struct rebinding));
 }
