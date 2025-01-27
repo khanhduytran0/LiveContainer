@@ -75,6 +75,11 @@ import SwiftUI
     }
     
     func application(_ application: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any]) -> Bool {
+        if url.isFileURL {
+            AppDelegate.installAppFromUrl(urlStr: url.absoluteString)
+            return true
+        }
+        
         if url.host == "open-web-page" {
             if let urlComponent = URLComponents(url: url, resolvingAgainstBaseURL: false), let queryItem = urlComponent.queryItems?.first {
                 if queryItem.value?.isEmpty ?? true {

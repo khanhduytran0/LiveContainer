@@ -142,6 +142,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
 
                     let appCount = sharedModel.isHiddenAppUnlocked ? sharedModel.apps.count + sharedModel.hiddenApps.count : sharedModel.apps.count
                     Text(appCount > 0 ? "lc.appList.appCounter %lld".localizeWithFormat(appCount) : (sharedModel.multiLCStatus == 2 ? "lc.appList.convertToSharedToShowInLC2".loc : "lc.appList.installTip".loc))
+                        .padding(.horizontal)
                         .foregroundStyle(.gray)
                         .animation(.easeInOut, value: appCount)
                         .onTapGesture(count: 3) {
@@ -362,6 +363,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         do {
             self.installprogressVisible = true
             try await installIpaFile(fileUrl)
+            try FileManager.default.removeItem(at: fileUrl)
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
@@ -392,8 +394,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         
         // decompress
         await decompress(url.path, fm.temporaryDirectory.path, decompressProgress)
-        try fm.removeItem(at: url)
-        
+
         let payloadContents = try fm.contentsOfDirectory(atPath: payloadPath.path)
         var appBundleName : String? = nil
         for fileName in payloadContents {
@@ -569,6 +570,23 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             self.installprogressVisible = false
         }
         
+        if installUrl.isFileURL {
+            // install from local, we directly call local install method
+            if !installUrl.lastPathComponent.hasSuffix(".ipa") {
+                errorInfo = "lc.appList.urlFileIsNotIpaError".loc
+                errorShow = true
+                return
+            }
+            
+            do {
+                try await installIpaFile(installUrl)
+            } catch {
+                errorInfo = error.localizedDescription
+                errorShow = true
+            }
+            return
+        }
+        
         do {
             let fileManager = FileManager.default
             let destinationURL = fileManager.temporaryDirectory.appendingPathComponent(installUrl.lastPathComponent)
@@ -581,9 +599,10 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 return
             }
             try await installIpaFile(destinationURL)
+            try fileManager.removeItem(at: destinationURL)
         } catch {
-            errorShow = true
             errorInfo = error.localizedDescription
+            errorShow = true
         }
         
     }

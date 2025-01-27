@@ -395,8 +395,8 @@ BOOL canAppOpenItself(NSURL* url) {
         }
     }
 
-    // Don't have UIOpenURLAction? pass it
-    if (!urlAction) {
+    // Don't have UIOpenURLAction or is passing a file to app? pass it
+    if (!urlAction || urlAction.url.isFileURL) {
         [self hook_scene:scene didReceiveActions:actions fromTransitionContext:context];
         return;
     }

@@ -688,6 +688,23 @@
         }
       }
     },
+    "lc.appList.urlFileIsNotIpaError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please provide an IPA file to install."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请出提供一个IPA文件用于安装。"
+          }
+        }
+      }
+    },
     "lc.appList.urlInvalidError" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1347,6 +1364,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制"
+          }
+        }
+      }
+    },
+    "lc.common.correct" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correct"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正确"
           }
         }
       }
@@ -2235,6 +2269,23 @@
         }
       }
     },
+    "lc.jitlessDiag.bundleIdExpected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expected Bundle Identifier"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期望包名"
+          }
+        }
+      }
+    },
     "lc.jitlessDiag.certDataFound" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2333,6 +2384,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装方式"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.teamId" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Team ID"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "团队名"
           }
         }
       }
@@ -3437,7 +3505,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "By default, LiveContainer asks you how to open an URL. Enable this automatically open URL in current app."
+            "value" : "By default, LiveContainer asks you how to open an URL. Enable this to automatically open URL in current app."
           }
         },
         "zh_CN" : {

@@ -8,20 +8,72 @@ import SwiftUI
 
 struct LCEntitlementView : View {
     @State var loaded = false
+    @State var entitlementReadSuccess = false
+    
+    @State var teamId : String?
+    @State var getTaskAllow = false
+    @State var keyChainAccessGroup = false
+    @State var correctBundleId : String?
+    @State var isBundleIdCorrect = false
+    @State var appGroup = false
+    
     @State var entitlementContent = "Failed to Load Entitlement."
     
     var body: some View {
         if loaded {
             Form {
                 Section {
+                    HStack {
+                        Text("lc.jitlessDiag.bundleId".loc)
+                        Spacer()
+                        Text(Bundle.main.bundleIdentifier ?? "lc.common.unknown".loc)
+                            .foregroundStyle(entitlementReadSuccess && teamId != nil ? (isBundleIdCorrect ? .green : .red): .gray)
+                    }
+                    
+                    if entitlementReadSuccess {
+                        if !isBundleIdCorrect && teamId != nil {
+                            HStack {
+                                Text("lc.jitlessDiag.bundleIdExpected".loc)
+                                Spacer()
+                                Text(correctBundleId ?? "lc.common.unknown".loc)
+                                    .foregroundStyle(.gray)
+                            }
+                        }
+                        HStack {
+                            Text("lc.jitlessDiag.teamId".loc)
+                            Spacer()
+                            Text(teamId ?? "lc.common.unknown".loc)
+                                .foregroundStyle(.gray)
+                        }
+                        HStack {
+                            Text("get-task-allow")
+                            Spacer()
+                            Text(getTaskAllow ? "lc.common.yes".loc : "lc.common.no".loc)
+                                .foregroundStyle(getTaskAllow ? .green : .red)
+                        }
+                        HStack {
+                            Text("com.apple.security.application-groups \("lc.common.correct".loc)")
+                            Spacer()
+                            Text(appGroup ? "lc.common.yes".loc : "lc.common.no".loc)
+                                .foregroundStyle(appGroup ? .green : .red)
+                        }
+                        HStack {
+                            Text("keychain-access-groups \("lc.common.correct".loc)")
+                            Spacer()
+                            Text(keyChainAccessGroup ? "lc.common.yes".loc : "lc.common.no".loc)
+                                .foregroundStyle(keyChainAccessGroup ? .green : .red)
+                        }
+
+                    }
+                }
+
+                
+                Section {
                     Button {
                         UIPasteboard.general.string = entitlementContent
                     } label: {
                         Text("lc.common.copy".loc)
                     }
-                }
-                
-                Section {
                     Text(entitlementContent)
                         .font(.system(.subheadline, design: .monospaced))
                 }
@@ -37,12 +89,59 @@ struct LCEntitlementView : View {
     }
     
     func onAppear() {
-        if let entitlementXML = getLCEntitlementXML() {
-            entitlementContent = entitlementXML
-        } else {
-            entitlementContent = "Failed to load entitlement."
+        if loaded {
+            return
         }
-        loaded = true
+        
+        defer {
+            loaded = true
+        }
+        
+        guard let entitlementXML = getLCEntitlementXML() else {
+            entitlementContent = "Failed to load entitlement."
+            return
+        }
+        entitlementContent = entitlementXML
+        
+        var format = PropertyListSerialization.PropertyListFormat.xml
+        guard let entitlementDict = try? PropertyListSerialization.propertyList(from: entitlementXML.data(using: .utf8) ?? Data(), format: &format) as? [String : AnyObject] else {
+            return
+        }
+        entitlementReadSuccess = true
+        let entitlementTeamId = entitlementDict["com.apple.developer.team-identifier"] as? String
+        teamId = entitlementTeamId
+        if let entitlementTeamId {
+            if let appGroups = entitlementDict["com.apple.security.application-groups"] as? Array<String> {
+                NSLog("[LC] appGroups = \(appGroups)")
+                if appGroups.contains("group.com.rileytestut.AltStore.\(entitlementTeamId)") && appGroups.contains("group.com.SideStore.SideStore.\(entitlementTeamId)") {
+                    appGroup = true
+                }
+            }
+            if let keyChainAccessGroups = entitlementDict["keychain-access-groups"] as? Array<String> {
+                let keyChainGroupCount = 3
+                var notFound = true
+                if keyChainAccessGroups.contains("\(entitlementTeamId).com.kdt.livecontainer.shared") {
+                    notFound = false
+                    for i in 1..<keyChainGroupCount {
+                        if !keyChainAccessGroups.contains("\(entitlementTeamId).com.kdt.livecontainer.shared.\(i)") {
+                            notFound = true
+                            continue
+                        }
+                    }
+                }
+                keyChainAccessGroup = !notFound
+            }
+        }
+        if let appIdentifier = entitlementDict["application-identifier"] as? String, appIdentifier.count > 11 {
+            let startIndex = appIdentifier.index(appIdentifier.startIndex, offsetBy: 11)
+            correctBundleId = String(appIdentifier[startIndex...])
+            if let bundleId = Bundle.main.bundleIdentifier {
+                isBundleIdCorrect = bundleId == correctBundleId
+            }
+        }
+        
+        getTaskAllow = entitlementDict["get-task-allow"] as? Bool ?? false
+
     }
     
 }
