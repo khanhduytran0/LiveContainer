@@ -107,6 +107,9 @@ class AlertHelper<T> : ObservableObject {
             c.resume()
             self.c = nil
         }
+        DispatchQueue.main.async {
+            self.show = false
+        }
 
     }
 }
@@ -156,7 +159,26 @@ extension String: LocalizedError {
     
 }
 
-
+extension URLSession {
+    public func asyncRequest(request: URLRequest) async throws -> (Data?, URLResponse?) {
+        var ansData: Data?
+        var ansResponse: URLResponse?
+        var ansError: Error?
+        await withCheckedContinuation { c in
+            let task = self.dataTask(with: request) { data, response, error in
+                ansError = error
+                ansResponse = response
+                ansData = data
+                c.resume()
+            }
+            task.resume()
+        }
+        if let ansError {
+            throw ansError
+        }
+        return (ansData, ansResponse)
+    }
+}
 
 extension UTType {
     static let ipa = UTType(filenameExtension: "ipa")!
@@ -331,6 +353,12 @@ public struct TextFieldAlertModifier: ViewModifier {
         alertController = nil
     }
 
+}
+
+struct BasicButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+    }
 }
 
 struct ImageDocument: FileDocument {
@@ -705,5 +733,149 @@ extension LCUtils {
           }
         }
     }
+    
+    public static func askForJIT(onServerMessage : ((String) -> Void)? ) async -> Bool {
+        // if LiveContainer is installed by TrollStore
+        let tsPath = "\(Bundle.main.bundlePath)/../_TrollStore"
+        if FileManager.default.fileExists(atPath: tsPath) {
+            let urlScheme = "apple-magnifier://enable-jit?bundle-id=%@"
+            guard let bundleIdentifier = Bundle.main.bundleIdentifier,
+                  let launchURL = URL(string: String(format: urlScheme, bundleIdentifier)),
+                  await UIApplication.shared.canOpenURL(launchURL) else {
+                return false
+            }
+            
+            await UIApplication.shared.open(launchURL, options: [:], completionHandler: nil)
+            LCUtils.launchToGuestApp()
+            return true
+        }
+        
+        guard let groupUserDefaults = UserDefaults(suiteName: appGroupID()),
+              let jitEnabler = JITEnablerType(rawValue: groupUserDefaults.integer(forKey: "LCJITEnablerType")) else {
+            return false
+        }
+        
+        
+        if(jitEnabler == .SideJITServer){
+            guard
+                  let sideJITServerAddress = groupUserDefaults.string(forKey: "LCSideJITServerAddress"),
+                  let deviceUDID = groupUserDefaults.string(forKey: "LCDeviceUDID"),
+                  !sideJITServerAddress.isEmpty && !deviceUDID.isEmpty else {
+                return false
+            }
+            
+            onServerMessage?("Please make sure the VPN is connected if the server is not in your local network.")
+            
+            do {
+                let launchJITUrlStr = "\(sideJITServerAddress)/\(deviceUDID)/\(Bundle.main.bundleIdentifier ?? "")"
+                guard let launchJITUrl = URL(string: launchJITUrlStr) else { return false }
+                let session = URLSession.shared
+                
+                onServerMessage?("Contacting SideJITServer at \(sideJITServerAddress)...")
+                let request = URLRequest(url: launchJITUrl)
+                let (data, response) = try await session.asyncRequest(request: request)
+                if let data {
+                    onServerMessage?(String(decoding: data, as: UTF8.self))
+                }
+            } catch {
+                onServerMessage?("Failed to contact SideJITServer: \(error)")
+            }
+            
+            return false
+        } else if (jitEnabler == .JITStreamerEB) {
+            guard var JITStresmerEBAddress = groupUserDefaults.string(forKey: "LCSideJITServerAddress") else {
+                return false
+            }
+            if JITStresmerEBAddress.isEmpty {
+                JITStresmerEBAddress = "http://[fd00::]:9172"
+            }
+            
+            onServerMessage?("Please make sure the VPN is connected if the server is not in your local network.")
+            
+            do {
+                let launchJITUrlStr = "\(JITStresmerEBAddress)/launch_app/\(Bundle.main.bundleIdentifier ?? "")"
+                guard let launchJITUrl = URL(string: launchJITUrlStr) else { return false }
+                let session = URLSession.shared
+                
+                onServerMessage?("Contacting JitStreamer-EB server at \(JITStresmerEBAddress)...")
+                let request1 = URLRequest(url: launchJITUrl)
+                let (data, response) = try await session.asyncRequest(request: request1)
+                
+                let decoder = JSONDecoder()
+                guard let data else {
+                    onServerMessage?("Failed to retrieve data from server!")
+                    return false
+                }
+                let launchAppResponse = try decoder.decode(JITStreamerEBLaunchAppResponse.self, from: data)
+                
+                guard launchAppResponse.ok else {
+                    onServerMessage?(launchAppResponse.error ?? "JIT enabling failed with unknown error.")
+                    return false
+                }
+                
+                if launchAppResponse.mounting {
+                    onServerMessage?("Your device is currently mounting the developer disk image. Leave your device on and connected. Once this finishes, you can run JitStreamer again.")
+                } else {
+                    onServerMessage?("Your app will launch soon! You are position \(launchAppResponse.position ?? -1) in the queue.")
+                }
+                
+                // start polling status
+                let statusUrlStr = "\(JITStresmerEBAddress)/status"
+                guard let statusUrl = URL(string: statusUrlStr) else { return false }
+                let maxTries = 20
+                for i in 0..<maxTries {
+                    if Task.isCancelled {
+                        return false
+                    }
+                    
+                    let request2 = URLRequest(url: statusUrl)
+                    let (data, response) = try await session.asyncRequest(request: request2)
+                    guard let data else {
+                        onServerMessage?("Failed to retrieve data from server!")
+                        return false
+                    }
+                    let statusResponse = try decoder.decode(JITStreamerEBStatusResponse.self, from: data)
+                    guard statusResponse.ok else {
+                        onServerMessage?(statusResponse.error ?? "JIT enabling failed with unknown error.")
+                        return false
+                    }
+                    if statusResponse.done {
+                        onServerMessage?("Server done.")
+                        return true
+                    }
+                    if statusResponse.in_progress {
+                        onServerMessage?("JIT enabling in progress.")
+                    } else {
+                        onServerMessage?("Your app will launch soon! You are position \(launchAppResponse.position ?? -1) in the queue. (Try \(i + 1)/\(maxTries))")
+                    }
 
+                }
+                
+
+            } catch {
+                onServerMessage?("Failed to contact SideJITServer: \(error)")
+            }
+            
+
+
+        }
+        return false
+    }
+
+}
+
+struct JITStreamerEBLaunchAppResponse : Codable {
+    let ok: Bool
+    let launching: Bool
+    let mounting: Bool
+    let position: Int?
+    let error: String?
+}
+
+struct JITStreamerEBStatusResponse : Codable {
+    let ok: Bool
+    let done: Bool
+    let in_progress: Bool
+    let position: Int?
+    let error: String?
 }

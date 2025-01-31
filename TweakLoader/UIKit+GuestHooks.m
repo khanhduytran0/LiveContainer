@@ -298,6 +298,11 @@ BOOL canAppOpenItself(NSURL* url) {
 @implementation UIApplication(LiveContainerHook)
 - (void)hook__applicationOpenURLAction:(id)action payload:(NSDictionary *)payload origin:(id)origin {
     NSString *url = payload[UIApplicationLaunchOptionsURLKey];
+    if ([url hasPrefix:@"file:"]) {
+        [[NSURL URLWithString:url] startAccessingSecurityScopedResource];
+        [self hook__applicationOpenURLAction:action payload:payload origin:origin];
+        return;
+    }
     if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-relaunch", NSUserDefaults.lcAppUrlScheme]]) {
         // Ignore
         return;
@@ -397,6 +402,12 @@ BOOL canAppOpenItself(NSURL* url) {
 
     // Don't have UIOpenURLAction or is passing a file to app? pass it
     if (!urlAction || urlAction.url.isFileURL) {
+        [self hook_scene:scene didReceiveActions:actions fromTransitionContext:context];
+        return;
+    }
+    
+    if (urlAction.url.isFileURL) {
+        [urlAction.url startAccessingSecurityScopedResource];
         [self hook_scene:scene didReceiveActions:actions fromTransitionContext:context];
         return;
     }

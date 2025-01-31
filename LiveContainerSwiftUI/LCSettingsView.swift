@@ -14,6 +14,11 @@ enum PatchChoice {
     case archiveOnly
 }
 
+enum JITEnablerType : Int {
+    case SideJITServer = 0
+    case JITStreamerEB = 1
+}
+
 struct LCSettingsView: View {
     @State var errorShow = false
     @State var errorInfo = ""
@@ -46,6 +51,7 @@ struct LCSettingsView: View {
     
     @State var sideJITServerAddress : String
     @State var deviceUDID: String
+    @State var JITEnabler: JITEnablerType = .SideJITServer
     
     @State var isSideStore : Bool = true
     
@@ -93,6 +99,8 @@ struct LCSettingsView: View {
         } else {
             _deviceUDID = State(initialValue: "")
         }
+        _JITEnabler = State(initialValue: JITEnablerType(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCJITEnablerType"))!)
+        
         _strictHiding = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding"))
 
     }
@@ -188,15 +196,24 @@ struct LCSettingsView: View {
                     HStack {
                         Text("lc.settings.JitAddress".loc)
                         Spacer()
-                        TextField("http://x.x.x.x:8080", text: $sideJITServerAddress)
+                        TextField(JITEnabler == .SideJITServer ? "http://x.x.x.x:8080" : "http://[fd00::]:9172", text: $sideJITServerAddress)
                             .multilineTextAlignment(.trailing)
                     }
-                    HStack {
-                        Text("lc.settings.JitUDID".loc)
-                        Spacer()
-                        TextField("", text: $deviceUDID)
-                            .multilineTextAlignment(.trailing)
+                    if JITEnabler == .SideJITServer {
+                        HStack {
+                            Text("lc.settings.JitUDID".loc)
+                            Spacer()
+                            TextField("", text: $deviceUDID)
+                                .multilineTextAlignment(.trailing)
+                        }
                     }
+                    Picker(selection: $JITEnabler) {
+                        Text("SideJITServer/JITStreamer 2.0").tag(JITEnablerType.SideJITServer)
+                        Text("JitStreamer-EB").tag(JITEnablerType.JITStreamerEB)
+                    } label: {
+                        Text("lc.settings.jitEnabler".loc)
+                    }
+
                 } header: {
                     Text("JIT")
                 } footer: {
@@ -512,6 +529,9 @@ struct LCSettingsView: View {
             }
             .onChange(of: sideJITServerAddress) { newValue in
                 saveAppGroupItem(key: "LCSideJITServerAddress", val: newValue)
+            }
+            .onChange(of: JITEnabler) { newValue in
+                saveAppGroupItem(key: "LCJITEnablerType", val: newValue.rawValue)
             }
             .onChange(of: defaultSigner) { newValue in
                 saveAppGroupItem(key: "LCDefaultSigner", val: newValue.rawValue)

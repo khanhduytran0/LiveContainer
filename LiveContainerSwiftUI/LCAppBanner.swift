@@ -104,6 +104,7 @@ struct LCAppBanner : View {
                 }
 
             }
+            .buttonStyle(BasicButtonStyle())
             .padding()
             .frame(idealWidth: 70)
             .frame(height: 32)
@@ -203,14 +204,8 @@ struct LCAppBanner : View {
                     } label: {
                         Label("lc.appBanner.uninstall".loc, systemImage: "trash")
                     }
-                    
                 }
-
             }
-            
-            
-
-
         }
         
         .alert("lc.appBanner.confirmUninstallTitle".loc, isPresented: $appRemovalAlert.show) {
@@ -237,17 +232,11 @@ struct LCAppBanner : View {
         } message: {
             Text("lc.appBanner.deleteDataMsg \(appInfo.displayName()!)")
         }
-        .alert("lc.appBanner.waitForJitTitle".loc, isPresented: $jitAlert.show) {
-            Button {
-                jitAlert.close(result: true)
-            } label: {
-                Text("lc.appBanner.jitLaunchNow".loc)
-            }
-            Button("lc.common.cancel", role: .cancel) {
-                jitAlert.close(result: false)
-            }
-        } message: {
-            Text("lc.appBanner.waitForJitMsg".loc)
+        .sheet(isPresented: $jitAlert.show, onDismiss: {
+            NSLog("[LC] onDismiss")
+            jitAlert.close(result: false)
+        }) {
+            JITEnablingModal
         }
         
         .alert("lc.common.error".loc, isPresented: $errorShow){
@@ -260,6 +249,44 @@ struct LCAppBanner : View {
             Text(errorInfo)
         }
         
+    }
+    
+    var JITEnablingModal : some View {
+        NavigationView {
+            VStack{
+                Text("lc.appBanner.waitForJitMsg".loc)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        Text(model.jitLog)
+                            .font(.system(size: 12).monospaced())
+                            .fixedSize(horizontal: false, vertical: false)
+                            .textSelection(.enabled)
+                        Spacer()
+                            .id(0)
+                    }
+                    .onAppear {
+                        proxy.scrollTo(0)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("lc.appBanner.waitForJitTitle".loc)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("lc.common.cancel".loc, role: .cancel) {
+                        jitAlert.close(result: false)
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        jitAlert.close(result: true)
+                    } label: {
+                        Text("lc.appBanner.jitLaunchNow".loc)
+                    }
+                }
+            }
+        }
     }
     
     func handleOnAppear() {

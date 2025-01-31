@@ -2956,6 +2956,23 @@
         }
       }
     },
+    "lc.settings.jitEnabler" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JIT Enabler"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JIT启用工具"
+          }
+        }
+      }
+    },
     "lc.settings.jitLess" : {
       "extractionState" : "manual",
       "localizations" : {

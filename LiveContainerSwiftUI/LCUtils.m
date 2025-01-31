@@ -62,10 +62,6 @@ Class LCSharedUtilsClass = nil;
     return [LCSharedUtilsClass launchToGuestApp];
 }
 
-+ (BOOL)askForJIT {
-    return [LCSharedUtilsClass askForJIT];
-}
-
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url {
     return [LCSharedUtilsClass launchToGuestAppWithURL:url];
 }

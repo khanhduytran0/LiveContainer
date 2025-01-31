@@ -93,41 +93,6 @@ extern NSBundle *lcMainBundle;
     return NO;
 }
 
-+ (BOOL)askForJIT {
-    NSString *urlScheme;
-    NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
-    if (!access(tsPath.UTF8String, F_OK)) {
-        urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
-        NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
-        UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
-        if ([application canOpenURL:launchURL]) {
-            [application openURL:launchURL options:@{} completionHandler:nil];
-            [LCSharedUtils launchToGuestApp];
-            return YES;
-        }
-    } else {
-        NSUserDefaults* groupUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]];
-        
-        NSString* sideJITServerAddress = [groupUserDefaults objectForKey:@"LCSideJITServerAddress"];
-        NSString* deviceUDID = [groupUserDefaults objectForKey:@"LCDeviceUDID"];
-        if (!sideJITServerAddress || !deviceUDID) {
-            return NO;
-        }
-        NSString* launchJITUrlStr = [NSString stringWithFormat: @"%@/%@/%@", sideJITServerAddress, deviceUDID, NSBundle.mainBundle.bundleIdentifier];
-        NSURLSession* session = [NSURLSession sharedSession];
-        NSURL* launchJITUrl = [NSURL URLWithString:launchJITUrlStr];
-        NSURLRequest* req = [[NSURLRequest alloc] initWithURL:launchJITUrl];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:req completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-            if(error) {
-                NSLog(@"[LC] failed to contact SideJITServer: %@", error);
-            }
-        }];
-        [task resume];
-        
-    }
-    return NO;
-}
-
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url {
     NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
     if(![components.host isEqualToString:@"livecontainer-launch"]) return NO;
@@ -294,6 +259,13 @@ extern NSBundle *lcMainBundle;
     }
     // move all apps in shared folder back
     NSArray<NSString *> * sharedDataFoldersToMove = [fm contentsOfDirectoryAtPath:sharedAppDataFolderPath error:&error];
+    
+    // something went wrong with app group
+    if(!appGroupFolder && sharedDataFoldersToMove.count > 0) {
+        [lcUserDefaults setObject:@"LiveContainer was unable to move the data of shared app back because LiveContainer cannot access app group. Please check JITLess diagnose page in LiveContainer settings for more information." forKey:@"error"];
+        return;
+    }
+    
     for(int i = 0; i < [sharedDataFoldersToMove count]; ++i) {
         NSString* destPath = [appGroupFolder.path stringByAppendingPathComponent:[NSString stringWithFormat:@"Data/Application/%@", sharedDataFoldersToMove[i]]];
         if([fm fileExistsAtPath:destPath]) {

@@ -410,8 +410,10 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
 
     // Overwrite executable info
     NSMutableArray<NSString *> *objcArgv = NSProcessInfo.processInfo.arguments.mutableCopy;
-    objcArgv[0] = appBundle.executablePath;
-    [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
+    if(objcArgv && objcArgv.count > 0) {
+        objcArgv[0] = appBundle.executablePath;
+        [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
+    }
     NSProcessInfo.processInfo.processName = appBundle.infoDictionary[@"CFBundleExecutable"];
     *_CFGetProgname() = NSProcessInfo.processInfo.processName.UTF8String;
     

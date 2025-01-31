@@ -34,7 +34,6 @@ NSString* getLCEntitlementXML(void);
 + (NSData *)certificateData;
 + (NSString *)certificatePassword;
 
-+ (BOOL)askForJIT;
 + (BOOL)launchToGuestApp;
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url;
 

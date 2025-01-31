@@ -578,6 +578,16 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 return
             }
             
+            if !installUrl.startAccessingSecurityScopedResource() {
+                errorInfo = "lc.appList.ipaAccessError".loc
+                errorShow = true
+                return
+            }
+            
+            defer {
+                installUrl.stopAccessingSecurityScopedResource()
+            }
+            
             do {
                 try await installIpaFile(installUrl)
             } catch {

@@ -33,6 +33,7 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var supportedLanaguages : [String]?
     
     var jitAlert : YesNoHelper? = nil
+    @Published var jitLog : String = ""
     
     var delegate : LCAppModelDelegate?
     
@@ -208,10 +209,16 @@ class LCAppModel: ObservableObject, Hashable {
     }
     
     func jitLaunch() async {
-        LCUtils.askForJIT()
+        jitLog = ""
+        let enableJITTask = Task {
+            let _ = await LCUtils.askForJIT { newMsg in
+                self.jitLog += "\(newMsg)\n"
+            }
 
+        }
         guard let result = await jitAlert?.open(), result else {
             UserDefaults.standard.removeObject(forKey: "selected")
+            enableJITTask.cancel()
             return
         }
         LCUtils.launchToGuestApp()
