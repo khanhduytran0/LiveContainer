@@ -210,10 +210,10 @@ void* new_dlsym(void * __handle, const char * __symbol) {
         if(strcmp(__symbol, MH_EXECUTE_SYM) == 0) {
             return (void*)_dyld_get_image_header(appMainImageIndex);
         }
-        return orig_dlsym(appExecutableHandle, __symbol);
+        __handle = appExecutableHandle;
     }
     
-    return orig_dlsym(__handle, __symbol);
+    __attribute__((musttail)) return orig_dlsym(__handle, __symbol);
 }
 
 static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContainer, int argc, char *argv[]) {
