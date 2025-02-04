@@ -28,6 +28,26 @@ NSDictionary* guestAppInfo;
 
 void NUDGuestHooksInit();
 
+@implementation NSString(LiveContainer)
+- (NSString *)lc_realpath {
+    // stringByResolvingSymlinksInPath does not fully resolve symlink, and some apps will cradh without /private prefix
+    char result[PATH_MAX];
+    realpath(self.fileSystemRepresentation, result);
+    return [NSString stringWithUTF8String:result];
+}
+@end
+
+@implementation NSBundle(LiveContainer)
+// Built-in initWith* will strip out the /private prefix, which could crash certain apps
+// This initializer replicates +[NSBundle mainBundle] to solve this issue (FIXME: may not work)
+- (instancetype)initWithPathForMainBundle:(NSString *)path {
+    self = [self init];
+    CFURLRef url = (__bridge CFURLRef)[NSURL fileURLWithPath:path.lc_realpath];
+    object_setIvar(self, class_getInstanceVariable(self.class, "_cfBundle"), CFBridgingRelease(CFBundleCreate(NULL, url)));
+    return self;
+}
+@end
+
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
     return lcUserDefaults;
@@ -236,7 +256,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     NSURL *appGroupFolder = nil;
     
     NSString *bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", docPath, selectedApp];
-    NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+    NSBundle *appBundle = [[NSBundle alloc] initWithPathForMainBundle:bundlePath];
     bool isSharedBundle = false;
     // not found locally, let's look for the app in shared folder
     if (!appBundle) {
@@ -244,7 +264,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
         
         bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, selectedApp];
-        appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+        appBundle = [[NSBundle alloc] initWithPathForMainBundle:bundlePath];
         isSharedBundle = true;
     }
     guestAppInfo = [NSDictionary dictionaryWithContentsOfURL:[appBundle URLForResource:@"LCAppInfo" withExtension:@"plist"]];
