@@ -10,9 +10,18 @@ static uint32_t rnd32(uint32_t v, uint32_t r) {
 
 static void insertDylibCommand(uint32_t cmd, const char *path, struct mach_header_64 *header) {
     const char *name = cmd==LC_ID_DYLIB ? basename((char *)path) : path;
-    struct dylib_command *dylib = (struct dylib_command *)(sizeof(struct mach_header_64) + (void *)header+header->sizeofcmds);
+    struct dylib_command *dylib;
+    size_t cmdsize = sizeof(struct dylib_command) + rnd32((uint32_t)strlen(name) + 1, 8);
+    if (cmd == LC_ID_DYLIB) {
+        // Make this the first load command on the list (like dylibify does), or some UE3 games may break
+        dylib = (struct dylib_command *)(sizeof(struct mach_header_64) + (uintptr_t)header);
+        memmove((void *)((uintptr_t)dylib + cmdsize), (void *)dylib, header->sizeofcmds);
+        bzero(dylib, cmdsize);
+    } else {
+        dylib = (struct dylib_command *)(sizeof(struct mach_header_64) + (void *)header+header->sizeofcmds);
+    }
     dylib->cmd = cmd;
-    dylib->cmdsize = sizeof(struct dylib_command) + rnd32((uint32_t)strlen(name) + 1, 8);
+    dylib->cmdsize = cmdsize;
     dylib->dylib.name.offset = sizeof(struct dylib_command);
     dylib->dylib.compatibility_version = 0x10000;
     dylib->dylib.current_version = 0x10000;
@@ -48,6 +57,15 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header) {
         header->flags &= ~MH_PIE;
     }
 
+    // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
+    struct segment_command_64 *seg = (struct segment_command_64 *)imageHeaderPtr;
+    assert(seg->cmd == LC_SEGMENT_64);
+    if (seg->vmaddr == 0) {
+        assert(seg->vmsize == 0x100000000);
+        seg->vmaddr = 0x100000000 - 0x4000;
+        seg->vmsize = 0x4000;
+    }
+
     BOOL hasDylibCommand = NO,
          hasLoaderCommand = NO;
     const char *tweakLoaderPath = "@loader_path/../../Tweaks/TweakLoader.dylib";
@@ -64,20 +82,13 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header) {
         }
         command = (struct load_command *)((void *)command + command->cmdsize);
     }
-    if (!hasDylibCommand) {
-        insertDylibCommand(LC_ID_DYLIB, path, header);
-    }
+
+    // Add LC_LOAD_DYLIB first, since LC_ID_DYLIB will change overall offsets
     if (!hasLoaderCommand) {
         insertDylibCommand(LC_LOAD_DYLIB, tweakLoaderPath, header);
     }
-
-    // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
-    struct segment_command_64 *seg = (struct segment_command_64 *)imageHeaderPtr;
-    assert(seg->cmd == LC_SEGMENT_64);
-    if (seg->vmaddr == 0) {
-        assert(seg->vmsize == 0x100000000);
-        seg->vmaddr = 0x100000000 - 0x4000;
-        seg->vmsize = 0x4000;
+    if (!hasDylibCommand) {
+        insertDylibCommand(LC_ID_DYLIB, path, header);
     }
 }
 
