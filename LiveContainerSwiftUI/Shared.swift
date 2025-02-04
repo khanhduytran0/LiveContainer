@@ -841,12 +841,21 @@ extension LCUtils {
                     }
                     if statusResponse.done {
                         onServerMessage?("Server done.")
+                        if launchAppResponse.mounting {
+                            onServerMessage?("Run the app again to enable JIT.")
+                        }
+                        
                         return true
                     }
                     if statusResponse.in_progress {
-                        onServerMessage?("JIT enabling in progress.")
+                        if launchAppResponse.mounting {
+                            onServerMessage?("JIT enabling in progress. (Attempt \(i + 1)/\(maxTries))")
+                        } else {
+                            onServerMessage?("Mounting in progress. (Attempt \(i + 1)/\(maxTries))")
+                        }
+
                     } else {
-                        onServerMessage?("Your app will launch soon! You are position \(launchAppResponse.position ?? -1) in the queue. (Try \(i + 1)/\(maxTries))")
+                        onServerMessage?("Your app will launch soon! You are position \(launchAppResponse.position ?? -1) in the queue. (Attempt \(i + 1)/\(maxTries))")
                     }
 
                 }

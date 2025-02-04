@@ -268,7 +268,7 @@
     }
     
     // Update patch
-    int currentPatchRev = 5;
+    int currentPatchRev = 6;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, _infoPlist[@"CFBundleExecutable"]];
         NSString *error = LCParseMachO(execPath.UTF8String, ^(const char *path, struct mach_header_64 *header) {
@@ -279,6 +279,15 @@
             return;
         }
         info[@"LCPatchRevision"] = @(currentPatchRev);
+        forceSign = true;
+        // remove ZSign cache since hash is changed after upgrading patch
+        NSFileManager* fm = NSFileManager.defaultManager;
+        NSString* cachePath = [appPath stringByAppendingPathComponent:@"zsign_cache.json"];
+        if([fm fileExistsAtPath:cachePath]) {
+            NSError* err;
+            [fm removeItemAtPath:cachePath error:&err];
+        }
+        
         [self save];
     }
 

@@ -253,22 +253,26 @@ struct LCAppBanner : View {
     
     var JITEnablingModal : some View {
         NavigationView {
-            VStack{
-                Text("lc.appBanner.waitForJitMsg".loc)
-                ScrollViewReader { proxy in
-                    ScrollView {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    Text("lc.appBanner.waitForJitMsg".loc)
+                        .padding(.vertical)
+                        .id(0)
+                    
+                    HStack {
                         Text(model.jitLog)
                             .font(.system(size: 12).monospaced())
                             .fixedSize(horizontal: false, vertical: false)
                             .textSelection(.enabled)
                         Spacer()
-                            .id(0)
                     }
-                    .onAppear {
-                        proxy.scrollTo(0)
-                    }
+                    
                 }
-                .padding()
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal)
+                .onAppear {
+                    proxy.scrollTo(0)
+                }
             }
             .navigationTitle("lc.appBanner.waitForJitTitle".loc)
             .navigationBarTitleDisplayMode(.inline)

@@ -67,6 +67,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                     label: {
                         EmptyView()
                 })
+                .hidden()
                 
                 GeometryReader { g in
                     ProgressView(value: uiInstallProgressPercentage)

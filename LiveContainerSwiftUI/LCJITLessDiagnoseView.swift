@@ -28,6 +28,7 @@ struct LCEntitlementView : View {
                         Spacer()
                         Text(Bundle.main.bundleIdentifier ?? "lc.common.unknown".loc)
                             .foregroundStyle(entitlementReadSuccess && teamId != nil ? (isBundleIdCorrect ? .green : .red): .gray)
+                            .textSelection(.enabled)
                     }
                     
                     if entitlementReadSuccess {
@@ -176,6 +177,7 @@ struct LCJITLessDiagnoseView : View {
                         Spacer()
                         Text(Bundle.main.bundleIdentifier ?? "lc.common.unknown".loc)
                             .foregroundStyle(.gray)
+                            .textSelection(.enabled)
                     }
                     if !sharedModel.certificateImported {
                         HStack {

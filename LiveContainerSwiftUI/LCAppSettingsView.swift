@@ -47,6 +47,7 @@ struct LCAppSettingsView : View{
                     Text(appInfo.relativeBundlePath)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.trailing)
+                        .textSelection(.enabled)
                 }
                 if !model.uiIsShared {
                     Menu {
@@ -99,11 +100,11 @@ struct LCAppSettingsView : View{
             
             Section {
                 List{
-                    ForEach($model.uiContainers, id:\.self) { $container in
+                    ForEach(model.uiContainers.indices, id:\.self) { i in
                         NavigationLink {
-                            LCContainerView(container: $container, uiDefaultDataFolder: $model.uiDefaultDataFolder, delegate: self)
+                            LCContainerView(container: model.uiContainers[i], uiDefaultDataFolder: $model.uiDefaultDataFolder, delegate: self)
                         } label: {
-                            Text(container.name)
+                            Text(model.uiContainers[i].name)
                         }
                     }
                 }
@@ -606,6 +607,7 @@ extension LCAppSettingsView : LCContainerViewDelegate {
     func saveContainer(container: LCContainer) {
         container.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: container.keychainGroupId)
         appInfo.containers = model.uiContainers
+        model.objectWillChange.send()
     }
     
     func getSettingsBundle() -> Bundle? {
