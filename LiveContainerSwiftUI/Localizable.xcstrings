@@ -3216,7 +3216,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Install another LiveContainer"
+            "value" : "Install Another LiveContainer"
           }
         },
         "zh_CN" : {
@@ -3267,7 +3267,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reinstall another LiveContainer"
+            "value" : "Reinstall Another LiveContainer"
           }
         },
         "zh_CN" : {

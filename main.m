@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include "TPRO.h"
 #import "fishhook/fishhook.h"
+#import "Tweaks/Tweaks.h"
 #include <mach-o/ldsyms.h>
 
 static int (*appMain)(int, char**);
@@ -25,9 +26,6 @@ NSString *lcAppGroupPath;
 NSString* lcAppUrlScheme;
 NSBundle* lcMainBundle;
 NSDictionary* guestAppInfo;
-
-void NUDGuestHooksInit();
-void SecItemGuestHooksInit();
 
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
@@ -203,19 +201,6 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     return (void *)header + entryoff;
 }
 
-uint32_t appMainImageIndex = 0;
-void* appExecutableHandle = 0;
-void* (*orig_dlsym)(void * __handle, const char * __symbol);
-void* new_dlsym(void * __handle, const char * __symbol) {
-    if(__handle == (void*)RTLD_MAIN_ONLY) {
-        if(strcmp(__symbol, MH_EXECUTE_SYM) == 0) {
-            return (void*)_dyld_get_image_header(appMainImageIndex);
-        }
-        __handle = appExecutableHandle;
-    }
-    
-    __attribute__((musttail)) return orig_dlsym(__handle, __symbol);
-}
 
 static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContainer, int argc, char *argv[]) {
     NSString *appError = nil;
@@ -260,7 +245,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         }
     }
     
-    NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+    NSBundle *appBundle = [[NSBundle alloc] initWithPathForMainBundle:bundlePath];
     
     if(!appBundle) {
         return @"App not found";
@@ -426,8 +411,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     uint32_t appIndex = _dyld_image_count();
     appMainImageIndex = appIndex;
     
-    // hook dlsym to solve RTLD_MAIN_ONLY
-    rebind_symbols((struct rebinding[1]){{"dlsym", (void *)new_dlsym, (void **)&orig_dlsym}},1);
+    DyldHooksInit();
     
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
     appExecutableHandle = appHandle;
@@ -455,8 +439,8 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     }
     NSLog(@"[LCBootstrap] loaded bundle");
 
-    // Find main()
-    appMain = getAppEntryPoint(appHandle, appIndex);
+    // Find main(), pass 1 as we hooked _dyld_get_image_header
+    appMain = getAppEntryPoint(appHandle, 1);
     if (!appMain) {
         appError = @"Could not find the main entry point";
         NSLog(@"[LCBootstrap] %@", appError);

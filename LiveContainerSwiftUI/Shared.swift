@@ -793,15 +793,44 @@ extension LCUtils {
             onServerMessage?("Please make sure the VPN is connected if the server is not in your local network.")
             
             do {
+
+                onServerMessage?("Contacting JitStreamer-EB server at \(JITStresmerEBAddress)...")
+                
+                let session = URLSession.shared
+                let decoder = JSONDecoder()
+                
+                let mountStatusUrlStr = "\(JITStresmerEBAddress)/mount"
+                guard let mountStatusUrl = URL(string: mountStatusUrlStr) else { return false }
+                let mountRequest = URLRequest(url: mountStatusUrl)
+                
+                // check mount status
+                onServerMessage?("Checking mount status...")
+                let (mountData, mountResponse) = try await session.asyncRequest(request: mountRequest)
+                guard let mountData else {
+                    onServerMessage?("Failed to mount status from server!")
+                    return false
+                }
+                let mountResponseObj = try decoder.decode(JITStreamerEBMountResponse.self, from: mountData)
+                guard mountResponseObj.ok else {
+                    onServerMessage?(mountResponseObj.error ?? "Mounting failed with unknown error.")
+                    return false
+                }
+                if mountResponseObj.mounting {
+                    onServerMessage?("Your device is currently mounting the developer disk image. Leave your device on and connected. Once this finishes, you can run JitStreamer again.")
+                    onServerMessage?("Check \(JITStresmerEBAddress)/mount_status for mounting status.")
+                    return false
+                }
+                
+                // send launch_app request
                 let launchJITUrlStr = "\(JITStresmerEBAddress)/launch_app/\(Bundle.main.bundleIdentifier ?? "")"
                 guard let launchJITUrl = URL(string: launchJITUrlStr) else { return false }
-                let session = URLSession.shared
+
                 
-                onServerMessage?("Contacting JitStreamer-EB server at \(JITStresmerEBAddress)...")
+                onServerMessage?("Sending launch request...")
                 let request1 = URLRequest(url: launchJITUrl)
                 let (data, response) = try await session.asyncRequest(request: request1)
                 
-                let decoder = JSONDecoder()
+
                 guard let data else {
                     onServerMessage?("Failed to retrieve data from server!")
                     return false
@@ -813,11 +842,7 @@ extension LCUtils {
                     return false
                 }
                 
-                if launchAppResponse.mounting {
-                    onServerMessage?("Your device is currently mounting the developer disk image. Leave your device on and connected. Once this finishes, you can run JitStreamer again.")
-                } else {
-                    onServerMessage?("Your app will launch soon! You are position \(launchAppResponse.position ?? -1) in the queue.")
-                }
+                onServerMessage?("Your app will launch soon! You are position \(launchAppResponse.position ?? -1) in the queue.")
                 
                 // start polling status
                 let statusUrlStr = "\(JITStresmerEBAddress)/status"
@@ -841,23 +866,10 @@ extension LCUtils {
                     }
                     if statusResponse.done {
                         onServerMessage?("Server done.")
-                        if launchAppResponse.mounting {
-                            onServerMessage?("Run the app again to enable JIT.")
-                        }
-                        
                         return true
                     }
-                    if statusResponse.in_progress {
-                        if launchAppResponse.mounting {
-                            onServerMessage?("JIT enabling in progress. (Attempt \(i + 1)/\(maxTries))")
-                        } else {
-                            onServerMessage?("Mounting in progress. (Attempt \(i + 1)/\(maxTries))")
-                        }
 
-                    } else {
-                        onServerMessage?("Your app will launch soon! You are position \(launchAppResponse.position ?? -1) in the queue. (Attempt \(i + 1)/\(maxTries))")
-                    }
-
+                    onServerMessage?("Your app will launch soon! You are position \(launchAppResponse.position ?? -1) in the queue. (Attempt \(i + 1)/\(maxTries))")
                 }
                 
 
@@ -876,7 +888,6 @@ extension LCUtils {
 struct JITStreamerEBLaunchAppResponse : Codable {
     let ok: Bool
     let launching: Bool
-    let mounting: Bool
     let position: Int?
     let error: String?
 }
@@ -884,7 +895,12 @@ struct JITStreamerEBLaunchAppResponse : Codable {
 struct JITStreamerEBStatusResponse : Codable {
     let ok: Bool
     let done: Bool
-    let in_progress: Bool
     let position: Int?
+    let error: String?
+}
+
+struct JITStreamerEBMountResponse : Codable {
+    let ok: Bool
+    let mounting: Bool
     let error: String?
 }

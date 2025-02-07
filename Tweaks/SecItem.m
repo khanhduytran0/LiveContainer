@@ -8,7 +8,7 @@
 #import <Security/Security.h>
 #import "utils.h"
 #import <CommonCrypto/CommonDigest.h>
-#import "fishhook/fishhook.h"
+#import "../fishhook/fishhook.h"
 
 extern void* (*msHookFunction)(void *symbol, void *hook, void **old);
 OSStatus (*orig_SecItemAdd)(CFDictionaryRef attributes, CFTypeRef *result);

@@ -1,0 +1,77 @@
+//
+//  Dyld.m
+//  LiveContainer
+//
+//  Created by s s on 2025/2/7.
+//
+#include <dlfcn.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <sys/mman.h>
+#include <stdlib.h>
+#include <mach/mach.h>
+#include <mach-o/dyld.h>
+#include <mach-o/dyld_images.h>
+#include <objc/runtime.h>
+#include <mach-o/ldsyms.h>
+#import "../fishhook/fishhook.h"
+
+uint32_t appMainImageIndex = 0;
+void* appExecutableHandle = 0;
+
+void* (*orig_dlsym)(void * __handle, const char * __symbol);
+uint32_t (*orig_dyld_image_count)(void);
+const struct mach_header* (*orig_dyld_get_image_header)(uint32_t image_index);
+intptr_t (*orig_dyld_get_image_vmaddr_slide)(uint32_t image_index);
+const char* (*orig_dyld_get_image_name)(uint32_t image_index);
+
+static inline int translateImageIndex(int origin) {
+    if(origin == 1) {
+        return appMainImageIndex;
+    }
+    if(origin >= appMainImageIndex) {
+        return origin + 1;
+    }
+    return origin;
+}
+
+
+void* hook_dlsym(void * __handle, const char * __symbol) {
+    if(__handle == (void*)RTLD_MAIN_ONLY) {
+        if(strcmp(__symbol, MH_EXECUTE_SYM) == 0) {
+            return (void*)orig_dyld_get_image_header(appMainImageIndex);
+        }
+        __handle = appExecutableHandle;
+    }
+    
+    __attribute__((musttail)) return orig_dlsym(__handle, __symbol);
+}
+
+uint32_t hook_dyld_image_count(void) {
+    return orig_dyld_image_count() - 1;
+}
+
+const struct mach_header* hook_dyld_get_image_header(uint32_t image_index) {
+    __attribute__((musttail)) return orig_dyld_get_image_header(translateImageIndex(image_index));
+}
+
+intptr_t hook_dyld_get_image_vmaddr_slide(uint32_t image_index) {
+    __attribute__((musttail)) return orig_dyld_get_image_vmaddr_slide(translateImageIndex(image_index));
+}
+
+const char* hook_dyld_get_image_name(uint32_t image_index) {
+    __attribute__((musttail)) return orig_dyld_get_image_name(translateImageIndex(image_index));
+}
+
+
+
+void DyldHooksInit(void) {
+    // hook dlsym to solve RTLD_MAIN_ONLY, hook other functions to hide LiveContainer itself
+    rebind_symbols((struct rebinding[5]){
+        {"dlsym", (void *)hook_dlsym, (void **)&orig_dlsym},
+        {"_dyld_image_count", (void *)hook_dyld_image_count, (void **)&orig_dyld_image_count},
+        {"_dyld_get_image_header", (void *)hook_dyld_get_image_header, (void **)&orig_dyld_get_image_header},
+        {"_dyld_get_image_vmaddr_slide", (void *)hook_dyld_get_image_vmaddr_slide, (void **)&orig_dyld_get_image_vmaddr_slide},
+        {"_dyld_get_image_name", (void *)hook_dyld_get_image_name, (void **)&orig_dyld_get_image_name},
+    },5);
+}
