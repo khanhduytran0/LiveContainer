@@ -858,6 +858,40 @@
         }
       }
     },
+    "lc.appSettings.dontInjectTweakLoader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don’t Inject TweakLoader"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不注入TweakLoader"
+          }
+        }
+      }
+    },
+    "lc.appSettings.dontInjectTweakLoaderDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Might help bypass some app’s injection detection."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可能可以帮助绕过一些App的注入检测。"
+          }
+        }
+      }
+    },
     "lc.appSettings.fixBlackScreen" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1007,40 +1041,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要完全隐藏App，请在设置中启用严格隐藏模式。"
-          }
-        }
-      }
-    },
-    "lc.appSettings.ignoreDlopenError" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ignore Error During dlopen"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "忽略dlopen时的错误"
-          }
-        }
-      }
-    },
-    "lc.appSettings.ignoreDlopenErrorDesc" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Might solve errors like dlsym(xxxx, xxxx): symbol not found"
-          }
-        },
-        "zh_CN" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "可能解决类似dlsym(xxxx,xxxx): symbol not found的问题"
           }
         }
       }

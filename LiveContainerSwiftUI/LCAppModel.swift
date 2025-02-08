@@ -26,8 +26,9 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var uiUseLCBundleId : Bool
     @Published var uiBypassAssertBarrierOnQueue : Bool
     @Published var uiSigner : Signer
-    @Published var uiIgnoreDlopenError : Bool
+//    @Published var uiIgnoreDlopenError : Bool
     @Published var uiFixBlackScreen : Bool
+    @Published var uiDontInjectTweakLoader : Bool
     @Published var uiOrientationLock : LCOrientationLock
     @Published var uiSelectedLanguage : String
     @Published var supportedLanaguages : [String]?
@@ -58,8 +59,9 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiSigner = appInfo.signer
         self.uiOrientationLock = appInfo.orientationLock
         self.uiUseLCBundleId = appInfo.doUseLCBundleId
-        self.uiIgnoreDlopenError = appInfo.ignoreDlopenError
+//        self.uiIgnoreDlopenError = appInfo.ignoreDlopenError
         self.uiFixBlackScreen = appInfo.fixBlackScreen
+        self.uiDontInjectTweakLoader = appInfo.dontInjectTweakLoader
         
         for container in uiContainers {
             if container.folderName == uiDefaultDataFolder {

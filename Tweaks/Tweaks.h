@@ -11,6 +11,7 @@ void swizzle(Class class, SEL originalAction, SEL swizzledAction);
 void NUDGuestHooksInit(void);
 void SecItemGuestHooksInit(void);
 void DyldHooksInit(void);
+void NSFMGuestHooksInit(void);
 
 @interface NSBundle(LiveContainer)
 - (instancetype)initWithPathForMainBundle:(NSString *)path;
@@ -19,3 +20,4 @@ void DyldHooksInit(void);
 
 extern uint32_t appMainImageIndex;
 extern void* appExecutableHandle;
+void* getGuestAppHeader(void);

@@ -267,12 +267,20 @@
         return;
     }
     
+    NSFileManager* fm = NSFileManager.defaultManager;
     // Update patch
     int currentPatchRev = 6;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, _infoPlist[@"CFBundleExecutable"]];
+        NSString *backupPath = [NSString stringWithFormat:@"%@/%@_LiveContainerPatchBackUp", appPath, _infoPlist[@"CFBundleExecutable"]];
+        // copy-delete-move to avoid EXC_BAD_ACCESS (SIGKILL - CODESIGNING)
+        NSError *err;
+        [fm copyItemAtPath:execPath toPath:backupPath error:&err];
+        [fm removeItemAtPath:execPath error:&err];
+        [fm moveItemAtPath:backupPath toPath:execPath error:&err];
+        
         NSString *error = LCParseMachO(execPath.UTF8String, ^(const char *path, struct mach_header_64 *header) {
-            LCPatchExecSlice(path, header);
+            LCPatchExecSlice(path, header, ![self dontInjectTweakLoader]);
         });
         if (error) {
             completetionHandler(NO, error);
@@ -281,7 +289,6 @@
         info[@"LCPatchRevision"] = @(currentPatchRev);
         forceSign = true;
         // remove ZSign cache since hash is changed after upgrading patch
-        NSFileManager* fm = NSFileManager.defaultManager;
         NSString* cachePath = [appPath stringByAppendingPathComponent:@"zsign_cache.json"];
         if([fm fileExistsAtPath:cachePath]) {
             NSError* err;
@@ -327,7 +334,7 @@
             NSString *tmpExecPath = [appPath stringByAppendingPathComponent:@"LiveContainer.tmp"];
             if (!info[@"LCBundleIdentifier"]) {
                 // Don't let main executable get entitlements
-                [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
+                [fm copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
 
                 infoPlist[@"LCBundleExecutable"] = infoPlist[@"CFBundleExecutable"];
                 infoPlist[@"LCBundleIdentifier"] = infoPlist[@"CFBundleIdentifier"];
@@ -347,7 +354,7 @@
                     }
                     
                     // Remove fake main executable
-                    [NSFileManager.defaultManager removeItemAtPath:tmpExecPath error:nil];
+                    [fm removeItemAtPath:tmpExecPath error:nil];
                     
 
                     if(success && expirationDate) {
@@ -444,17 +451,17 @@
     
 }
 
-- (bool)ignoreDlopenError {
-    if(_info[@"ignoreDlopenError"] != nil) {
-        return [_info[@"ignoreDlopenError"] boolValue];
-    } else {
-        return NO;
-    }
-}
-- (void)setIgnoreDlopenError:(bool)ignoreDlopenError {
-    _info[@"ignoreDlopenError"] = [NSNumber numberWithBool:ignoreDlopenError];
-    [self save];
-}
+//- (bool)ignoreDlopenError {
+//    if(_info[@"ignoreDlopenError"] != nil) {
+//        return [_info[@"ignoreDlopenError"] boolValue];
+//    } else {
+//        return NO;
+//    }
+//}
+//- (void)setIgnoreDlopenError:(bool)ignoreDlopenError {
+//    _info[@"ignoreDlopenError"] = [NSNumber numberWithBool:ignoreDlopenError];
+//    [self save];
+//}
 
 - (bool)fixBlackScreen {
     if(_info[@"fixBlackScreen"] != nil) {
@@ -468,6 +475,19 @@
     [self save];
 }
 
+- (bool)dontInjectTweakLoader {
+    if(_info[@"dontInjectTweakLoader"] != nil) {
+        return [_info[@"dontInjectTweakLoader"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDontInjectTweakLoader:(bool)dontInjectTweakLoader {
+    _info[@"dontInjectTweakLoader"] = [NSNumber numberWithBool:dontInjectTweakLoader];
+    // we have to update patch to achieve this
+    _info[@"LCPatchRevision"] = @(-1);
+    [self save];
+}
 
 - (bool)doUseLCBundleId {
     if(_info[@"doUseLCBundleId"] != nil) {

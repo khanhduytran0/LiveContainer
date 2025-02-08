@@ -46,7 +46,7 @@ void LCPatchAddRPath(const char *path, struct mach_header_64 *header) {
     insertRPathCommand("@loader_path", header);
 }
 
-void LCPatchExecSlice(const char *path, struct mach_header_64 *header) {
+void LCPatchExecSlice(const char *path, struct mach_header_64 *header, bool doInject) {
     uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
 
     // Literally convert an executable to a dylib
@@ -59,16 +59,17 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header) {
 
     // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
     struct segment_command_64 *seg = (struct segment_command_64 *)imageHeaderPtr;
-    assert(seg->cmd == LC_SEGMENT_64);
-    if (seg->vmaddr == 0) {
+    assert(seg->cmd == LC_SEGMENT_64 || seg->cmd == LC_ID_DYLIB);
+    if (seg->cmd == LC_SEGMENT_64 && seg->vmaddr == 0) {
         assert(seg->vmsize == 0x100000000);
         seg->vmaddr = 0x100000000 - 0x4000;
         seg->vmsize = 0x4000;
     }
 
-    BOOL hasDylibCommand = NO,
-         hasLoaderCommand = NO;
+    BOOL hasDylibCommand = NO;
+    struct dylib_command * dylibLoaderCommand = 0;
     const char *tweakLoaderPath = "@loader_path/../../Tweaks/TweakLoader.dylib";
+    const char *libCppPath = "/usr/lib/libc++.1.dylib";
     struct load_command *command = (struct load_command *)imageHeaderPtr;
     for(int i = 0; i < header->ncmds > 0; i++) {
         if(command->cmd == LC_ID_DYLIB) {
@@ -77,15 +78,20 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header) {
             struct dylib_command *dylib = (struct dylib_command *)command;
             char *dylibName = (void *)dylib + dylib->dylib.name.offset;
             if (!strncmp(dylibName, tweakLoaderPath, strlen(tweakLoaderPath))) {
-                hasLoaderCommand = YES;
+                dylibLoaderCommand = dylib;
             }
+        } else if(command->cmd == 0x114514) {
+            dylibLoaderCommand = (struct dylib_command *)command;
         }
         command = (struct load_command *)((void *)command + command->cmdsize);
     }
 
     // Add LC_LOAD_DYLIB first, since LC_ID_DYLIB will change overall offsets
-    if (!hasLoaderCommand) {
-        insertDylibCommand(LC_LOAD_DYLIB, tweakLoaderPath, header);
+    if (dylibLoaderCommand) {
+        dylibLoaderCommand->cmd = doInject ? LC_LOAD_DYLIB : 0x114514;
+        strcpy((void *)dylibLoaderCommand + dylibLoaderCommand->dylib.name.offset, doInject ? tweakLoaderPath : libCppPath);
+    } else {
+        insertDylibCommand(doInject ? LC_LOAD_DYLIB : 0x114514, doInject ? tweakLoaderPath : libCppPath, header);
     }
     if (!hasDylibCommand) {
         insertDylibCommand(LC_ID_DYLIB, path, header);

@@ -19,8 +19,9 @@ typedef NS_ENUM(NSInteger, LCOrientationLock){
 @property bool isLocked;
 @property bool isHidden;
 @property bool doSymlinkInbox;
-@property bool ignoreDlopenError;
+//@property bool ignoreDlopenError;
 @property bool fixBlackScreen;
+@property bool dontInjectTweakLoader;
 @property bool bypassAssertBarrierOnQueue;
 @property UIColor* cachedColor;
 @property Signer signer;

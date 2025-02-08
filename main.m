@@ -183,9 +183,9 @@ static void overwriteExecPath(NSString *bundlePath) {
     }
 }
 
-static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
+static void *getAppEntryPoint(void *handle) {
     uint32_t entryoff = 0;
-    const struct mach_header_64 *header = (struct mach_header_64 *)_dyld_get_image_header(imageIndex);
+    const struct mach_header_64 *header = (struct mach_header_64 *)getGuestAppHeader();
     uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
     struct load_command *command = (struct load_command *)imageHeaderPtr;
     for(int i = 0; i < header->ncmds > 0; ++i) {
@@ -407,6 +407,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     // hook NSUserDefault before running libraries' initializers
     NUDGuestHooksInit();
     SecItemGuestHooksInit();
+    NSFMGuestHooksInit();
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
     appMainImageIndex = appIndex;
@@ -416,8 +417,8 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
     appExecutableHandle = appHandle;
     const char *dlerr = dlerror();
-
-    if (!appHandle || (uint64_t)appHandle > 0xf00000000000 || (dlerr && ![guestAppInfo[@"ignoreDlopenError"] boolValue]) ) {
+    
+    if (!appHandle || (uint64_t)appHandle > 0xf00000000000) {
         if (dlerr) {
             appError = @(dlerr);
         } else {
@@ -426,6 +427,10 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         NSLog(@"[LCBootstrap] %@", appError);
         *path = oldPath;
         return appError;
+    }
+    
+    if([guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
+        dlopen("@loader_path/../../Tweaks/TweakLoader.dylib", RTLD_LAZY|RTLD_GLOBAL);
     }
     
     // Fix dynamic properties of some apps
@@ -439,8 +444,8 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     }
     NSLog(@"[LCBootstrap] loaded bundle");
 
-    // Find main(), pass 1 as we hooked _dyld_get_image_header
-    appMain = getAppEntryPoint(appHandle, 1);
+    // Find main()
+    appMain = getAppEntryPoint(appHandle);
     if (!appMain) {
         appError = @"Could not find the main entry point";
         NSLog(@"[LCBootstrap] %@", appError);

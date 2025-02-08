@@ -240,6 +240,19 @@ struct LCAppSettingsView : View{
             } footer: {
                 Text("lc.appSettings.useLCBundleIdDesc".loc)
             }
+            
+            Section {
+                Toggle(isOn: $model.uiFixBlackScreen) {
+                    Text("lc.appSettings.fixBlackScreen".loc)
+                }
+                .onChange(of: model.uiFixBlackScreen, perform: { newValue in
+                    Task { await setFixBlackScreen(newValue) }
+                })
+            } footer: {
+                Text("lc.appSettings.fixBlackScreenDesc".loc)
+            }
+
+            
             if sharedModel.isPhone {
                 Section {
                     Picker(selection: $model.uiOrientationLock) {
@@ -255,26 +268,26 @@ struct LCAppSettingsView : View{
                 }
             }
             
-            Section {
-                Toggle(isOn: $model.uiIgnoreDlopenError) {
-                    Text("lc.appSettings.ignoreDlopenError".loc)
-                }
-                .onChange(of: model.uiIgnoreDlopenError, perform: { newValue in
-                    Task { await setIgnoreDlopenError(newValue) }
-                })
-            } footer: {
-                Text("lc.appSettings.ignoreDlopenErrorDesc".loc)
-            }
+//            Section {
+//                Toggle(isOn: $model.uiIgnoreDlopenError) {
+//                    Text("lc.appSettings.ignoreDlopenError".loc)
+//                }
+//                .onChange(of: model.uiIgnoreDlopenError, perform: { newValue in
+//                    Task { await setIgnoreDlopenError(newValue) }
+//                })
+//            } footer: {
+//                Text("lc.appSettings.ignoreDlopenErrorDesc".loc)
+//            }
             
             Section {
-                Toggle(isOn: $model.uiFixBlackScreen) {
-                    Text("lc.appSettings.fixBlackScreen".loc)
+                Toggle(isOn: $model.uiDontInjectTweakLoader) {
+                    Text("lc.appSettings.dontInjectTweakLoader".loc)
                 }
-                .onChange(of: model.uiFixBlackScreen, perform: { newValue in
-                    Task { await setFixBlackScreen(newValue) }
+                .onChange(of: model.uiDontInjectTweakLoader, perform: { newValue in
+                    Task { await setDontInjectTweakLoader(newValue) }
                 })
             } footer: {
-                Text("lc.appSettings.fixBlackScreenDesc".loc)
+                Text("lc.appSettings.dontInjectTweakLoaderDesc".loc)
             }
 
             
@@ -518,14 +531,19 @@ struct LCAppSettingsView : View{
         model.uiUseLCBundleId = doUseLCBundleId
     }
     
-    func setIgnoreDlopenError(_ ignoreDlopenError : Bool) async {
-        appInfo.ignoreDlopenError = ignoreDlopenError
-        model.uiIgnoreDlopenError = ignoreDlopenError
-    }
+//    func setIgnoreDlopenError(_ ignoreDlopenError : Bool) async {
+//        appInfo.ignoreDlopenError = ignoreDlopenError
+//        model.uiIgnoreDlopenError = ignoreDlopenError
+//    }
     
     func setFixBlackScreen(_ fixBlackScreen : Bool) async {
         appInfo.fixBlackScreen = fixBlackScreen
         model.uiFixBlackScreen = fixBlackScreen
+    }
+    
+    func setDontInjectTweakLoader(_ dontInjectTweakLoader : Bool) async {
+        appInfo.dontInjectTweakLoader = dontInjectTweakLoader
+        model.uiDontInjectTweakLoader = dontInjectTweakLoader
     }
     
     func setOrientationLock(_ lock : LCOrientationLock) async {

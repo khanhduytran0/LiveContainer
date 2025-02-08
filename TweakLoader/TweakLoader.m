@@ -59,6 +59,12 @@ static void TweakLoaderConstructor() {
     const char *tweakFolderC = getenv("LC_GLOBAL_TWEAKS_FOLDER");
     NSString *globalTweakFolder = @(tweakFolderC);
     unsetenv("LC_GLOBAL_TWEAKS_FOLDER");
+    
+    if([NSUserDefaults.guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
+        // don't load any tweak since tweakloader is loaded after all initializers
+        NSLog(@"Skip loading tweaks");
+        return;
+    }
 
     NSMutableArray *errors = [NSMutableArray new];
 

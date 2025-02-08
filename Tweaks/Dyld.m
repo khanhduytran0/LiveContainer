@@ -16,6 +16,7 @@
 #include <mach-o/ldsyms.h>
 #import "../fishhook/fishhook.h"
 
+uint32_t lcImageIndex = 0;
 uint32_t appMainImageIndex = 0;
 void* appExecutableHandle = 0;
 
@@ -26,7 +27,7 @@ intptr_t (*orig_dyld_get_image_vmaddr_slide)(uint32_t image_index);
 const char* (*orig_dyld_get_image_name)(uint32_t image_index);
 
 static inline int translateImageIndex(int origin) {
-    if(origin == 1) {
+    if(origin == lcImageIndex) {
         return appMainImageIndex;
     }
     if(origin >= appMainImageIndex) {
@@ -66,6 +67,16 @@ const char* hook_dyld_get_image_name(uint32_t image_index) {
 
 
 void DyldHooksInit(void) {
+    // iterate through loaded images and find LiveContainer it self
+    int imageCount = _dyld_image_count();
+    for(int i = 0; i < imageCount; ++i) {
+        const char* currentImageName = _dyld_get_image_name(i);
+        if(!strncmp(currentImageName, "/private/var", 12)) {
+            lcImageIndex = i;
+            break;
+        }
+    }
+    
     // hook dlsym to solve RTLD_MAIN_ONLY, hook other functions to hide LiveContainer itself
     rebind_symbols((struct rebinding[5]){
         {"dlsym", (void *)hook_dlsym, (void **)&orig_dlsym},
@@ -74,4 +85,8 @@ void DyldHooksInit(void) {
         {"_dyld_get_image_vmaddr_slide", (void *)hook_dyld_get_image_vmaddr_slide, (void **)&orig_dyld_get_image_vmaddr_slide},
         {"_dyld_get_image_name", (void *)hook_dyld_get_image_name, (void **)&orig_dyld_get_image_name},
     },5);
+}
+
+void* getGuestAppHeader(void) {
+    return (void*)orig_dyld_get_image_header(appMainImageIndex);
 }

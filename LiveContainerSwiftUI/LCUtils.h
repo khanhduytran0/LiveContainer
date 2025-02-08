@@ -14,7 +14,7 @@ typedef NS_ENUM(NSInteger, Signer){
 
 NSString *LCParseMachO(const char *path, LCParseMachOCallback callback);
 void LCPatchAddRPath(const char *path, struct mach_header_64 *header);
-void LCPatchExecSlice(const char *path, struct mach_header_64 *header);
+void LCPatchExecSlice(const char *path, struct mach_header_64 *header, bool doInject);
 void LCPatchLibrary(const char *path, struct mach_header_64 *header);
 void LCChangeExecUUID(struct mach_header_64 *header);
 void LCPatchAltStore(const char *path, struct mach_header_64 *header);
