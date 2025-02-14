@@ -41,7 +41,7 @@
                 @"LCOrientationLock",
                 @"cachedColor",
                 @"LCContainers",
-                @"ignoreDlopenError"
+                @"hideLiveContainer"
             ];
             for(NSString* key in lcAppInfoKeys) {
                 _info[key] = _infoPlist[key];
@@ -451,17 +451,17 @@
     
 }
 
-//- (bool)ignoreDlopenError {
-//    if(_info[@"ignoreDlopenError"] != nil) {
-//        return [_info[@"ignoreDlopenError"] boolValue];
-//    } else {
-//        return NO;
-//    }
-//}
-//- (void)setIgnoreDlopenError:(bool)ignoreDlopenError {
-//    _info[@"ignoreDlopenError"] = [NSNumber numberWithBool:ignoreDlopenError];
-//    [self save];
-//}
+- (bool)hideLiveContainer {
+    if(_info[@"hideLiveContainer"] != nil) {
+        return [_info[@"hideLiveContainer"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setHideLiveContainer:(bool)hideLiveContainer {
+    _info[@"hideLiveContainer"] = [NSNumber numberWithBool:hideLiveContainer];
+    [self save];
+}
 
 - (bool)fixBlackScreen {
     if(_info[@"fixBlackScreen"] != nil) {

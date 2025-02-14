@@ -5,7 +5,7 @@
 //
 
 import SwiftUI
-import WebKit
+@preconcurrency import WebKit
 
 struct LCWebView: View {
     @State private var webView : WebView

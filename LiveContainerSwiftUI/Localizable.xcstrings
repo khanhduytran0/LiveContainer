@@ -1045,6 +1045,40 @@
         }
       }
     },
+    "lc.appSettings.hideLiveContainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide LiveContainer from Dyld Api"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从Dyld Api中隐藏LiveContainer"
+          }
+        }
+      }
+    },
+    "lc.appSettings.hideLiveContainerDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Might help bypass some app’s injection detection."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可能可以帮助绕过一些App的注入检测。"
+          }
+        }
+      }
+    },
     "lc.appSettings.launchWithJit" : {
       "extractionState" : "manual",
       "localizations" : {

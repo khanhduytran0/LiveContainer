@@ -108,7 +108,7 @@ struct LCAppSettingsView : View{
                         }
                     }
                 }
-                if(model.uiContainers.count < 3) {
+                if(model.uiContainers.count < SharedModel.keychainAccessGroupCount) {
                     Button {
                         Task{ await createFolder() }
                     } label: {
@@ -268,18 +268,14 @@ struct LCAppSettingsView : View{
                 }
             }
             
-//            Section {
-//                Toggle(isOn: $model.uiIgnoreDlopenError) {
-//                    Text("lc.appSettings.ignoreDlopenError".loc)
-//                }
-//                .onChange(of: model.uiIgnoreDlopenError, perform: { newValue in
-//                    Task { await setIgnoreDlopenError(newValue) }
-//                })
-//            } footer: {
-//                Text("lc.appSettings.ignoreDlopenErrorDesc".loc)
-//            }
-            
             Section {
+                Toggle(isOn: $model.uiHideLiveContainer) {
+                    Text("lc.appSettings.hideLiveContainer".loc)
+                }
+                .onChange(of: model.uiHideLiveContainer, perform: { newValue in
+                    Task { await setHideLiveContainer(newValue) }
+                })
+
                 Toggle(isOn: $model.uiDontInjectTweakLoader) {
                     Text("lc.appSettings.dontInjectTweakLoader".loc)
                 }
@@ -287,7 +283,7 @@ struct LCAppSettingsView : View{
                     Task { await setDontInjectTweakLoader(newValue) }
                 })
             } footer: {
-                Text("lc.appSettings.dontInjectTweakLoaderDesc".loc)
+                Text("lc.appSettings.hideLiveContainerDesc".loc)
             }
 
             
@@ -400,13 +396,13 @@ struct LCAppSettingsView : View{
         let newContainer = LCContainer(folderName: newName, name: displayName, isShared: model.uiIsShared, isolateAppGroup: false)
         // assign keychain group
         var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
-        for i in 0...2 {
+        for i in 0..<SharedModel.keychainAccessGroupCount {
             keychainGroupSet.insert(i)
         }
         for container in model.uiContainers {
             keychainGroupSet.remove(container.keychainGroupId)
         }
-        guard let freeKeyChainGroup = keychainGroupSet.first else {
+        guard let freeKeyChainGroup = keychainGroupSet.randomElement() else {
             errorInfo = "lc.container.notEnoughKeychainGroup".loc
             errorShow = true
             return
@@ -531,10 +527,10 @@ struct LCAppSettingsView : View{
         model.uiUseLCBundleId = doUseLCBundleId
     }
     
-//    func setIgnoreDlopenError(_ ignoreDlopenError : Bool) async {
-//        appInfo.ignoreDlopenError = ignoreDlopenError
-//        model.uiIgnoreDlopenError = ignoreDlopenError
-//    }
+    func setHideLiveContainer(_ hideLiveContainer : Bool) async {
+        appInfo.hideLiveContainer = hideLiveContainer
+        model.uiHideLiveContainer = hideLiveContainer
+    }
     
     func setFixBlackScreen(_ fixBlackScreen : Bool) async {
         appInfo.fixBlackScreen = fixBlackScreen
@@ -652,7 +648,7 @@ extension LCAppSettingsView : LCContainerViewDelegate {
 
 extension LCAppSettingsView : LCSelectContainerViewDelegate {
     func addContainers(containers: Set<String>) {
-        if containers.count + model.uiContainers.count > 3 {
+        if containers.count + model.uiContainers.count > SharedModel.keychainAccessGroupCount {
             errorInfo = "lc.container.tooMuchContainers".loc
             errorShow = true
             return
@@ -663,14 +659,14 @@ extension LCAppSettingsView : LCSelectContainerViewDelegate {
             newContainer.loadName()
             if newContainer.keychainGroupId == -1 {
                 // assign keychain group for old containers
-                var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
-                for i in 0...2 {
+                var keychainGroupSet : Set<Int> = Set(minimumCapacity: SharedModel.keychainAccessGroupCount)
+                for i in 0..<SharedModel.keychainAccessGroupCount {
                     keychainGroupSet.insert(i)
                 }
                 for container in model.uiContainers {
                     keychainGroupSet.remove(container.keychainGroupId)
                 }
-                guard let freeKeyChainGroup = keychainGroupSet.first else {
+                guard let freeKeyChainGroup = keychainGroupSet.randomElement() else {
                     errorInfo = "lc.container.notEnoughKeychainGroup".loc
                     errorShow = true
                     return

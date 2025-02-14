@@ -19,18 +19,23 @@ public final class DownloadHelper : ObservableObject {
     func download(url: URL, to: URL) async throws {
         var ansError: Error? = nil
         cancelled = false
+        
+        await MainActor.run {
+            self.isDownloading = true
+        }
+        
         await withCheckedContinuation { c in
             continuation = c
             let session = URLSession(configuration: .default, delegate: DownloadDelegate(progressCallback: { progress, downloaded, total in
-                DispatchQueue.main.async {
+                Task{ await MainActor.run {
                     self.downloadProgress = progress
                     self.downloadedSize = downloaded
                     self.totalSize = total
-                }
+                }}
             }, completeCallback: {tempFileURL, error in
-                DispatchQueue.main.async {
+                Task{ await MainActor.run {
                     self.isDownloading = false
-                }
+                }}
                 if let error {
                     print(error)
                     ansError = error
@@ -52,11 +57,6 @@ public final class DownloadHelper : ObservableObject {
 
             downloadTask = session.downloadTask(with: url)
             downloadTask?.resume()
-            DispatchQueue.main.async {
-                self.isDownloading = true
-            }
-            
-            print("resume~")
         }
         if let ansError {
             throw ansError

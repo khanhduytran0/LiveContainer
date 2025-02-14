@@ -66,6 +66,8 @@ class SharedModel: ObservableObject {
         UIDevice.current.userInterfaceIdiom == .phone
     }()
     
+    public static let keychainAccessGroupCount = 128
+    
     func updateMultiLCStatus() {
         if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {
             multiLCStatus = 2
@@ -94,9 +96,9 @@ class AlertHelper<T> : ObservableObject {
     func open() async -> T? {
         await withCheckedContinuation { c in
             self.c = c
-            DispatchQueue.main.async {
+            Task { await MainActor.run {
                 self.show = true
-            }
+            }}
         }
         return self.result
     }
@@ -818,6 +820,9 @@ extension LCUtils {
                 if mountResponseObj.mounting {
                     onServerMessage?("Your device is currently mounting the developer disk image. Leave your device on and connected. Once this finishes, you can run JitStreamer again.")
                     onServerMessage?("Check \(JITStresmerEBAddress)/mount_status for mounting status.")
+                    if let mountStatusUrl = URL(string: "\(JITStresmerEBAddress)/mount_status") {
+                        await UIApplication.shared.open(mountStatusUrl)
+                    }
                     return false
                 }
                 

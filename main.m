@@ -412,7 +412,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     uint32_t appIndex = _dyld_image_count();
     appMainImageIndex = appIndex;
     
-    DyldHooksInit();
+    DyldHooksInit([guestAppInfo[@"hideLiveContainer"] boolValue]);
     
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
     appExecutableHandle = appHandle;

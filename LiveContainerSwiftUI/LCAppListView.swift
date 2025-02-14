@@ -521,6 +521,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             finalNewApp.dataUUID = appToReplace.appInfo.dataUUID
             finalNewApp.orientationLock = appToReplace.appInfo.orientationLock
             finalNewApp.dontInjectTweakLoader = appToReplace.appInfo.dontInjectTweakLoader
+            finalNewApp.hideLiveContainer = appToReplace.appInfo.hideLiveContainer
             finalNewApp.autoSaveDisabled = false
             finalNewApp.save()
         }
@@ -554,6 +555,11 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
     }
     
     func installFromUrl(urlStr: String) async {
+        // ignore any install request if we are installing another app
+        if self.installprogressVisible {
+            return
+        }
+        
         if sharedModel.multiLCStatus == 2 {
             errorInfo = "lc.appList.manageInPrimaryTip".loc
             errorShow = true

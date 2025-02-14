@@ -26,7 +26,7 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var uiUseLCBundleId : Bool
     @Published var uiBypassAssertBarrierOnQueue : Bool
     @Published var uiSigner : Signer
-//    @Published var uiIgnoreDlopenError : Bool
+    @Published var uiHideLiveContainer : Bool
     @Published var uiFixBlackScreen : Bool
     @Published var uiDontInjectTweakLoader : Bool
     @Published var uiOrientationLock : LCOrientationLock
@@ -59,7 +59,7 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiSigner = appInfo.signer
         self.uiOrientationLock = appInfo.orientationLock
         self.uiUseLCBundleId = appInfo.doUseLCBundleId
-//        self.uiIgnoreDlopenError = appInfo.ignoreDlopenError
+        self.uiHideLiveContainer = appInfo.hideLiveContainer
         self.uiFixBlackScreen = appInfo.fixBlackScreen
         self.uiDontInjectTweakLoader = appInfo.dontInjectTweakLoader
         
@@ -92,7 +92,7 @@ class LCAppModel: ObservableObject, Hashable {
                 uiSelectedContainer = newContainer;
             }
             appInfo.containers = uiContainers;
-            newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: 0)
+            newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: Int.random(in: 0..<SharedModel.keychainAccessGroupCount))
             appInfo.dataUUID = newName
             uiDefaultDataFolder = newName
         }
@@ -143,9 +143,9 @@ class LCAppModel: ObservableObject, Hashable {
         }
         isAppRunning = true
         defer {
-            DispatchQueue.main.async {
+            Task{ await MainActor.run {
                 self.isAppRunning = false
-            }
+            }}
 
         }
         try await signApp(force: true)
@@ -155,9 +155,9 @@ class LCAppModel: ObservableObject, Hashable {
         var signError : String? = nil
         var signSuccess = false
         defer {
-            DispatchQueue.main.async {
+            Task{ await MainActor.run {
                 self.isSigningInProgress = false
-            }
+            }}
         }
         
         await withCheckedContinuation({ c in
@@ -195,16 +195,16 @@ class LCAppModel: ObservableObject, Hashable {
             tweakFolderUrl = LCPath.tweakPath.appendingPathComponent(tweakFolder)
         }
         try await LCUtils.signTweaks(tweakFolderUrl: tweakFolderUrl, force: force, signer: self.appInfo.signer) { p in
-            DispatchQueue.main.async {
+            Task{ await MainActor.run {
                 self.isSigningInProgress = true
-            }
+            }}
         }
         
         // sign global tweak
         try await LCUtils.signTweaks(tweakFolderUrl: LCPath.tweakPath, force: force, signer: self.appInfo.signer) { p in
-            DispatchQueue.main.async {
+            Task{ await MainActor.run {
                 self.isSigningInProgress = true
-            }
+            }}
         }
         
         

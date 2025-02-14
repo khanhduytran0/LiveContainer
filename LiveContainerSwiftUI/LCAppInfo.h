@@ -19,7 +19,7 @@ typedef NS_ENUM(NSInteger, LCOrientationLock){
 @property bool isLocked;
 @property bool isHidden;
 @property bool doSymlinkInbox;
-//@property bool ignoreDlopenError;
+@property bool hideLiveContainer;
 @property bool fixBlackScreen;
 @property bool dontInjectTweakLoader;
 @property bool bypassAssertBarrierOnQueue;
