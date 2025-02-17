@@ -162,13 +162,14 @@
 }
 
 - (UIImage*)icon {
-    UIImage* icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+    NSBundle* bundle = [[NSBundle alloc] initWithPath: _bundlePath];
+    UIImage* icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:bundle compatibleWithTraitCollection:nil];
     if(!icon) {
-        icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+        icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIconFiles"][0] inBundle:bundle compatibleWithTraitCollection:nil];
     }
     
     if(!icon) {
-        icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconName"] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+        icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconName"] inBundle:bundle compatibleWithTraitCollection:nil];
     }
     
     if(!icon) {
@@ -483,9 +484,25 @@
     }
 }
 - (void)setDontInjectTweakLoader:(bool)dontInjectTweakLoader {
+    if([_info[@"dontInjectTweakLoader"] boolValue] == dontInjectTweakLoader) {
+        return;
+    }
+    
     _info[@"dontInjectTweakLoader"] = [NSNumber numberWithBool:dontInjectTweakLoader];
     // we have to update patch to achieve this
     _info[@"LCPatchRevision"] = @(-1);
+    [self save];
+}
+
+- (bool)dontLoadTweakLoader {
+    if(_info[@"dontLoadTweakLoader"] != nil) {
+        return [_info[@"dontLoadTweakLoader"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDontLoadTweakLoader:(bool)dontLoadTweakLoader {
+    _info[@"dontLoadTweakLoader"] = [NSNumber numberWithBool:dontLoadTweakLoader];
     [self save];
 }
 

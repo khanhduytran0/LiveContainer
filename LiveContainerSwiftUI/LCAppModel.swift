@@ -14,23 +14,74 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var signProgress = 0.0
     private var observer : NSKeyValueObservation?
     
-    @Published var uiIsJITNeeded : Bool
+    @Published var uiIsJITNeeded : Bool {
+        didSet {
+            appInfo.isJITNeeded = uiIsJITNeeded
+        }
+    }
     @Published var uiIsHidden : Bool
     @Published var uiIsLocked : Bool
     @Published var uiIsShared : Bool
     @Published var uiDefaultDataFolder : String?
     @Published var uiContainers : [LCContainer]
     @Published var uiSelectedContainer : LCContainer?
-    @Published var uiTweakFolder : String?
-    @Published var uiDoSymlinkInbox : Bool
-    @Published var uiUseLCBundleId : Bool
-    @Published var uiBypassAssertBarrierOnQueue : Bool
-    @Published var uiSigner : Signer
-    @Published var uiHideLiveContainer : Bool
-    @Published var uiFixBlackScreen : Bool
-    @Published var uiDontInjectTweakLoader : Bool
-    @Published var uiOrientationLock : LCOrientationLock
-    @Published var uiSelectedLanguage : String
+    @Published var uiTweakFolder : String? {
+        didSet {
+            appInfo.tweakFolder = uiTweakFolder
+        }
+    }
+    @Published var uiDoSymlinkInbox : Bool {
+        didSet {
+            appInfo.doSymlinkInbox = uiDoSymlinkInbox
+        }
+    }
+    @Published var uiUseLCBundleId : Bool {
+        didSet {
+            appInfo.doUseLCBundleId = uiUseLCBundleId
+        }
+    }
+    @Published var uiBypassAssertBarrierOnQueue : Bool {
+        didSet {
+            appInfo.bypassAssertBarrierOnQueue = uiBypassAssertBarrierOnQueue
+        }
+    }
+    @Published var uiSigner : Signer {
+        didSet {
+            appInfo.signer = uiSigner
+        }
+    }
+    
+    @Published var uiHideLiveContainer : Bool {
+        didSet {
+            appInfo.hideLiveContainer = uiHideLiveContainer
+        }
+    }
+    @Published var uiFixBlackScreen : Bool {
+        didSet {
+            appInfo.fixBlackScreen = uiFixBlackScreen
+        }
+    }
+    @Published var uiDontInjectTweakLoader : Bool {
+        didSet {
+            appInfo.dontInjectTweakLoader = uiDontInjectTweakLoader
+        }
+    }
+    @Published var uiDontLoadTweakLoader : Bool {
+        didSet {
+            appInfo.dontLoadTweakLoader = uiDontLoadTweakLoader
+        }
+    }
+    @Published var uiOrientationLock : LCOrientationLock {
+        didSet {
+            appInfo.orientationLock = uiOrientationLock
+        }
+    }
+    @Published var uiSelectedLanguage : String {
+        didSet {
+            appInfo.selectedLanguage = uiSelectedLanguage
+        }
+    }
+    
     @Published var supportedLanaguages : [String]?
     
     var jitAlert : YesNoHelper? = nil
@@ -53,7 +104,7 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiSelectedLanguage = appInfo.selectedLanguage ?? ""
         self.uiDefaultDataFolder = appInfo.dataUUID
         self.uiContainers = appInfo.containers
-        self.uiTweakFolder = appInfo.tweakFolder()
+        self.uiTweakFolder = appInfo.tweakFolder
         self.uiDoSymlinkInbox = appInfo.doSymlinkInbox
         self.uiBypassAssertBarrierOnQueue = appInfo.bypassAssertBarrierOnQueue
         self.uiSigner = appInfo.signer
@@ -62,6 +113,7 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiHideLiveContainer = appInfo.hideLiveContainer
         self.uiFixBlackScreen = appInfo.fixBlackScreen
         self.uiDontInjectTweakLoader = appInfo.dontInjectTweakLoader
+        self.uiDontLoadTweakLoader = appInfo.dontLoadTweakLoader
         
         for container in uiContainers {
             if container.folderName == uiDefaultDataFolder {
@@ -184,7 +236,7 @@ class LCAppModel: ObservableObject, Hashable {
         }
         
         // sign its tweak
-        guard let tweakFolder = appInfo.tweakFolder() else {
+        guard let tweakFolder = appInfo.tweakFolder else {
             return
         }
         

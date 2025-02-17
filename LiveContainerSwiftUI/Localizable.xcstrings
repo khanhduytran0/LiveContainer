@@ -126,13 +126,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Launch Now"
+            "value" : "Run without JIT"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "立即启动"
+            "value" : "不带JIT启动"
           }
         }
       }
@@ -875,19 +875,19 @@
         }
       }
     },
-    "lc.appSettings.dontInjectTweakLoaderDesc" : {
+    "lc.appSettings.dontLoadTweakLoader" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Might help bypass some app’s injection detection."
+            "value" : "Don’t Load TweakLoader"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "可能可以帮助绕过一些App的注入检测。"
+            "value" : "不加载TweakLoader"
           }
         }
       }

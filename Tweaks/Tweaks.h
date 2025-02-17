@@ -20,4 +20,5 @@ void NSFMGuestHooksInit(void);
 
 extern uint32_t appMainImageIndex;
 extern void* appExecutableHandle;
+extern bool tweakLoaderLoaded;
 void* getGuestAppHeader(void);

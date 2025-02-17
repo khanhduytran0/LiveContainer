@@ -515,7 +515,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             finalNewApp.bypassAssertBarrierOnQueue = appToReplace.appInfo.bypassAssertBarrierOnQueue
             finalNewApp.doSymlinkInbox = appToReplace.appInfo.doSymlinkInbox
             finalNewApp.containerInfo = appToReplace.appInfo.containerInfo
-            finalNewApp.setTweakFolder(appToReplace.appInfo.tweakFolder())
+            finalNewApp.tweakFolder = appToReplace.appInfo.tweakFolder
             finalNewApp.signer = appToReplace.appInfo.signer
             finalNewApp.selectedLanguage = appToReplace.appInfo.selectedLanguage
             finalNewApp.dataUUID = appToReplace.appInfo.dataUUID

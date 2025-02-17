@@ -650,7 +650,7 @@ struct LCSettingsView: View {
                 }
 
                 
-                if let folder = app.appInfo.tweakFolder() {
+                if let folder = app.appInfo.tweakFolder {
                     tweakFoldersInUse.update(with: folder);
                 }
 
@@ -663,7 +663,7 @@ struct LCSettingsView: View {
                 for container in app.appInfo.containers {
                     appDataFoldersInUse.update(with: container.folderName);
                 }
-                if let folder = app.appInfo.tweakFolder() {
+                if let folder = app.appInfo.tweakFolder {
                     tweakFoldersInUse.update(with: folder);
                 }
 

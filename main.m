@@ -414,6 +414,9 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     
     DyldHooksInit([guestAppInfo[@"hideLiveContainer"] boolValue]);
     
+    if(![guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
+        tweakLoaderLoaded = true;
+    }
     void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
     appExecutableHandle = appHandle;
     const char *dlerr = dlerror();
@@ -429,7 +432,8 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         return appError;
     }
     
-    if([guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
+    if([guestAppInfo[@"dontInjectTweakLoader"] boolValue] && ![guestAppInfo[@"dontLoadTweakLoader"] boolValue]) {
+        tweakLoaderLoaded = true;
         dlopen("@loader_path/../../Tweaks/TweakLoader.dylib", RTLD_LAZY|RTLD_GLOBAL);
     }
     

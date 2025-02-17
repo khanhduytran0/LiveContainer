@@ -18,8 +18,6 @@ struct LCAppSettingsView : View{
     @Binding var tweakFolders: [String]
     
 
-    @State private var uiPickerTweakFolder : String?
-    
     @StateObject private var renameFolderInput = InputHelper()
     @StateObject private var moveToAppGroupAlert = YesNoHelper()
     @StateObject private var moveToPrivateDocAlert = YesNoHelper()
@@ -35,7 +33,6 @@ struct LCAppSettingsView : View{
         self._model = ObservedObject(wrappedValue: model)
         _appDataFolders = appDataFolders
         _tweakFolders = tweakFolders
-        self._uiPickerTweakFolder = State(initialValue: model.uiTweakFolder)
     }
     
     var body: some View {
@@ -51,7 +48,7 @@ struct LCAppSettingsView : View{
                 }
                 if !model.uiIsShared {
                     Menu {
-                        Picker(selection: $uiPickerTweakFolder , label: Text("")) {
+                        Picker(selection: $model.uiTweakFolder , label: Text("")) {
                             Label("lc.common.none".loc, systemImage: "nosign").tag(Optional<String>(nil))
                             ForEach(tweakFolders, id:\.self) { folderName in
                                 Text(folderName).tag(Optional(folderName))
@@ -66,11 +63,6 @@ struct LCAppSettingsView : View{
                                 .multilineTextAlignment(.trailing)
                         }
                     }
-                    .onChange(of: uiPickerTweakFolder, perform: { newValue in
-                        if newValue != model.uiTweakFolder {
-                            setTweakFolder(folderName: newValue)
-                        }
-                    })
                     
                     
                 } else {
@@ -132,9 +124,6 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiIsJITNeeded) {
                     Text("lc.appSettings.launchWithJit".loc)
                 }
-                .onChange(of: model.uiIsJITNeeded, perform: { newValue in
-                    Task { await setJITNeeded(newValue) }
-                })
             } footer: {
                 Text("lc.appSettings.launchWithJitDesc".loc)
             }
@@ -170,9 +159,6 @@ struct LCAppSettingsView : View{
                 } label: {
                     Text("lc.appSettings.signer".loc)
                 }
-                .onChange(of: model.uiSigner, perform: { newValue in
-                    Task { await setSigner(newValue) }
-                })
             }
 
             
@@ -199,9 +185,6 @@ struct LCAppSettingsView : View{
                                 Text("lc.common.language".loc)
                             }
                             .pickerStyle(.inline)
-                            .onChange(of: model.uiSelectedLanguage, perform: { newValue in
-                                Task { await setLanguage(newValue) }
-                            })
                         }
 
                     } else {
@@ -232,9 +215,6 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiUseLCBundleId) {
                     Text("lc.appSettings.useLCBundleId".loc)
                 }
-                .onChange(of: model.uiUseLCBundleId, perform: { newValue in
-                    Task { await setDoUseLCBundleId(newValue) }
-                })
             } header: {
                 Text("lc.appSettings.fixes".loc)
             } footer: {
@@ -245,9 +225,6 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiFixBlackScreen) {
                     Text("lc.appSettings.fixBlackScreen".loc)
                 }
-                .onChange(of: model.uiFixBlackScreen, perform: { newValue in
-                    Task { await setFixBlackScreen(newValue) }
-                })
             } footer: {
                 Text("lc.appSettings.fixBlackScreenDesc".loc)
             }
@@ -262,9 +239,6 @@ struct LCAppSettingsView : View{
                     } label: {
                         Text("lc.apppSettings.orientationLock".loc)
                     }
-                    .onChange(of: model.uiOrientationLock, perform: { newValue in
-                        Task { await setOrientationLock(newValue) }
-                    })
                 }
             }
             
@@ -272,16 +246,17 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiHideLiveContainer) {
                     Text("lc.appSettings.hideLiveContainer".loc)
                 }
-                .onChange(of: model.uiHideLiveContainer, perform: { newValue in
-                    Task { await setHideLiveContainer(newValue) }
-                })
 
                 Toggle(isOn: $model.uiDontInjectTweakLoader) {
                     Text("lc.appSettings.dontInjectTweakLoader".loc)
                 }
-                .onChange(of: model.uiDontInjectTweakLoader, perform: { newValue in
-                    Task { await setDontInjectTweakLoader(newValue) }
-                })
+                
+                if model.uiDontInjectTweakLoader {
+                    Toggle(isOn: $model.uiDontLoadTweakLoader) {
+                        Text("lc.appSettings.dontLoadTweakLoader".loc)
+                    }
+                }
+                
             } footer: {
                 Text("lc.appSettings.hideLiveContainerDesc".loc)
             }
@@ -291,9 +266,6 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
                     Text("lc.appSettings.fixFilePicker".loc)
                 }
-                .onChange(of: model.uiDoSymlinkInbox, perform: { newValue in
-                    Task { await setSimlinkInbox(newValue) }
-                })
             } footer: {
                 Text("lc.appSettings.fixFilePickerDesc".loc)
             }
@@ -302,10 +274,6 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiBypassAssertBarrierOnQueue) {
                     Text("lc.appSettings.bypassAssert".loc)
                 }
-                .onChange(of: model.uiBypassAssertBarrierOnQueue, perform: { newValue in
-                    Task { await setBypassAssertBarrierOnQueue(newValue) }
-                })
-            
             } footer: {
                 Text("lc.appSettings.bypassAssertDesc".loc)
             }
@@ -419,13 +387,7 @@ struct LCAppSettingsView : View{
         appInfo.containers = model.uiContainers;
         newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: freeKeyChainGroup)
     }
-    
-    func setTweakFolder(folderName: String?) {
-        self.appInfo.setTweakFolder(folderName)
-        self.model.uiTweakFolder = folderName
-        self.uiPickerTweakFolder = folderName
-    }
-    
+
     func moveToAppGroup() async {
         guard let result = await moveToAppGroupAlert.open(), result else {
             return
@@ -442,7 +404,7 @@ struct LCAppSettingsView : View{
                     return s == container.folderName
                 })
             }
-            if let tweakFolder = appInfo.tweakFolder(), tweakFolder.count > 0 {
+            if let tweakFolder = appInfo.tweakFolder, tweakFolder.count > 0 {
                 try fm.moveItem(at: LCPath.tweakPath.appendingPathComponent(tweakFolder),
                                 to: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder))
                 tweakFolders.removeAll(where: { s in
@@ -482,7 +444,7 @@ struct LCAppSettingsView : View{
                                 to: LCPath.dataPath.appendingPathComponent(container.folderName))
                 appDataFolders.append(container.folderName)
             }
-            if let tweakFolder = appInfo.tweakFolder(), tweakFolder.count > 0 {
+            if let tweakFolder = appInfo.tweakFolder, tweakFolder.count > 0 {
                 try fm.moveItem(at: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder),
                                 to: LCPath.tweakPath.appendingPathComponent(tweakFolder))
                 tweakFolders.append(tweakFolder)
@@ -501,52 +463,6 @@ struct LCAppSettingsView : View{
         
     }
     
-    func setJITNeeded(_ JITNeeded: Bool) async {
-        appInfo.isJITNeeded = JITNeeded
-        model.uiIsJITNeeded = JITNeeded
-
-    }
-    
-    func setSigner(_ signer: Signer) async {
-        appInfo.signer = signer
-        model.uiSigner = signer
-    }
-    
-    func setLanguage(_ lang: String) async {
-        appInfo.selectedLanguage = lang
-        model.uiSelectedLanguage = lang
-    }
-    
-    func setSimlinkInbox(_ simlinkInbox : Bool) async {
-        appInfo.doSymlinkInbox = simlinkInbox
-        model.uiDoSymlinkInbox = simlinkInbox
-    }
-    
-    func setDoUseLCBundleId(_ doUseLCBundleId : Bool) async {
-        appInfo.doUseLCBundleId = doUseLCBundleId
-        model.uiUseLCBundleId = doUseLCBundleId
-    }
-    
-    func setHideLiveContainer(_ hideLiveContainer : Bool) async {
-        appInfo.hideLiveContainer = hideLiveContainer
-        model.uiHideLiveContainer = hideLiveContainer
-    }
-    
-    func setFixBlackScreen(_ fixBlackScreen : Bool) async {
-        appInfo.fixBlackScreen = fixBlackScreen
-        model.uiFixBlackScreen = fixBlackScreen
-    }
-    
-    func setDontInjectTweakLoader(_ dontInjectTweakLoader : Bool) async {
-        appInfo.dontInjectTweakLoader = dontInjectTweakLoader
-        model.uiDontInjectTweakLoader = dontInjectTweakLoader
-    }
-    
-    func setOrientationLock(_ lock : LCOrientationLock) async {
-        appInfo.orientationLock = lock
-        model.uiOrientationLock = lock
-    }
-    
     func loadSupportedLanguages() {
         do {
             try model.loadSupportedLanguages()
@@ -557,10 +473,6 @@ struct LCAppSettingsView : View{
         }
     }
     
-    func setBypassAssertBarrierOnQueue(_ enabled : Bool) async {
-            appInfo.bypassAssertBarrierOnQueue = enabled
-            model.uiBypassAssertBarrierOnQueue = enabled
-    }
     func toggleHidden() async {
         await model.toggleHidden()
     }
