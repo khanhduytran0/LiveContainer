@@ -286,7 +286,8 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     }
 
     // If JIT is enabled, bypass library validation so we can load arbitrary binaries
-    if (checkJITEnabled()) {
+    bool isJitEnabled = checkJITEnabled();
+    if (isJitEnabled) {
         init_bypassDyldLibValidation();
     }
 
@@ -414,10 +415,28 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     
     DyldHooksInit([guestAppInfo[@"hideLiveContainer"] boolValue]);
     
+    bool is32bit = [guestAppInfo[@"is32bit"] boolValue];
+    if(is32bit) {
+        if (!isJitEnabled) {
+            return @"JIT is required to run 32-bit apps.";
+        }
+        
+        NSString *selected32BitLayer = [lcUserDefaults stringForKey:@"selected32BitLayer"];
+        if(!selected32BitLayer || [selected32BitLayer length] == 0) {
+            appError = @"No 32-bit translation layer installed";
+            NSLog(@"[LCBootstrap] %@", appError);
+            *path = oldPath;
+            return appError;
+        }
+        NSBundle *selected32bitLayerBundle = [NSBundle bundleWithPath:[docPath stringByAppendingPathComponent:selectedApp]]; //TODO make it user friendly;
+        // maybe need to save selected32bitLayerBundle to static variable?
+        appExecPath = selected32bitLayerBundle.executablePath.UTF8String;
+    }
+    
     if(![guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
         tweakLoaderLoaded = true;
     }
-    void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
+    void *appHandle = dlopen(appExecPath, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
     appExecutableHandle = appHandle;
     const char *dlerr = dlerror();
     
@@ -459,8 +478,14 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
 
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);
-    argv[0] = (char *)appExecPath;
-    int ret = appMain(argc, argv);
+    int ret;
+    if(!is32bit) {
+        argv[0] = (char *)appExecPath;
+        ret = appMain(argc, argv);
+    } else {
+        char *argv32[] = {(char*)appExecPath, (char*)*path, NULL};
+        ret = appMain(sizeof(argv32)/sizeof(*argv32) - 1, argv32);
+    }
 
     return [NSString stringWithFormat:@"App returned from its main function with code %d.", ret];
 }

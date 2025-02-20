@@ -25,6 +25,9 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var uiDefaultDataFolder : String?
     @Published var uiContainers : [LCContainer]
     @Published var uiSelectedContainer : LCContainer?
+    
+    @Published var uiIs32bit : Bool
+    
     @Published var uiTweakFolder : String? {
         didSet {
             appInfo.tweakFolder = uiTweakFolder
@@ -115,6 +118,8 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiDontInjectTweakLoader = appInfo.dontInjectTweakLoader
         self.uiDontLoadTweakLoader = appInfo.dontLoadTweakLoader
         
+        self.uiIs32bit = appInfo.is32bit
+        
         for container in uiContainers {
             if container.folderName == uiDefaultDataFolder {
                 self.uiSelectedContainer = container;
@@ -179,7 +184,7 @@ class LCAppModel: ObservableObject, Hashable {
             UserDefaults.standard.set([selectedLanguage], forKey: "AppleLanguages")
         }
         
-        if appInfo.isJITNeeded {
+        if appInfo.isJITNeeded || appInfo.is32bit {
             await self.jitLaunch()
         } else {
             LCUtils.launchToGuestApp()

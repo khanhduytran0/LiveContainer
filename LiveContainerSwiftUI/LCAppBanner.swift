@@ -79,6 +79,14 @@ struct LCAppBanner : View {
                                     Capsule().fill(Color("JITBadgeColor"))
                                 )
                         }
+                        if model.uiIs32bit {
+                            Text("32")
+                                .font(.system(size: 8))
+                                .frame(width: 16, height:16)
+                                .background(
+                                    Capsule().fill(Color("32BitBadgeColor"))
+                                )
+                        }
                         if model.uiIsLocked && !model.uiIsHidden {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 8))

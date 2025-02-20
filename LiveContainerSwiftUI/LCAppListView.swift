@@ -585,7 +585,8 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                 return
             }
             
-            if !FileManager.default.isReadableFile(atPath: installUrl.path) && !installUrl.startAccessingSecurityScopedResource() {
+            let fm = FileManager.default
+            if !fm.isReadableFile(atPath: installUrl.path) && !installUrl.startAccessingSecurityScopedResource() {
                 errorInfo = "lc.appList.ipaAccessError".loc
                 errorShow = true
                 return
@@ -597,6 +598,23 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             
             do {
                 try await installIpaFile(installUrl)
+            } catch {
+                errorInfo = error.localizedDescription
+                errorShow = true
+            }
+            
+            do {
+                // delete ipa if it's in inbox
+                var shouldDelete = false
+                if let documentsDirectory = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
+                    let inboxURL = documentsDirectory.appendingPathComponent("Inbox")
+                    let fileURL = inboxURL.appendingPathComponent(installUrl.lastPathComponent)
+                    
+                    shouldDelete = fm.fileExists(atPath: fileURL.path)
+                }
+                if shouldDelete {
+                    try fm.removeItem(at: installUrl)
+                }
             } catch {
                 errorInfo = error.localizedDescription
                 errorShow = true

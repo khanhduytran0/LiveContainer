@@ -739,15 +739,7 @@ extension LCUtils {
     public static func askForJIT(onServerMessage : ((String) -> Void)? ) async -> Bool {
         // if LiveContainer is installed by TrollStore
         let tsPath = "\(Bundle.main.bundlePath)/../_TrollStore"
-        if FileManager.default.fileExists(atPath: tsPath) {
-            let urlScheme = "apple-magnifier://enable-jit?bundle-id=%@"
-            guard let bundleIdentifier = Bundle.main.bundleIdentifier,
-                  let launchURL = URL(string: String(format: urlScheme, bundleIdentifier)),
-                  await UIApplication.shared.canOpenURL(launchURL) else {
-                return false
-            }
-            
-            await UIApplication.shared.open(launchURL, options: [:], completionHandler: nil)
+        if (access((tsPath as NSString).utf8String, 0) == 0) {
             LCUtils.launchToGuestApp()
             return true
         }
@@ -785,9 +777,7 @@ extension LCUtils {
             
             return false
         } else if (jitEnabler == .JITStreamerEB) {
-            guard var JITStresmerEBAddress = groupUserDefaults.string(forKey: "LCSideJITServerAddress") else {
-                return false
-            }
+            var JITStresmerEBAddress = groupUserDefaults.string(forKey: "LCSideJITServerAddress") ?? ""
             if JITStresmerEBAddress.isEmpty {
                 JITStresmerEBAddress = "http://[fd00::]:9172"
             }

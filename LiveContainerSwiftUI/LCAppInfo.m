@@ -1,4 +1,5 @@
 @import CommonCrypto;
+@import MachO;
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
@@ -51,6 +52,15 @@
             [self save];
         }
         
+        // fix bundle id and execName if crash when signing
+        if (_infoPlist[@"LCBundleIdentifier"]) {
+            _infoPlist[@"CFBundleExecutable"] = _infoPlist[@"LCBundleExecutable"];
+            _infoPlist[@"CFBundleIdentifier"] = _infoPlist[@"LCBundleIdentifier"];
+            [_infoPlist removeObjectForKey:@"LCBundleExecutable"];
+            [_infoPlist removeObjectForKey:@"LCBundleIdentifier"];
+            [_infoPlist writeToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
+        }
+
         _autoSaveDisabled = false;
     }
     return self;
@@ -259,15 +269,16 @@
 }
 
 - (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(bool success, NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign {
+    [NSUserDefaults.standardUserDefaults setObject:@(YES) forKey:@"SigningInProgress"];
     NSString *appPath = self.bundlePath;
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = _info;
     NSMutableDictionary *infoPlist = _infoPlist;
     if (!info) {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(NO, @"Info.plist not found");
         return;
     }
-    
     NSFileManager* fm = NSFileManager.defaultManager;
     // Update patch
     int currentPatchRev = 6;
@@ -280,10 +291,19 @@
         [fm removeItemAtPath:execPath error:&err];
         [fm moveItemAtPath:backupPath toPath:execPath error:&err];
         
+        __block bool has64bitSlice = NO;
         NSString *error = LCParseMachO(execPath.UTF8String, ^(const char *path, struct mach_header_64 *header) {
-            LCPatchExecSlice(path, header, ![self dontInjectTweakLoader]);
+            if(header->cputype == CPU_TYPE_ARM64) {
+                has64bitSlice |= YES;
+                LCPatchExecSlice(path, header, ![self dontInjectTweakLoader]);
+            }
         });
+        if(!has64bitSlice) {
+            self.is32bit = true;
+        }
+        
         if (error) {
+            [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
             completetionHandler(NO, error);
             return;
         }
@@ -298,8 +318,15 @@
         
         [self save];
     }
+    
+    if(self.is32bit) {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
+        completetionHandler(YES, nil);
+        return;
+    }
 
     if (!LCUtils.certificatePassword) {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(YES, nil);
         return;
     }
@@ -311,6 +338,7 @@
     if(expirationDate && [teamId isEqualToString:[LCUtils teamIdentifier]] && [[[NSUserDefaults alloc] initWithSuiteName:[LCUtils appGroupID]] boolForKey:@"LCSignOnlyOnExpiration"] && !forceSign) {
         if([expirationDate laterDate:[NSDate now]] == expirationDate) {
             // not expired yet, don't sign again
+            [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
             completetionHandler(YES, nil);
             return;
         }
@@ -323,6 +351,7 @@
         CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
         signID = *(uint64_t *)digest + signRevision;
     } else {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(NO, @"Failed to find signing certificate. Please refresh your store and try again.");
         return;
     }
@@ -367,6 +396,7 @@
                     // Save sign ID and restore bundle ID
                     [self save];
                     [infoPlist writeToFile:infoPath atomically:YES];
+                    [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
                     completetionHandler(success, error.localizedDescription);
 
                 });
@@ -384,6 +414,7 @@
                     break;
                     
                 default:
+                    [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
                     completetionHandler(NO, @"Signer Not Found");
                     break;
             }
@@ -395,6 +426,7 @@
 
     } else {
         // no need to sign again
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(YES, nil);
         return;
     }
@@ -598,6 +630,19 @@
 - (void)setContainerInfo:(NSArray<NSDictionary *> *)containerInfo {
     _info[@"LCContainers"] = containerInfo;
     [self save];
+}
+
+- (bool)is32bit {
+    if(_info[@"is32bit"] != nil) {
+        return [_info[@"is32bit"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setIs32bit:(bool)is32bit {
+    _info[@"is32bit"] = [NSNumber numberWithBool:is32bit];
+    [self save];
+    
 }
 
 @end

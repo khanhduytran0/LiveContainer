@@ -5,14 +5,10 @@
 //  Created by s s on 2025/2/7.
 //
 #include <dlfcn.h>
-#include <execinfo.h>
-#include <signal.h>
-#include <sys/mman.h>
 #include <stdlib.h>
 #include <mach/mach.h>
 #include <mach-o/dyld.h>
 #include <mach-o/dyld_images.h>
-#include <objc/runtime.h>
 #include <mach-o/ldsyms.h>
 #import "../fishhook/fishhook.h"
 @import Foundation;
@@ -46,7 +42,6 @@ static inline int translateImageIndex(int origin) {
         for(uint32_t i = imageCount - 1; i >= 0; --i) {
             const char* imgName = orig_dyld_get_image_name(i);
             if(strcmp(imgName, tweakloaderPath) == 0) {
-                NSLog(@"[LC] found tweakloader at %d", i);
                 tweakLoaderIndex = i;
                 break;
             }

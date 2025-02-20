@@ -118,12 +118,10 @@ NSString *LCParseMachO(const char *path, LCParseMachOCallback callback) {
             }
             arch = (struct fat_arch *)((void *)arch + sizeof(struct fat_arch));
         }
-    } else if (magic == MH_MAGIC_64) {
+    } else if (magic == MH_MAGIC_64 || magic == MH_MAGIC) {
         callback(path, (struct mach_header_64 *)map);
-    } else if (magic == MH_MAGIC) {
-        return @"32-bit app is not supported";
     } else {
-        //return @"Not a Mach-O file";
+        return @"Not a Mach-O file";
     }
 
     msync(map, s.st_size, MS_SYNC);

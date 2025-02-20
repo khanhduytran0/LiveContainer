@@ -58,6 +58,7 @@ struct LCSettingsView: View {
     @State var injectToLCItelf = false
     @State var ignoreJITOnLaunch = false
     @State var doSaparateKeychainWhenCertImported = false
+    @State var liveExec32Path : String
     
     @EnvironmentObject private var sharedModel : SharedModel
     
@@ -103,6 +104,7 @@ struct LCSettingsView: View {
         
         _strictHiding = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding"))
 
+        _liveExec32Path = State(initialValue: LCUtils.appGroupUserDefault.string(forKey: "selected32BitLayer") ?? "")
     }
     
     var body: some View {
@@ -318,6 +320,12 @@ struct LCSettingsView: View {
                         } label: {
                             Text("Export Main Executable")
                         }
+                        HStack {
+                            Text("LiveExec32 .app path")
+                            Spacer()
+                            TextField("", text: $liveExec32Path)
+                                .multilineTextAlignment(.trailing)
+                        }
                     } header: {
                         Text("Developer Settings")
                     } footer: {
@@ -520,6 +528,9 @@ struct LCSettingsView: View {
             }
             .onChange(of: doSaparateKeychainWhenCertImported) { newValue in
                 saveItem(key: "LCSaparateKeychainWhenCertImported", val: newValue)
+            }
+            .onChange(of: liveExec32Path) { newValue in
+                saveItem(key: "selected32BitLayer", val: newValue)
             }
             .onChange(of: strictHiding) { newValue in
                 saveAppGroupItem(key: "LCStrictHiding", val: newValue)

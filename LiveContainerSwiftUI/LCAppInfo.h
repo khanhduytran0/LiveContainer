@@ -34,6 +34,8 @@ typedef NS_ENUM(NSInteger, LCOrientationLock){
 @property NSArray<NSDictionary*>* containerInfo;
 @property bool autoSaveDisabled;
 
+@property bool is32bit;
+
 - (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;
 - (UIImage*)icon;

@@ -2065,6 +2065,23 @@
         }
       }
     },
+    "lc.core.crashDuringSignErr" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer seems to crash during last app signing, and the app might be corrupted. Please consider reinstalling the app or switching to another signer."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer似乎在上次App签名时崩溃了，App可能已经损坏，请考虑重新安装或者切换到另一个签名工具。"
+          }
+        }
+      }
+    },
     "lc.download.downloading" : {
       "extractionState" : "manual",
       "localizations" : {
