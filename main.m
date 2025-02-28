@@ -428,9 +428,15 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
             *path = oldPath;
             return appError;
         }
-        NSBundle *selected32bitLayerBundle = [NSBundle bundleWithPath:[docPath stringByAppendingPathComponent:selectedApp]]; //TODO make it user friendly;
+        NSBundle *selected32bitLayerBundle = [NSBundle bundleWithPath:[docPath stringByAppendingPathComponent:selected32BitLayer]]; //TODO make it user friendly;
+        if(!selected32bitLayerBundle) {
+            appError = @"The specified LiveExec32.app path is not found";
+            NSLog(@"[LCBootstrap] %@", appError);
+            *path = oldPath;
+            return appError;
+        }
         // maybe need to save selected32bitLayerBundle to static variable?
-        appExecPath = selected32bitLayerBundle.executablePath.UTF8String;
+        appExecPath = strdup(selected32bitLayerBundle.executablePath.UTF8String);
     }
     
     if(![guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
@@ -459,7 +465,8 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     // Fix dynamic properties of some apps
     [NSUserDefaults performSelector:@selector(initialize)];
 
-    if (![appBundle loadAndReturnError:&error]) {
+    // Attempt to load the bundle. 32-bit bundle will always fail because of 32-bit main executable, so ignore it
+    if (!is32bit && ![appBundle loadAndReturnError:&error]) {
         appError = error.localizedDescription;
         NSLog(@"[LCBootstrap] loading bundle failed: %@", error);
         *path = oldPath;

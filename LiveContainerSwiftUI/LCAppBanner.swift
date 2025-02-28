@@ -234,14 +234,13 @@ struct LCAppBanner : View {
             } label: {
                 Text("lc.common.delete".loc)
             }
-            Button("lc.common.cancel".loc, role: .cancel) {
+            Button("lc.common.no".loc, role: .cancel) {
                 appFolderRemovalAlert.close(result: false)
             }
         } message: {
             Text("lc.appBanner.deleteDataMsg \(appInfo.displayName()!)")
         }
         .sheet(isPresented: $jitAlert.show, onDismiss: {
-            NSLog("[LC] onDismiss")
             jitAlert.close(result: false)
         }) {
             JITEnablingModal
