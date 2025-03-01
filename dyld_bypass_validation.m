@@ -22,6 +22,8 @@ static char patch[] = {0x88,0x00,0x00,0x58,0x00,0x01,0x1f,0xd6,0x1f,0x20,0x03,0x
 // Signatures to search for
 static char mmapSig[] = {0xB0, 0x18, 0x80, 0xD2, 0x01, 0x10, 0x00, 0xD4};
 static char fcntlSig[] = {0x90, 0x0B, 0x80, 0xD2, 0x01, 0x10, 0x00, 0xD4};
+static char syscallSig[] = {0x01, 0x10, 0x00, 0xD4};
+static int (*dopamineFcntlHookAddr)(int fildes, int cmd, void *param) = 0;
 
 extern void* __mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
 extern int __fcntl(int fildes, int cmd, void* param);
@@ -64,8 +66,7 @@ static bool redirectFunction(char *name, void *patchAddr, void *target) {
 
 static bool searchAndPatch(char *name, char *base, char *signature, int length, void *target) {
     char *patchAddr = NULL;
-    
-    for(int i=0; i < 0x100000; i++) {
+    for(int i=0; i < 0x80000; i+=4) {
         if (base[i] == signature[0] && memcmp(base+i, signature, length) == 0) {
             patchAddr = base + i;
             break;
@@ -142,7 +143,11 @@ static int hooked___fcntl(int fildes, int cmd, void *param) {
     }
     
     // If for another command or file, we pass through
-    return __fcntl(fildes, cmd, param);
+    if(dopamineFcntlHookAddr) {
+        return dopamineFcntlHookAddr(fildes, cmd, param);
+    } else {
+        return __fcntl(fildes, cmd, param);
+    }
 }
 
 void init_bypassDyldLibValidation() {
@@ -160,5 +165,31 @@ void init_bypassDyldLibValidation() {
     //redirectFunction("mmap", mmap, hooked_mmap);
     //redirectFunction("fcntl", fcntl, hooked_fcntl);
     searchAndPatch("dyld_mmap", dyldBase, mmapSig, sizeof(mmapSig), hooked_mmap);
-    searchAndPatch("dyld_fcntl", dyldBase, fcntlSig, sizeof(fcntlSig), hooked___fcntl);
+    bool fcntlPatchSuccess = searchAndPatch("dyld_fcntl", dyldBase, fcntlSig, sizeof(fcntlSig), hooked___fcntl);
+    
+    // dopamine already hooked it, try to find its hook instaed
+    if(!fcntlPatchSuccess) {
+        char* fcntlAddr = 0;
+        // search all syscalls and see if the the instruction before it is a branch instruction
+        for(int i=0; i < 0x80000; i+=4) {
+            if (dyldBase[i] == syscallSig[0] && memcmp(dyldBase+i, syscallSig, 4) == 0) {
+                char* syscallAddr = dyldBase + i;
+                uint32_t* prev = (uint32_t*)(syscallAddr - 4);
+                if(*prev >> 26 == 0x5) {
+                    fcntlAddr = (char*)prev;
+                    break;
+                }
+            }
+        }
+        
+        if(fcntlAddr) {
+            uint32_t* inst = (uint32_t*)fcntlAddr;
+            int32_t offset = ((int32_t)((*inst)<<6))>>4;
+            NSLog(@"[DyldLVBypass] Dopamine hook offset = %x", offset);
+            dopamineFcntlHookAddr = (void*)((char*)fcntlAddr + offset);
+            redirectFunction("dyld_fcntl (Dopamine)", fcntlAddr, hooked___fcntl);
+        } else {
+            NSLog(@"[DyldLVBypass] Dopamine hook not found");
+        }
+    }
 }
