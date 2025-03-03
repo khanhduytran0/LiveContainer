@@ -21,6 +21,7 @@ struct LCAppSettingsView : View{
     @StateObject private var renameFolderInput = InputHelper()
     @StateObject private var moveToAppGroupAlert = YesNoHelper()
     @StateObject private var moveToPrivateDocAlert = YesNoHelper()
+    @StateObject private var signUnsignedAlert = YesNoHelper()
     
     @State private var errorShow = false
     @State private var errorInfo = ""
@@ -334,6 +335,18 @@ struct LCAppSettingsView : View{
         } message: {
             Text("lc.appSettings.toPrivateAppDesc".loc)
         }
+        .alert("lc.appSettings.forceSign".loc, isPresented: $signUnsignedAlert.show) {
+            Button {
+                self.signUnsignedAlert.close(result: true)
+            } label: {
+                Text("lc.common.ok".loc)
+            }
+            Button("lc.common.cancel".loc, role: .cancel) {
+                self.signUnsignedAlert.close(result: false)
+            }
+        } message: {
+            Text("lc.appSettings.signUnsignedDesc".loc)
+        }
         .sheet(isPresented: $selectUnusedContainerSheetShow) {
             LCSelectContainerView(isPresent: $selectUnusedContainerSheetShow, delegate: self)
         }
@@ -478,6 +491,13 @@ struct LCAppSettingsView : View{
     }
     
     func forceResign() async {
+        if model.uiDontSign {
+            guard let result = await signUnsignedAlert.open(), result else {
+                return
+            }
+            model.uiDontSign = false
+        }
+        
         do {
             try await model.forceResign()
         } catch {

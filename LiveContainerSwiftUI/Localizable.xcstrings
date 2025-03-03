@@ -1198,6 +1198,23 @@
         }
       }
     },
+    "lc.appSettings.signUnsignedDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app is not signed, do you want to sign it anyway?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此App未被签名，你确定要签名吗？"
+          }
+        }
+      }
+    },
     "lc.appSettings.toPrivateApp" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2765,6 +2782,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "默认签名工具"
+          }
+        }
+      }
+    },
+    "lc.settings.dontSign" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don’t Sign New Apps"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不签名新App"
+          }
+        }
+      }
+    },
+    "lc.settings.dontSignDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer will not sign new apps until this option is off. App installed during this option is on will remain unsigned."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此选项启用时LiveContainer不会签名新App。此选项启用期间安装的App会保持未签名状态。"
           }
         }
       }

@@ -85,6 +85,12 @@ class LCAppModel: ObservableObject, Hashable {
         }
     }
     
+    @Published var uiDontSign : Bool {
+        didSet {
+            appInfo.dontSign = uiDontSign
+        }
+    }
+    
     @Published var supportedLanaguages : [String]?
     
     var jitAlert : YesNoHelper? = nil
@@ -117,6 +123,7 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiFixBlackScreen = appInfo.fixBlackScreen
         self.uiDontInjectTweakLoader = appInfo.dontInjectTweakLoader
         self.uiDontLoadTweakLoader = appInfo.dontLoadTweakLoader
+        self.uiDontSign = appInfo.dontSign
         
         self.uiIs32bit = appInfo.is32bit
         

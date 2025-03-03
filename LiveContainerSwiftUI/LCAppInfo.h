@@ -33,6 +33,7 @@ typedef NS_ENUM(NSInteger, LCOrientationLock){
 @property NSString* tweakFolder;
 @property NSArray<NSDictionary*>* containerInfo;
 @property bool autoSaveDisabled;
+@property bool dontSign;
 
 @property bool is32bit;
 

@@ -318,14 +318,8 @@
         
         [self save];
     }
-    
-    if(self.is32bit) {
-        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
-        completetionHandler(YES, nil);
-        return;
-    }
 
-    if (!LCUtils.certificatePassword) {
+    if (!LCUtils.certificatePassword || self.is32bit || self.dontSign) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(YES, nil);
         return;
@@ -644,5 +638,19 @@
     [self save];
     
 }
+
+- (bool)dontSign {
+    if(_info[@"dontSign"] != nil) {
+        return [_info[@"dontSign"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDontSign:(bool)dontSign {
+    _info[@"dontSign"] = [NSNumber numberWithBool:dontSign];
+    [self save];
+    
+}
+
 
 @end

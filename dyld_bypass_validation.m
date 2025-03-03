@@ -74,7 +74,7 @@ static bool searchAndPatch(char *name, char *base, char *signature, int length, 
     }
     
     if (patchAddr == NULL) {
-        NSLog(@"[DyldLVBypass] hook fails line %d", __LINE__);
+        NSLog(@"[DyldLVBypass] hook %s fails line %d", name, __LINE__);
         return FALSE;
     }
     
@@ -167,7 +167,7 @@ void init_bypassDyldLibValidation() {
     searchAndPatch("dyld_mmap", dyldBase, mmapSig, sizeof(mmapSig), hooked_mmap);
     bool fcntlPatchSuccess = searchAndPatch("dyld_fcntl", dyldBase, fcntlSig, sizeof(fcntlSig), hooked___fcntl);
     
-    // dopamine already hooked it, try to find its hook instaed
+    // dopamine already hooked it, try to find its hook instead
     if(!fcntlPatchSuccess) {
         char* fcntlAddr = 0;
         // search all syscalls and see if the the instruction before it is a branch instruction

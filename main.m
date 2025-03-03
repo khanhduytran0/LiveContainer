@@ -605,8 +605,6 @@ int LiveContainerMain(int argc, char *argv[]) {
         NSString *appError = invokeAppMain(selectedApp, selectedContainer, argc, argv);
         if (appError) {
             [lcUserDefaults setObject:appError forKey:@"error"];
-            [LCSharedUtils setAppRunningByThisLC:nil];
-            [LCSharedUtils setContainerUsingByThisLC:nil];
             // potentially unrecovable state, exit now
             return 1;
         }

@@ -11,11 +11,9 @@
 #include <mach-o/dyld_images.h>
 #include <mach-o/ldsyms.h>
 #import "../fishhook/fishhook.h"
+#import "../utils.h"
+#include <sys/mman.h>
 @import Foundation;
-
-@interface NSUserDefaults(LiveContainer)
-+ (NSBundle *)lcMainBundle;
-@end
 
 
 uint32_t lcImageIndex = 0;
@@ -23,6 +21,7 @@ uint32_t tweakLoaderIndex = 0;
 uint32_t appMainImageIndex = 0;
 void* appExecutableHandle = 0;
 bool tweakLoaderLoaded = false;
+bool appExecutableFileTypeOverwritten = false;
 
 void* (*orig_dlsym)(void * __handle, const char * __symbol);
 uint32_t (*orig_dyld_image_count)(void);
@@ -30,8 +29,25 @@ const struct mach_header* (*orig_dyld_get_image_header)(uint32_t image_index);
 intptr_t (*orig_dyld_get_image_vmaddr_slide)(uint32_t image_index);
 const char* (*orig_dyld_get_image_name)(uint32_t image_index);
 
+static void overwriteAppExecutableFileType(void) {
+    struct mach_header_64* appImageMachOHeader = (struct mach_header_64*) orig_dyld_get_image_header(appMainImageIndex);
+    kern_return_t kret = builtin_vm_protect(mach_task_self(), (vm_address_t)appImageMachOHeader, sizeof(appImageMachOHeader), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    if(kret != KERN_SUCCESS) {
+        NSLog(@"[LC] failed to change appImageMachOHeader to rw");
+    } else {
+        NSLog(@"[LC] changed appImageMachOHeader to rw");
+        appImageMachOHeader->filetype = MH_EXECUTE;
+        builtin_vm_protect(mach_task_self(), (vm_address_t)appImageMachOHeader, sizeof(appImageMachOHeader), false,  PROT_READ);
+    }
+}
+
 static inline int translateImageIndex(int origin) {
     if(origin == lcImageIndex) {
+        if(!appExecutableFileTypeOverwritten) {
+            overwriteAppExecutableFileType();
+            appExecutableFileTypeOverwritten = true;
+        }
+        
         return appMainImageIndex;
     }
     
@@ -63,6 +79,10 @@ static inline int translateImageIndex(int origin) {
 void* hook_dlsym(void * __handle, const char * __symbol) {
     if(__handle == (void*)RTLD_MAIN_ONLY) {
         if(strcmp(__symbol, MH_EXECUTE_SYM) == 0) {
+            if(!appExecutableFileTypeOverwritten) {
+                overwriteAppExecutableFileType();
+                appExecutableFileTypeOverwritten = true;
+            }
             return (void*)orig_dyld_get_image_header(appMainImageIndex);
         }
         __handle = appExecutableHandle;
@@ -110,6 +130,8 @@ void DyldHooksInit(bool hideLiveContainer) {
         {"_dyld_get_image_vmaddr_slide", (void *)hook_dyld_get_image_vmaddr_slide, (void **)&orig_dyld_get_image_vmaddr_slide},
         {"_dyld_get_image_name", (void *)hook_dyld_get_image_name, (void **)&orig_dyld_get_image_name},
     }, hideLiveContainer ? 5: 1);
+    
+    appExecutableFileTypeOverwritten = !hideLiveContainer;
 }
 
 void* getGuestAppHeader(void) {

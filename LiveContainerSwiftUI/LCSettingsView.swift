@@ -41,24 +41,25 @@ struct LCSettingsView: View {
     @StateObject private var certificateImportPasswordAlert = InputHelper()
     
     @State var isJitLessEnabled = false
-    @State var defaultSigner = Signer.ZSign
-    @State var isSignOnlyOnExpiration = true
-    @State var frameShortIcon = false
-    @State var silentSwitchApp = false
-    @State var silentOpenWebPage = false
-    @State var strictHiding = false
+    @AppStorage("LCDefaultSigner", store: LCUtils.appGroupUserDefault) var defaultSigner = Signer.ZSign
+    @AppStorage("LCSignOnlyOnExpiration", store: LCUtils.appGroupUserDefault) var isSignOnlyOnExpiration = true
+    @AppStorage("LCFrameShortcutIcons") var frameShortIcon = false
+    @AppStorage("LCSwitchAppWithoutAsking") var silentSwitchApp = false
+    @AppStorage("LCOpenWebPageWithoutAsking") var silentOpenWebPage = false
+    @AppStorage("LCDontSignApp", store: LCUtils.appGroupUserDefault) var dontSignApp = false
+    @AppStorage("LCStrictHiding", store: LCUtils.appGroupUserDefault) var strictHiding = false
     @AppStorage("dynamicColors") var dynamicColors = true
     
-    @State var sideJITServerAddress : String
-    @State var deviceUDID: String
-    @State var JITEnabler: JITEnablerType = .SideJITServer
+    @AppStorage("LCSideJITServerAddress", store: LCUtils.appGroupUserDefault) var sideJITServerAddress : String = ""
+    @AppStorage("LCDeviceUDID", store: LCUtils.appGroupUserDefault) var deviceUDID: String = ""
+    @AppStorage("LCJITEnablerType", store: LCUtils.appGroupUserDefault) var JITEnabler: JITEnablerType = .SideJITServer
     
     @State var isSideStore : Bool = true
     
-    @State var injectToLCItelf = false
-    @State var ignoreJITOnLaunch = false
-    @State var doSaparateKeychainWhenCertImported = false
-    @State var liveExec32Path : String
+    @AppStorage("LCLoadTweaksToSelf") var injectToLCItelf = false
+    @AppStorage("LCIgnoreJITOnLaunch") var ignoreJITOnLaunch = false
+    @AppStorage("LCSaparateKeychainWhenCertImported") var doSaparateKeychainWhenCertImported = false
+    @AppStorage("selected32BitLayer") var liveExec32Path : String = ""
     
     @EnvironmentObject private var sharedModel : SharedModel
     
@@ -66,45 +67,15 @@ struct LCSettingsView: View {
     
     init(appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
-        
-        if(LCUtils.appGroupUserDefault.object(forKey: "LCSignOnlyOnExpiration") == nil) {
-            LCUtils.appGroupUserDefault.set(true, forKey: "LCSignOnlyOnExpiration")
-        }
-        
-        _isSignOnlyOnExpiration = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCSignOnlyOnExpiration"))
-        _frameShortIcon = State(initialValue: UserDefaults.standard.bool(forKey: "LCFrameShortcutIcons"))
-        _silentSwitchApp = State(initialValue: UserDefaults.standard.bool(forKey: "LCSwitchAppWithoutAsking"))
-        _silentOpenWebPage = State(initialValue: UserDefaults.standard.bool(forKey: "LCOpenWebPageWithoutAsking"))
-        _injectToLCItelf = State(initialValue: UserDefaults.standard.bool(forKey: "LCLoadTweaksToSelf"))
-        _ignoreJITOnLaunch = State(initialValue: UserDefaults.standard.bool(forKey: "LCIgnoreJITOnLaunch"))
-        _doSaparateKeychainWhenCertImported = State(initialValue: UserDefaults.standard.bool(forKey: "LCSaparateKeychainWhenCertImported"))
-        
         _isSideStore = State(initialValue: LCUtils.store() == .SideStore)
         
         DataManager.shared.model.certificateImported = UserDefaults.standard.bool(forKey: "LCCertificateImported")
         if !DataManager.shared.model.certificateImported {
             // Only ZSign is available to ADP certs
-            _defaultSigner = State(initialValue: Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!)
+            defaultSigner = Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!
         }
         
         _appDataFolderNames = appDataFolderNames
-        
-        if let configSideJITServerAddress = LCUtils.appGroupUserDefault.string(forKey: "LCSideJITServerAddress") {
-            _sideJITServerAddress = State(initialValue: configSideJITServerAddress)
-        } else {
-            _sideJITServerAddress = State(initialValue: "")
-        }
-        
-        if let configDeviceUDID = LCUtils.appGroupUserDefault.string(forKey: "LCDeviceUDID") {
-            _deviceUDID = State(initialValue: configDeviceUDID)
-        } else {
-            _deviceUDID = State(initialValue: "")
-        }
-        _JITEnabler = State(initialValue: JITEnablerType(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCJITEnablerType"))!)
-        
-        _strictHiding = State(initialValue: LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding"))
-
-        _liveExec32Path = State(initialValue: LCUtils.appGroupUserDefault.string(forKey: "selected32BitLayer") ?? "")
     }
     
     var body: some View {
@@ -265,6 +236,14 @@ struct LCSettingsView: View {
                     } footer: {
                         Text("lc.settings.strictHidingDesc".loc)
                     }
+                }
+                
+                Section {
+                    Toggle(isOn: $dontSignApp) {
+                        Text("lc.settings.dontSign".loc)
+                    }
+                } footer: {
+                    Text("lc.settings.dontSignDesc".loc)
                 }
                     
                 Section {
@@ -507,57 +486,9 @@ struct LCSettingsView: View {
                     certificateImportPasswordAlert.show = false
                 }
             )
-            
-            .onChange(of: isSignOnlyOnExpiration) { newValue in
-                saveAppGroupItem(key: "LCSignOnlyOnExpiration", val: newValue)
-            }
-            .onChange(of: silentSwitchApp) { newValue in
-                saveItem(key: "LCSwitchAppWithoutAsking", val: newValue)
-            }
-            .onChange(of: silentOpenWebPage) { newValue in
-                saveItem(key: "LCOpenWebPageWithoutAsking", val: newValue)
-            }
-            .onChange(of: frameShortIcon) { newValue in
-                saveItem(key: "LCFrameShortcutIcons", val: newValue)
-            }
-            .onChange(of: injectToLCItelf) { newValue in
-                saveItem(key: "LCLoadTweaksToSelf", val: newValue)
-            }
-            .onChange(of: ignoreJITOnLaunch) { newValue in
-                saveItem(key: "LCIgnoreJITOnLaunch", val: newValue)
-            }
-            .onChange(of: doSaparateKeychainWhenCertImported) { newValue in
-                saveItem(key: "LCSaparateKeychainWhenCertImported", val: newValue)
-            }
-            .onChange(of: liveExec32Path) { newValue in
-                saveItem(key: "selected32BitLayer", val: newValue)
-            }
-            .onChange(of: strictHiding) { newValue in
-                saveAppGroupItem(key: "LCStrictHiding", val: newValue)
-            }
-            .onChange(of: deviceUDID) { newValue in
-                saveAppGroupItem(key: "LCDeviceUDID", val: newValue)
-            }
-            .onChange(of: sideJITServerAddress) { newValue in
-                saveAppGroupItem(key: "LCSideJITServerAddress", val: newValue)
-            }
-            .onChange(of: JITEnabler) { newValue in
-                saveAppGroupItem(key: "LCJITEnablerType", val: newValue.rawValue)
-            }
-            .onChange(of: defaultSigner) { newValue in
-                saveAppGroupItem(key: "LCDefaultSigner", val: newValue.rawValue)
-            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         
-    }
-    
-    func saveItem(key: String, val: Any) {
-        UserDefaults.standard.setValue(val, forKey: key)
-    }
-    
-    func saveAppGroupItem(key: String, val: Any) {
-        LCUtils.appGroupUserDefault.setValue(val, forKey: key)
     }
     
     func installAnotherLC() async {

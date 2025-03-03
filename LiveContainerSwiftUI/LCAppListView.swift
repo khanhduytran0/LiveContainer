@@ -485,6 +485,9 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
         var signError : String? = nil
         var signSuccess = false
         await withCheckedContinuation({ c in
+            if appToReplace?.uiDontSign ?? false || LCUtils.appGroupUserDefault.bool(forKey: "LCDontSignApp") {
+                finalNewApp.dontSign = true
+            }
             finalNewApp.signer = Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!
             finalNewApp.patchExecAndSignIfNeed(completionHandler: { success, error in
                 signError = error
