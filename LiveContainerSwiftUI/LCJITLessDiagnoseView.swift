@@ -254,7 +254,10 @@ struct LCJITLessDiagnoseView : View {
                     Button {
                         getHelp()
                     } label: {
+                        // we apply a super cool rainbow effect so people will never miss this button
                         Text("lc.jitlessDiag.getHelp".loc)
+                            .bold()
+                            .rainbow()
                     }
                 }
 
