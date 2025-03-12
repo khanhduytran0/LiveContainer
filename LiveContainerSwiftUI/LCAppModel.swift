@@ -176,9 +176,13 @@ class LCAppModel: ObservableObject, Hashable {
                 return
             }
         }
-        isAppRunning = true
+        await MainActor.run {
+            isAppRunning = true
+        }
         defer {
-            isAppRunning = false
+            Task { await MainActor.run {
+                isAppRunning = false
+            }}
         }
         try await signApp(force: false)
         
@@ -196,9 +200,10 @@ class LCAppModel: ObservableObject, Hashable {
         } else {
             LCUtils.launchToGuestApp()
         }
-
-        isAppRunning = false
         
+        await MainActor.run {
+            isAppRunning = false
+        }
     }
     
     func forceResign() async throws {
@@ -275,10 +280,14 @@ class LCAppModel: ObservableObject, Hashable {
     }
     
     func jitLaunch() async {
-        jitLog = ""
+        await MainActor.run {
+            jitLog = ""
+        }
         let enableJITTask = Task {
             let _ = await LCUtils.askForJIT { newMsg in
-                self.jitLog += "\(newMsg)\n"
+                Task { await MainActor.run {
+                    self.jitLog += "\(newMsg)\n"
+                }}
             }
 
         }

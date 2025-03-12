@@ -73,11 +73,7 @@ OSStatus new_SecItemDelete(CFDictionaryRef query){
 }
 
 void SecItemGuestHooksInit()  {
-    // don't separate keychain in Enterprise/ADP certs due to entitlement issues, can be overriden by LCSaparateKeychainWhenCertImported
-    if([NSUserDefaults.lcUserDefaults boolForKey:@"LCCertificateImported"] && ![NSUserDefaults.lcUserDefaults boolForKey:@"LCSaparateKeychainWhenCertImported"]) {
-        return;
-    }
-    
+
     containerId = [NSString stringWithUTF8String:getenv("HOME")].lastPathComponent;
     NSString* containerInfoPath = [[NSString stringWithUTF8String:getenv("HOME")] stringByAppendingPathComponent:@"LCContainerInfo.plist"];
     NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:containerInfoPath];
@@ -93,7 +89,22 @@ void SecItemGuestHooksInit()  {
     } else {
         accessGroup = [NSString stringWithFormat:@"%@.com.kdt.livecontainer.shared.%d", groupId, keychainGroupId];
     }
-
+    
+    // check if the keychain access group is available
+    NSDictionary *query = @{
+        (__bridge id)kSecClass: (__bridge id)kSecClassGenericPassword,
+        (__bridge id)kSecAttrAccount: @"NonExistentKey",
+        (__bridge id)kSecAttrService: @"NonExistentService",
+        (__bridge id)kSecAttrAccessGroup: accessGroup,
+        (__bridge id)kSecReturnData: @NO
+    };
+    
+    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query, NULL);
+    if(status == errSecMissingEntitlement) {
+        NSLog(@"[LC] failed to access keychain access group %@", accessGroup);
+        return;
+    }
+    
     struct rebinding rebindings[] = (struct rebinding[]){
          {"SecItemAdd", (void *)new_SecItemAdd, (void **)&orig_SecItemAdd},
          {"SecItemCopyMatching", (void *)new_SecItemCopyMatching, (void **)&orig_SecItemCopyMatching},

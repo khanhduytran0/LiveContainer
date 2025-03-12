@@ -170,7 +170,7 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
                         if !installprogressVisible {
                             Menu {
                                 
-                                Button("lc.appList.installFromIpa".loc, systemImage: "document.badge.plus", action: {
+                                Button("lc.appList.installFromIpa".loc, systemImage: "doc.badge.plus", action: {
                                     choosingIPA = true
                                 })
                                 Button("lc.appList.installFromUrl".loc, systemImage: "link.badge.plus", action: {

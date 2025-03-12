@@ -168,7 +168,7 @@ struct LCAppBanner : View {
                     Text(appInfo.relativeBundlePath)
                 }
                 if !model.uiIsShared {
-                    if let container = model.uiSelectedContainer {
+                    if model.uiSelectedContainer != nil {
                         Button {
                             openDataFolder()
                         } label: {
@@ -256,6 +256,9 @@ struct LCAppBanner : View {
             Text(errorInfo)
         }
         
+        .onChange(of: jitAlert.show) { newValue in
+            sharedModel.isJITModalOpen = newValue
+        }
     }
     
     var JITEnablingModal : some View {

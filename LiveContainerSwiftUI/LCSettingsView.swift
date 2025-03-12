@@ -54,11 +54,10 @@ struct LCSettingsView: View {
     @AppStorage("LCDeviceUDID", store: LCUtils.appGroupUserDefault) var deviceUDID: String = ""
     @AppStorage("LCJITEnablerType", store: LCUtils.appGroupUserDefault) var JITEnabler: JITEnablerType = .SideJITServer
     
-    @State var isSideStore : Bool = true
+    @State var store : Store = .Unknown
     
     @AppStorage("LCLoadTweaksToSelf") var injectToLCItelf = false
     @AppStorage("LCIgnoreJITOnLaunch") var ignoreJITOnLaunch = false
-    @AppStorage("LCSaparateKeychainWhenCertImported") var doSaparateKeychainWhenCertImported = false
     @AppStorage("selected32BitLayer") var liveExec32Path : String = ""
     
     @EnvironmentObject private var sharedModel : SharedModel
@@ -67,9 +66,8 @@ struct LCSettingsView: View {
     
     init(appDataFolderNames: Binding<[String]>) {
         _isJitLessEnabled = State(initialValue: LCUtils.certificatePassword() != nil)
-        _isSideStore = State(initialValue: LCUtils.store() == .SideStore)
+        _store = State(initialValue: LCUtils.store())
         
-        DataManager.shared.model.certificateImported = UserDefaults.standard.bool(forKey: "LCCertificateImported")
         if !DataManager.shared.model.certificateImported {
             // Only ZSign is available to ADP certs
             defaultSigner = Signer(rawValue: LCUtils.appGroupUserDefault.integer(forKey: "LCDefaultSigner"))!
@@ -83,7 +81,21 @@ struct LCSettingsView: View {
             Form {
                 if sharedModel.multiLCStatus != 2 {
                     Section{
-                        if !sharedModel.certificateImported {
+                        if store == .Unknown {
+                            if !sharedModel.certificateImported {
+                                Button {
+                                    Task{ await importCertificate() }
+                                } label: {
+                                    Text("lc.settings.importCertificate".loc)
+                                }
+                            } else {
+                                Button {
+                                    Task{ await removeCertificate() }
+                                } label: {
+                                    Text("lc.settings.removeCertificate".loc)
+                                }
+                            }
+                        } else {
                             Button {
                                 Task { await patchAltStore() }
                             } label: {
@@ -92,20 +104,6 @@ struct LCSettingsView: View {
                                 } else {
                                     Text("lc.settings.patchStore %@".localizeWithFormat(storeName))
                                 }
-                            }
-                            if !isAltStorePatched {
-                                Button {
-                                    Task{ await importCertificate() }
-                                } label: {
-                                    Text("lc.settings.importCertificate".loc)
-                                }
-                            }
-
-                        } else {
-                            Button {
-                                Task{ await removeCertificate() }
-                            } label: {
-                                Text("lc.settings.removeCertificate".loc)
                             }
                         }
                         
@@ -136,35 +134,35 @@ struct LCSettingsView: View {
                         Text("lc.settings.jitLessDesc".loc + "\n" + "lc.settings.signer.desc".loc)
                     }
                 }
-
-                Section{
-                    Button {
-                        Task { await installAnotherLC() }
-                    } label: {
-                        if sharedModel.multiLCStatus == 0 {
-                            Text("lc.settings.multiLCInstall".loc)
-                        } else if sharedModel.multiLCStatus == 1 {
-                            Text("lc.settings.multiLCReinstall".loc)
-                        } else if sharedModel.multiLCStatus == 2 {
-                            Text("lc.settings.multiLCIsSecond".loc)
-                        }
-
-                    }
-                    .disabled(sharedModel.multiLCStatus == 2)
-                    
-                    if(sharedModel.multiLCStatus == 2) {
-                        NavigationLink {
-                            LCJITLessDiagnoseView()
+                if store != .Unknown {
+                    Section{
+                        Button {
+                            Task { await installAnotherLC() }
                         } label: {
-                            Text("lc.settings.jitlessDiagnose".loc)
+                            if sharedModel.multiLCStatus == 0 {
+                                Text("lc.settings.multiLCInstall".loc)
+                            } else if sharedModel.multiLCStatus == 1 {
+                                Text("lc.settings.multiLCReinstall".loc)
+                            } else if sharedModel.multiLCStatus == 2 {
+                                Text("lc.settings.multiLCIsSecond".loc)
+                            }
+                            
                         }
+                        .disabled(sharedModel.multiLCStatus == 2)
+                        
+                        if(sharedModel.multiLCStatus == 2) {
+                            NavigationLink {
+                                LCJITLessDiagnoseView()
+                            } label: {
+                                Text("lc.settings.jitlessDiagnose".loc)
+                            }
+                        }
+                    } header: {
+                        Text("lc.settings.multiLC".loc)
+                    } footer: {
+                        Text("lc.settings.multiLCDesc".loc)
                     }
-                } header: {
-                    Text("lc.settings.multiLC".loc)
-                } footer: {
-                    Text("lc.settings.multiLCDesc".loc)
                 }
-                
                 Section {
                     HStack {
                         Text("lc.settings.JitAddress".loc)
@@ -286,9 +284,6 @@ struct LCSettingsView: View {
                         Toggle(isOn: $ignoreJITOnLaunch) {
                             Text("Ignore JIT on Launching App")
                         }
-                        Toggle(isOn: $doSaparateKeychainWhenCertImported) {
-                            Text("Saparate Keychain When Cert is Imported")
-                        }
                         Button {
                             export()
                         } label: {
@@ -403,7 +398,7 @@ struct LCSettingsView: View {
                 } label: {
                     Text("lc.common.continue".loc)
                 }
-                if(isSideStore) {
+                if(store == .SideStore) {
                     Button {
                         patchAltStoreAlert.close(result: .archiveOnly)
                     } label: {
@@ -416,7 +411,7 @@ struct LCSettingsView: View {
                     patchAltStoreAlert.close(result: .cancel)
                 }
             } message: {
-                if(isSideStore) {
+                if(store == .SideStore) {
                     Text("lc.settings.patchStoreDesc %@ %@ %@ %@".localizeWithFormat(storeName, storeName, storeName, storeName) + "\n\n" + "lc.settings.patchStoreMultipleHint".loc)
                 } else {
                     Text("lc.settings.patchStoreDesc %@ %@ %@ %@".localizeWithFormat(storeName, storeName, storeName, storeName))
@@ -429,7 +424,7 @@ struct LCSettingsView: View {
                 } label: {
                     Text("lc.common.continue".loc)
                 }
-                if(isSideStore) {
+                if(store == .SideStore) {
                     Button {
                         installLC2Alert.close(result: .archiveOnly)
                     } label: {
@@ -739,7 +734,7 @@ struct LCSettingsView: View {
             let altStoreIpa = try LCUtils.archiveTweakedAltStore()
             let storeInstallUrl = String(format: LCUtils.storeInstallURLScheme(), altStoreIpa.absoluteString)
             if(result == .archiveOnly) {
-                let movedAltStoreIpaUrl = LCPath.docPath.appendingPathComponent("Patched\(isSideStore ? "SideStore" : "AltStore").ipa")
+                let movedAltStoreIpaUrl = LCPath.docPath.appendingPathComponent("Patched\(store == .SideStore ? "SideStore" : "AltStore").ipa")
                 try FileManager.default.moveItem(at: altStoreIpa, to: movedAltStoreIpaUrl)
                 successInfo = "lc.settings.patchStoreArchiveSuccess %@ %@".localizeWithFormat(storeName, storeName)
                 successShow = true

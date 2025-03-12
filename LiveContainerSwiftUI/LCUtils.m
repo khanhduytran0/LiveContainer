@@ -1,6 +1,7 @@
 @import Darwin;
 @import MachO;
 @import UIKit;
+@import UniformTypeIdentifiers;
 
 #import "../AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
@@ -246,10 +247,13 @@ Class LCSharedUtilsClass = nil;
     static Store ans;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        if([[self appGroupID] containsString:@"AltStore"]) {
+        // use uttype to accurately detect store
+        if([UTType typeWithIdentifier:[NSString stringWithFormat:@"io.sidestore.Installed.%@", NSBundle.mainBundle.bundleIdentifier]]) {
+            ans = SideStore;
+        } else if ([UTType typeWithIdentifier:[NSString stringWithFormat:@"io.altstore.Installed.%@", NSBundle.mainBundle.bundleIdentifier]]) {
             ans = AltStore;
         } else {
-            ans = SideStore;
+            ans = Unknown;
         }
     });
     return ans;

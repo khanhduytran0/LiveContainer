@@ -89,6 +89,9 @@ extern NSBundle *lcMainBundle;
         }];
         }
         return YES;
+    } else {
+        // none of the ways work somehow (e.g. LC itself was hidden), we just exit and wait for user to manually launch it
+        exit(0);
     }
     return NO;
 }

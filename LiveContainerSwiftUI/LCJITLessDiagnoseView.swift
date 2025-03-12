@@ -197,8 +197,11 @@ struct LCJITLessDiagnoseView : View {
                             if store == .AltStore {
                                 Text("AltStore")
                                     .foregroundStyle(.gray)
-                            } else {
+                            } else if store == .SideStore {
                                 Text("SideStore")
+                                    .foregroundStyle(.gray)
+                            } else {
+                                Text("lc.common.unknown")
                                     .foregroundStyle(.gray)
                             }
                         }

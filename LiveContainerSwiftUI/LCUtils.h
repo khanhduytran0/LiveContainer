@@ -3,8 +3,9 @@
 typedef void (^LCParseMachOCallback)(const char *path, struct mach_header_64 *header);
 
 typedef NS_ENUM(NSInteger, Store){
-    SideStore,
-    AltStore
+    SideStore = 0,
+    AltStore = 1,
+    Unknown = -1
 };
 
 typedef NS_ENUM(NSInteger, Signer){

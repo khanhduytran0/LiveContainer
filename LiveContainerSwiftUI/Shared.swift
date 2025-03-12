@@ -57,8 +57,8 @@ class SharedModel: ObservableObject {
     @Published var developerMode = false
     // 0= not installed, 1= is installed, 2=current liveContainer is the second one
     @Published var multiLCStatus = 0
-    
-    @Published var certificateImported = false
+    @Published var isJITModalOpen = false
+    @AppStorage("LCCertificateImported") var certificateImported = false
     
     @Published var apps : [LCAppModel] = []
     @Published var hiddenApps : [LCAppModel] = []
@@ -581,7 +581,6 @@ extension LCUtils {
         }
         // sign start
         
-        let tweakItems : [String] = []
         let tmpDir = fm.temporaryDirectory.appendingPathComponent("TweakTmp.app")
         if fm.fileExists(atPath: tmpDir.path) {
             try fm.removeItem(at: tmpDir)
@@ -808,7 +807,7 @@ extension LCUtils {
                 
                 onServerMessage?("Contacting SideJITServer at \(sideJITServerAddress)...")
                 let request = URLRequest(url: launchJITUrl)
-                let (data, response) = try await session.asyncRequest(request: request)
+                let (data, _) = try await session.asyncRequest(request: request)
                 if let data {
                     onServerMessage?(String(decoding: data, as: UTF8.self))
                 }
@@ -838,7 +837,7 @@ extension LCUtils {
                 
                 // check mount status
                 onServerMessage?("Checking mount status...")
-                let (mountData, mountResponse) = try await session.asyncRequest(request: mountRequest)
+                let (mountData, _) = try await session.asyncRequest(request: mountRequest)
                 guard let mountData else {
                     onServerMessage?("Failed to mount status from server!")
                     return false
@@ -864,7 +863,7 @@ extension LCUtils {
                 
                 onServerMessage?("Sending launch request...")
                 let request1 = URLRequest(url: launchJITUrl)
-                let (data, response) = try await session.asyncRequest(request: request1)
+                let (data, _) = try await session.asyncRequest(request: request1)
                 
 
                 guard let data else {
@@ -890,7 +889,7 @@ extension LCUtils {
                     }
                     
                     let request2 = URLRequest(url: statusUrl)
-                    let (data, response) = try await session.asyncRequest(request: request2)
+                    let (data, _) = try await session.asyncRequest(request: request2)
                     guard let data else {
                         onServerMessage?("Failed to retrieve data from server!")
                         return false
