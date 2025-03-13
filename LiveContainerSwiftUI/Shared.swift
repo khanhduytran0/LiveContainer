@@ -132,7 +132,8 @@ class InputHelper : AlertHelper<String> {
     }
 }
 
-extension String: LocalizedError {
+extension String: @retroactive Error {}
+extension String: @retroactive LocalizedError {
     public var errorDescription: String? { return self }
         
     private static var enBundle : Bundle? = {

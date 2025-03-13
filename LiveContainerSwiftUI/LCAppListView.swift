@@ -525,6 +525,9 @@ struct LCAppListView : View, LCAppBannerDelegate, LCAppModelDelegate {
             finalNewApp.orientationLock = appToReplace.appInfo.orientationLock
             finalNewApp.dontInjectTweakLoader = appToReplace.appInfo.dontInjectTweakLoader
             finalNewApp.hideLiveContainer = appToReplace.appInfo.hideLiveContainer
+            finalNewApp.dontLoadTweakLoader = appToReplace.appInfo.dontLoadTweakLoader
+            finalNewApp.fixBlackScreen = appToReplace.appInfo.fixBlackScreen
+            finalNewApp.doUseLCBundleId = appToReplace.appInfo.doUseLCBundleId
             finalNewApp.autoSaveDisabled = false
             finalNewApp.save()
         }
