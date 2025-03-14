@@ -102,7 +102,7 @@ import SwiftUI
                         containerName = containerName1
                     }
                 }
-                if let bundleId {
+                if let bundleId, bundleId != "ui"{
                     AppDelegate.launchApp(bundleId: bundleId, container: containerName)
                 }
             }

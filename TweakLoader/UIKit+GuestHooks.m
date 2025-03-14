@@ -233,6 +233,13 @@ void handleLiveContainerLaunch(NSURL* url) {
             containerFolderName = queryItem.value;
         }
     }
+    
+    // launch to LiveContainerUI
+    if([bundleName isEqualToString:@"ui"]) {
+        LCShowSwitchAppConfirmation(url, @"LiveContainer");
+        return;
+    }
+    
     NSString* containerId = [NSString stringWithUTF8String:getenv("HOME")].lastPathComponent;
     if(!containerFolderName) {
         containerFolderName = findDefaultContainerWithBundleId(bundleName);

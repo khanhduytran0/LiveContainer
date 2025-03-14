@@ -533,6 +533,12 @@ int LiveContainerMain(int argc, char *argv[]) {
     
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
     NSString *selectedContainer = [lcUserDefaults stringForKey:@"selectedContainer"];
+    if([selectedApp isEqualToString:@"ui"]) {
+        selectedApp = nil;
+        [lcUserDefaults removeObjectForKey:@"selected"];
+        [lcUserDefaults removeObjectForKey:@"selectedContainer"];
+    }
+    
     if(selectedApp && !selectedContainer) {
         selectedContainer = [LCSharedUtils findDefaultContainerWithBundleId:selectedApp];
     }
