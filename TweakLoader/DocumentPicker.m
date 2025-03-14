@@ -12,6 +12,7 @@ static void NSFMGuestHooksInit() {
     swizzle(UIDocumentPickerViewController.class, @selector(initForOpeningContentTypes:asCopy:), @selector(hook_initForOpeningContentTypes:asCopy:));
     swizzle(UIDocumentPickerViewController.class, @selector(initWithDocumentTypes:inMode:), @selector(hook_initWithDocumentTypes:inMode:));
     swizzle(UIDocumentBrowserViewController.class, @selector(initForOpeningContentTypes:), @selector(hook_initForOpeningContentTypes));
+    swizzleClassMethod(UTType.class, @selector(typeWithIdentifier:), @selector(hook_typeWithIdentifier:));
     if (fixFilePicker) {
         swizzle(NSURL.class, @selector(startAccessingSecurityScopedResource), @selector(hook_startAccessingSecurityScopedResource));
         swizzle(UIDocumentPickerViewController.class, @selector(setAllowsMultipleSelection:), @selector(hook_setAllowsMultipleSelection:));
@@ -74,6 +75,22 @@ static void NSFMGuestHooksInit() {
 - (BOOL)hook_startAccessingSecurityScopedResource {
     [self hook_startAccessingSecurityScopedResource];
     return YES;
+}
+
+@end
+
+@implementation UTType(LiveContainerHook)
+
++(instancetype)hook_typeWithIdentifier:(NSString*)identifier {
+    UTType* ans = [UTType hook_typeWithIdentifier:identifier];
+    // imported / exported TypeWithIdentifier calls ___UTGetDeclarationStatusFromInfoPlist which directly creates types without tags from Info.plist
+    if(ans) {
+        return ans;
+    } else if((ans = [UTType exportedTypeWithIdentifier:identifier])) {
+        return ans;
+    } else {
+        return [UTType importedTypeWithIdentifier:identifier];
+    }
 }
 
 @end

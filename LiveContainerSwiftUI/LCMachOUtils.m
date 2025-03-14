@@ -10,9 +10,18 @@ static uint32_t rnd32(uint32_t v, uint32_t r) {
 
 static void insertDylibCommand(uint32_t cmd, const char *path, struct mach_header_64 *header) {
     const char *name = cmd==LC_ID_DYLIB ? basename((char *)path) : path;
-    struct dylib_command *dylib = (struct dylib_command *)(sizeof(struct mach_header_64) + (void *)header+header->sizeofcmds);
+    struct dylib_command *dylib;
+    size_t cmdsize = sizeof(struct dylib_command) + rnd32((uint32_t)strlen(name) + 1, 8);
+    if (cmd == LC_ID_DYLIB) {
+        // Make this the first load command on the list (like dylibify does), or some UE3 games may break
+        dylib = (struct dylib_command *)(sizeof(struct mach_header_64) + (uintptr_t)header);
+        memmove((void *)((uintptr_t)dylib + cmdsize), (void *)dylib, header->sizeofcmds);
+        bzero(dylib, cmdsize);
+    } else {
+        dylib = (struct dylib_command *)(sizeof(struct mach_header_64) + (void *)header+header->sizeofcmds);
+    }
     dylib->cmd = cmd;
-    dylib->cmdsize = sizeof(struct dylib_command) + rnd32((uint32_t)strlen(name) + 1, 8);
+    dylib->cmdsize = cmdsize;
     dylib->dylib.name.offset = sizeof(struct dylib_command);
     dylib->dylib.compatibility_version = 0x10000;
     dylib->dylib.current_version = 0x10000;
@@ -37,7 +46,7 @@ void LCPatchAddRPath(const char *path, struct mach_header_64 *header) {
     insertRPathCommand("@loader_path", header);
 }
 
-void LCPatchExecSlice(const char *path, struct mach_header_64 *header) {
+void LCPatchExecSlice(const char *path, struct mach_header_64 *header, bool doInject) {
     uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
 
     // Literally convert an executable to a dylib
@@ -48,9 +57,19 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header) {
         header->flags &= ~MH_PIE;
     }
 
-    BOOL hasDylibCommand = NO,
-         hasLoaderCommand = NO;
+    // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
+    struct segment_command_64 *seg = (struct segment_command_64 *)imageHeaderPtr;
+    assert(seg->cmd == LC_SEGMENT_64 || seg->cmd == LC_ID_DYLIB);
+    if (seg->cmd == LC_SEGMENT_64 && seg->vmaddr == 0) {
+        assert(seg->vmsize == 0x100000000);
+        seg->vmaddr = 0x100000000 - 0x4000;
+        seg->vmsize = 0x4000;
+    }
+
+    BOOL hasDylibCommand = NO;
+    struct dylib_command * dylibLoaderCommand = 0;
     const char *tweakLoaderPath = "@loader_path/../../Tweaks/TweakLoader.dylib";
+    const char *libCppPath = "/usr/lib/libc++.1.dylib";
     struct load_command *command = (struct load_command *)imageHeaderPtr;
     for(int i = 0; i < header->ncmds > 0; i++) {
         if(command->cmd == LC_ID_DYLIB) {
@@ -59,25 +78,23 @@ void LCPatchExecSlice(const char *path, struct mach_header_64 *header) {
             struct dylib_command *dylib = (struct dylib_command *)command;
             char *dylibName = (void *)dylib + dylib->dylib.name.offset;
             if (!strncmp(dylibName, tweakLoaderPath, strlen(tweakLoaderPath))) {
-                hasLoaderCommand = YES;
+                dylibLoaderCommand = dylib;
             }
+        } else if(command->cmd == 0x114514) {
+            dylibLoaderCommand = (struct dylib_command *)command;
         }
         command = (struct load_command *)((void *)command + command->cmdsize);
     }
+
+    // Add LC_LOAD_DYLIB first, since LC_ID_DYLIB will change overall offsets
+    if (dylibLoaderCommand) {
+        dylibLoaderCommand->cmd = doInject ? LC_LOAD_DYLIB : 0x114514;
+        strcpy((void *)dylibLoaderCommand + dylibLoaderCommand->dylib.name.offset, doInject ? tweakLoaderPath : libCppPath);
+    } else {
+        insertDylibCommand(doInject ? LC_LOAD_DYLIB : 0x114514, doInject ? tweakLoaderPath : libCppPath, header);
+    }
     if (!hasDylibCommand) {
         insertDylibCommand(LC_ID_DYLIB, path, header);
-    }
-    if (!hasLoaderCommand) {
-        insertDylibCommand(LC_LOAD_DYLIB, tweakLoaderPath, header);
-    }
-
-    // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
-    struct segment_command_64 *seg = (struct segment_command_64 *)imageHeaderPtr;
-    assert(seg->cmd == LC_SEGMENT_64);
-    if (seg->vmaddr == 0) {
-        assert(seg->vmsize == 0x100000000);
-        seg->vmaddr = 0x100000000 - 0x4000;
-        seg->vmsize = 0x4000;
     }
 }
 
@@ -101,12 +118,10 @@ NSString *LCParseMachO(const char *path, LCParseMachOCallback callback) {
             }
             arch = (struct fat_arch *)((void *)arch + sizeof(struct fat_arch));
         }
-    } else if (magic == MH_MAGIC_64) {
+    } else if (magic == MH_MAGIC_64 || magic == MH_MAGIC) {
         callback(path, (struct mach_header_64 *)map);
-    } else if (magic == MH_MAGIC) {
-        return @"32-bit app is not supported";
     } else {
-        //return @"Not a Mach-O file";
+        return @"Not a Mach-O file";
     }
 
     msync(map, s.st_size, MS_SYNC);
@@ -151,4 +166,82 @@ void LCPatchAltStore(const char *path, struct mach_header_64 *header) {
 
         insertDylibCommand(LC_LOAD_DYLIB, tweakPath, header);
     }
+}
+
+struct code_signature_command {
+    uint32_t    cmd;
+    uint32_t    cmdsize;
+    uint32_t    dataoff;
+    uint32_t    datasize;
+};
+
+// from zsign
+struct ui_CS_BlobIndex {
+    uint32_t type;                    /* type of entry */
+    uint32_t offset;                /* offset of entry */
+};
+
+struct ui_CS_SuperBlob {
+    uint32_t magic;                    /* magic number */
+    uint32_t length;                /* total length of SuperBlob */
+    uint32_t count;                    /* number of index entries following */
+    //CS_BlobIndex index[];            /* (count) entries */
+    /* followed by Blobs in no particular order as indicated by offsets in index */
+};
+
+struct ui_CS_blob {
+    uint32_t magic;
+    uint32_t length;
+};
+
+
+NSString* getLCEntitlementXML(void) {
+    struct mach_header_64* header = dlsym(RTLD_MAIN_ONLY, MH_EXECUTE_SYM);
+    uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
+    struct load_command *command = (struct load_command *)imageHeaderPtr;
+    struct code_signature_command* codeSignCommand = 0;
+    for(int i = 0; i < header->ncmds > 0; i++) {
+        if(command->cmd == LC_CODE_SIGNATURE) {
+            codeSignCommand = (struct code_signature_command*)command;
+            break;
+        }
+        command = (struct load_command *)((void *)command + command->cmdsize);
+    }
+    if(!codeSignCommand) {
+        return @"Unable to find LC_CODE_SIGNATURE command.";
+    }
+    struct ui_CS_SuperBlob* blob = (void*)header + codeSignCommand->dataoff;
+    if(blob->magic != OSSwapInt32(0xfade0cc0)) {
+        return [NSString stringWithFormat:@"CodeSign blob magic mismatch %8x.", blob->magic];
+        return nil;
+    }
+    struct ui_CS_BlobIndex* entitlementBlobIndex = 0;
+    struct ui_CS_BlobIndex* nowIndex = (void*)blob + sizeof(struct ui_CS_SuperBlob);
+    for(int i = 0; i < OSSwapInt32(blob->count); i++) {
+        if(OSSwapInt32(nowIndex->type) == 5) {
+            entitlementBlobIndex = nowIndex;
+            break;
+        }
+        nowIndex = (void*)nowIndex + sizeof(struct ui_CS_BlobIndex);
+    }
+    if(entitlementBlobIndex == 0) {
+        NSLog(@"[LC] entitlement blob index not found.");
+        return 0;
+    }
+    struct ui_CS_blob* entitlementBlob = (void*)blob + OSSwapInt32(entitlementBlobIndex->offset);
+    if(entitlementBlob->magic != OSSwapInt32(0xfade7171)) {
+        return [NSString stringWithFormat:@"EntitlementBlob magic mismatch %8x.", blob->magic];
+        return nil;
+    };
+    int32_t xmlLength = OSSwapInt32(entitlementBlob->length) - sizeof(struct ui_CS_blob);
+    void* xmlPtr = (void*)entitlementBlob + sizeof(struct ui_CS_blob);
+    
+    // entitlement xml in executable don't have \0 so we have to copy it first
+    char* xmlString = malloc(xmlLength + 1);
+    memcpy(xmlString, xmlPtr, xmlLength);
+    xmlString[xmlLength] = 0;
+
+    NSString* ans = [NSString stringWithUTF8String:xmlString];
+    free(xmlString);
+    return ans;
 }

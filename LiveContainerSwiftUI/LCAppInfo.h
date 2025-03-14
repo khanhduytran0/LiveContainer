@@ -19,8 +19,10 @@ typedef NS_ENUM(NSInteger, LCOrientationLock){
 @property bool isLocked;
 @property bool isHidden;
 @property bool doSymlinkInbox;
-@property bool ignoreDlopenError;
+@property bool hideLiveContainer;
 @property bool fixBlackScreen;
+@property bool dontLoadTweakLoader;
+@property bool dontInjectTweakLoader;
 @property bool bypassAssertBarrierOnQueue;
 @property UIColor* cachedColor;
 @property Signer signer;
@@ -28,8 +30,12 @@ typedef NS_ENUM(NSInteger, LCOrientationLock){
 @property bool doUseLCBundleId;
 @property NSString* selectedLanguage;
 @property NSString* dataUUID;
+@property NSString* tweakFolder;
 @property NSArray<NSDictionary*>* containerInfo;
 @property bool autoSaveDisabled;
+@property bool dontSign;
+
+@property bool is32bit;
 
 - (void)setBundlePath:(NSString*)newBundlePath;
 - (NSMutableDictionary*)info;
@@ -38,9 +44,7 @@ typedef NS_ENUM(NSInteger, LCOrientationLock){
 - (NSString*)bundlePath;
 - (NSString*)bundleIdentifier;
 - (NSString*)version;
-- (NSString*)tweakFolder;
 - (NSMutableArray*) urlSchemes;
-- (void)setTweakFolder:(NSString *)tweakFolder;
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
 - (UIImage *)generateLiveContainerWrappedIcon;
 - (NSDictionary *)generateWebClipConfigWithContainerId:(NSString*)containerId;

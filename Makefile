@@ -11,7 +11,7 @@ export CONFIG_COMMIT = $(shell git log --oneline | sed '2,10000000d' | cut -b 1-
 # Build the app
 APPLICATION_NAME = LiveContainer
 
-$(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m LCSharedUtils.m NSUserDefaults.m fishhook/fishhook.c
+$(APPLICATION_NAME)_FILES = dyld_bypass_validation.m main.m utils.m LCSharedUtils.m fishhook/fishhook.c $(shell find ./Tweaks -name '*.m')
 $(APPLICATION_NAME)_CODESIGN_FLAGS = -Sentitlements.xml
 $(APPLICATION_NAME)_CFLAGS = -fobjc-arc
 $(APPLICATION_NAME)_LDFLAGS = -e _LiveContainerMain -rpath @loader_path/Frameworks
@@ -23,8 +23,12 @@ include $(THEOS_MAKE_PATH)/aggregate.mk
 
 # Make the executable name longer so we have space to overwrite it with the guest app's name
 before-package::
+ifeq ($(shell sw_vers -productName),macOS)
 	@/Applications/Xcode.app/Contents/Developer/usr/bin/xcstringstool compile ./LiveContainerSwiftUI/Localizable.xcstrings --output-directory $(THEOS_STAGING_DIR)/Applications/LiveContainer.app
 	@/Applications/Xcode.app/Contents/Developer/usr/bin/actool LiveContainerSwiftUI/Assets.xcassets --compile $(THEOS_STAGING_DIR)/Applications/LiveContainer.app --platform iphoneos  --minimum-deployment-target 14.0
+else
+	@echo "Building on iOS, some commands will be skipped"
+endif
 	@mv $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer $(THEOS_STAGING_DIR)/Applications/LiveContainer.app/LiveContainer_PleaseDoNotShortenTheExecutableNameBecauseItIsUsedToReserveSpaceForOverwritingThankYou
 
 before-all::

@@ -362,6 +362,6 @@ bool is_64bit_macho(const char *filepath) {
     fread(&magic, sizeof(uint32_t), 1, file);
     fclose(file);
 
-    // 64-bit Mach-O magic number is 0xfeedfacf
-    return magic == 0xfeedfacf;
+    // check 64-bit Mach-O magic number
+    return magic == MH_MAGIC_64 || magic == FAT_CIGAM;
 }

@@ -7,9 +7,19 @@
 static NSString *loadTweakAtURL(NSURL *url) {
     NSString *tweakPath = url.path;
     NSString *tweak = tweakPath.lastPathComponent;
-    if (![tweakPath hasSuffix:@".dylib"]) {
+    if (![tweakPath hasSuffix:@".dylib"] && ![tweakPath hasSuffix:@".framework"]) {
         return nil;
     }
+    if ([tweakPath hasSuffix:@".framework"]) {
+        NSURL* infoPlistURL = [url URLByAppendingPathComponent:@"Info.plist"];
+        NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfURL:infoPlistURL];
+        NSString* binary = infoDict[@"CFBundleExecutable"];
+        if(!binary || ![binary isKindOfClass:NSString.class]) {
+            return [NSString stringWithFormat:@"Unable to load %@: Unable to read Info.Plist", tweak];
+        }
+        tweakPath = [[url URLByAppendingPathComponent:binary] path];
+    }
+    
     void *handle = dlopen(tweakPath.UTF8String, RTLD_LAZY | RTLD_GLOBAL);
     const char *error = dlerror();
     if (handle) {
@@ -49,6 +59,12 @@ static void TweakLoaderConstructor() {
     const char *tweakFolderC = getenv("LC_GLOBAL_TWEAKS_FOLDER");
     NSString *globalTweakFolder = @(tweakFolderC);
     unsetenv("LC_GLOBAL_TWEAKS_FOLDER");
+    
+    if([NSUserDefaults.guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
+        // don't load any tweak since tweakloader is loaded after all initializers
+        NSLog(@"Skip loading tweaks");
+        return;
+    }
 
     NSMutableArray *errors = [NSMutableArray new];
 

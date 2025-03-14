@@ -121,7 +121,14 @@ struct LCTabView: View {
     }
     
     func checkLastLaunchError() {
-        guard let errorStr = UserDefaults.standard.string(forKey: "error") else {
+        var errorStr = UserDefaults.standard.string(forKey: "error")
+        
+        if errorStr == nil && UserDefaults.standard.bool(forKey: "SigningInProgress") {
+            errorStr = "lc.core.crashDuringSignErr".loc
+            UserDefaults.standard.removeObject(forKey: "SigningInProgress")
+        }
+        
+        guard let errorStr else {
             return
         }
         UserDefaults.standard.removeObject(forKey: "error")

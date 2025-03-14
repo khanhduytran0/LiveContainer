@@ -1,6 +1,7 @@
 @import Darwin;
 @import MachO;
 @import UIKit;
+@import UniformTypeIdentifiers;
 
 #import "../AltStoreCore/ALTSigner.h"
 #import "LCUtils.h"
@@ -33,7 +34,13 @@ Class LCSharedUtilsClass = nil;
 }
 
 + (NSData *)certificateData {
-    NSData* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
+    NSData* ans;
+    if([NSUserDefaults.standardUserDefaults boolForKey:@"LCCertificateImported"]) {
+        ans = [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificateData"];
+    } else {
+        ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificateData"];
+    }
+    
     return ans;
     
 }
@@ -54,10 +61,6 @@ Class LCSharedUtilsClass = nil;
 #pragma mark LCSharedUtils wrappers
 + (BOOL)launchToGuestApp {
     return [LCSharedUtilsClass launchToGuestApp];
-}
-
-+ (BOOL)askForJIT {
-    return [LCSharedUtilsClass askForJIT];
 }
 
 + (BOOL)launchToGuestAppWithURL:(NSURL *)url {
@@ -226,16 +229,31 @@ Class LCSharedUtilsClass = nil;
     return ans;
 }
 
++ (NSString*)getCertTeamIdWithKeyData:(NSData*)keyData password:(NSString*)password {
+    NSError *error;
+    NSURL *profilePath = [NSBundle.mainBundle URLForResource:@"embedded" withExtension:@"mobileprovision"];
+    NSData *profileData = [NSData dataWithContentsOfURL:profilePath];
+    [self loadStoreFrameworksWithError2:&error];
+    if (error) {
+        return nil;
+    }
+    NSString* ans = [NSClassFromString(@"ZSigner") getTeamIdWithProv:profileData key:keyData pass:password];
+    return ans;
+}
+
 #pragma mark Setup
 
 + (Store) store {
     static Store ans;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        if([[self appGroupID] containsString:@"AltStore"]) {
+        // use uttype to accurately detect store
+        if([UTType typeWithIdentifier:[NSString stringWithFormat:@"io.sidestore.Installed.%@", NSBundle.mainBundle.bundleIdentifier]]) {
+            ans = SideStore;
+        } else if ([UTType typeWithIdentifier:[NSString stringWithFormat:@"io.altstore.Installed.%@", NSBundle.mainBundle.bundleIdentifier]]) {
             ans = AltStore;
         } else {
-            ans = SideStore;
+            ans = Unknown;
         }
     });
     return ans;
@@ -297,7 +315,7 @@ Class LCSharedUtilsClass = nil;
     [info writeToFile:tmpInfoPath atomically:YES];
 
     // Sign the test app bundle
-    if(signer == AltSign) {
+    if(signer == AltSign && ![NSUserDefaults.standardUserDefaults boolForKey:@"LCCertificateImported"]) {
         [LCUtils signAppBundle:[NSURL fileURLWithPath:path]
         completionHandler:^(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *_Nullable error) {
             dispatch_async(dispatch_get_main_queue(), ^{

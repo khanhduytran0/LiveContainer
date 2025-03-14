@@ -79,6 +79,14 @@ struct LCAppBanner : View {
                                     Capsule().fill(Color("JITBadgeColor"))
                                 )
                         }
+                        if model.uiIs32bit {
+                            Text("32")
+                                .font(.system(size: 8))
+                                .frame(width: 16, height:16)
+                                .background(
+                                    Capsule().fill(Color("32BitBadgeColor"))
+                                )
+                        }
                         if model.uiIsLocked && !model.uiIsHidden {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 8))
@@ -104,6 +112,7 @@ struct LCAppBanner : View {
                 }
 
             }
+            .buttonStyle(BasicButtonStyle())
             .padding()
             .frame(idealWidth: 70)
             .frame(height: 32)
@@ -159,7 +168,7 @@ struct LCAppBanner : View {
                     Text(appInfo.relativeBundlePath)
                 }
                 if !model.uiIsShared {
-                    if let container = model.uiSelectedContainer {
+                    if model.uiSelectedContainer != nil {
                         Button {
                             openDataFolder()
                         } label: {
@@ -203,14 +212,8 @@ struct LCAppBanner : View {
                     } label: {
                         Label("lc.appBanner.uninstall".loc, systemImage: "trash")
                     }
-                    
                 }
-
             }
-            
-            
-
-
         }
         
         .alert("lc.appBanner.confirmUninstallTitle".loc, isPresented: $appRemovalAlert.show) {
@@ -231,23 +234,16 @@ struct LCAppBanner : View {
             } label: {
                 Text("lc.common.delete".loc)
             }
-            Button("lc.common.cancel".loc, role: .cancel) {
+            Button("lc.common.no".loc, role: .cancel) {
                 appFolderRemovalAlert.close(result: false)
             }
         } message: {
             Text("lc.appBanner.deleteDataMsg \(appInfo.displayName()!)")
         }
-        .alert("lc.appBanner.waitForJitTitle".loc, isPresented: $jitAlert.show) {
-            Button {
-                jitAlert.close(result: true)
-            } label: {
-                Text("lc.appBanner.jitLaunchNow".loc)
-            }
-            Button("lc.common.cancel", role: .cancel) {
-                jitAlert.close(result: false)
-            }
-        } message: {
-            Text("lc.appBanner.waitForJitMsg".loc)
+        .sheet(isPresented: $jitAlert.show, onDismiss: {
+            jitAlert.close(result: false)
+        }) {
+            JITEnablingModal
         }
         
         .alert("lc.common.error".loc, isPresented: $errorShow){
@@ -260,6 +256,51 @@ struct LCAppBanner : View {
             Text(errorInfo)
         }
         
+        .onChange(of: jitAlert.show) { newValue in
+            sharedModel.isJITModalOpen = newValue
+        }
+    }
+    
+    var JITEnablingModal : some View {
+        NavigationView {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    Text("lc.appBanner.waitForJitMsg".loc)
+                        .padding(.vertical)
+                        .id(0)
+                    
+                    HStack {
+                        Text(model.jitLog)
+                            .font(.system(size: 12).monospaced())
+                            .fixedSize(horizontal: false, vertical: false)
+                            .textSelection(.enabled)
+                        Spacer()
+                    }
+                    
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal)
+                .onAppear {
+                    proxy.scrollTo(0)
+                }
+            }
+            .navigationTitle("lc.appBanner.waitForJitTitle".loc)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("lc.common.cancel".loc, role: .cancel) {
+                        jitAlert.close(result: false)
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        jitAlert.close(result: true)
+                    } label: {
+                        Text("lc.appBanner.jitLaunchNow".loc)
+                    }
+                }
+            }
+        }
     }
     
     func handleOnAppear() {

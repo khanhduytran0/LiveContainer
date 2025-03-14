@@ -27,7 +27,7 @@ extern NSBundle *lcMainBundle;
 
         for (NSString *group in possibleAppGroups) {
             NSURL *path = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:group];
-            NSURL *bundlePath = [path URLByAppendingPathComponent:@"Apps/com.kdt.livecontainer/App.app"];
+            NSURL *bundlePath = [path URLByAppendingPathComponent:@"Apps"];
             if ([NSFileManager.defaultManager fileExistsAtPath:bundlePath.path]) {
                 // This will fail if LiveContainer is installed in both stores, but it should never be the case
                 appGroupID = group;
@@ -48,30 +48,39 @@ extern NSBundle *lcMainBundle;
 }
 
 + (NSString *)certificatePassword {
-    // password of cert retrieved from the store tweak is always @"". We just keep this function so we can check if certificate presents without changing codes.
-    NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
-    if(ans) {
-        return @"";
+    if([NSUserDefaults.standardUserDefaults boolForKey:@"LCCertificateImported"]) {
+        NSString* ans = [NSUserDefaults.standardUserDefaults objectForKey:@"LCCertificatePassword"];
+        return ans;
     } else {
-        return nil;
+        // password of cert retrieved from the store tweak is always @"". We just keep this function so we can check if certificate presents without changing codes.
+        NSString* ans = [[[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]] objectForKey:@"LCCertificatePassword"];
+        if(ans) {
+            return @"";
+        } else {
+            return nil;
+        }
     }
 }
 
 + (BOOL)launchToGuestApp {
     NSString *urlScheme;
     NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
+    UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
+    
     int tries = 1;
     if (!access(tsPath.UTF8String, F_OK)) {
         urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
     } else if (self.certificatePassword) {
         tries = 2;
         urlScheme = [NSString stringWithFormat:@"%@://livecontainer-relaunch", lcAppUrlScheme];
-    } else {
+    } else if ([application canOpenURL:[NSURL URLWithString:@"sidestore://"]]) {
         urlScheme = @"sidestore://sidejit-enable?bid=%@";
+    } else {
+        tries = 2;
+        urlScheme = [NSString stringWithFormat:@"%@://livecontainer-relaunch", lcAppUrlScheme];
     }
     NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
 
-    UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
     if ([application canOpenURL:launchURL]) {
         //[UIApplication.sharedApplication suspend];
         for (int i = 0; i < tries; i++) {
@@ -80,41 +89,9 @@ extern NSBundle *lcMainBundle;
         }];
         }
         return YES;
-    }
-    return NO;
-}
-
-+ (BOOL)askForJIT {
-    NSString *urlScheme;
-    NSString *tsPath = [NSString stringWithFormat:@"%@/../_TrollStore", NSBundle.mainBundle.bundlePath];
-    if (!access(tsPath.UTF8String, F_OK)) {
-        urlScheme = @"apple-magnifier://enable-jit?bundle-id=%@";
-        NSURL *launchURL = [NSURL URLWithString:[NSString stringWithFormat:urlScheme, NSBundle.mainBundle.bundleIdentifier]];
-        UIApplication *application = [NSClassFromString(@"UIApplication") sharedApplication];
-        if ([application canOpenURL:launchURL]) {
-            [application openURL:launchURL options:@{} completionHandler:nil];
-            [LCSharedUtils launchToGuestApp];
-            return YES;
-        }
     } else {
-        NSUserDefaults* groupUserDefaults = [[NSUserDefaults alloc] initWithSuiteName:[self appGroupID]];
-        
-        NSString* sideJITServerAddress = [groupUserDefaults objectForKey:@"LCSideJITServerAddress"];
-        NSString* deviceUDID = [groupUserDefaults objectForKey:@"LCDeviceUDID"];
-        if (!sideJITServerAddress || !deviceUDID) {
-            return NO;
-        }
-        NSString* launchJITUrlStr = [NSString stringWithFormat: @"%@/%@/%@", sideJITServerAddress, deviceUDID, NSBundle.mainBundle.bundleIdentifier];
-        NSURLSession* session = [NSURLSession sharedSession];
-        NSURL* launchJITUrl = [NSURL URLWithString:launchJITUrlStr];
-        NSURLRequest* req = [[NSURLRequest alloc] initWithURL:launchJITUrl];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:req completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-            if(error) {
-                NSLog(@"[LC] failed to contact SideJITServer: %@", error);
-            }
-        }];
-        [task resume];
-        
+        // none of the ways work somehow (e.g. LC itself was hidden), we just exit and wait for user to manually launch it
+        exit(0);
     }
     return NO;
 }
@@ -285,6 +262,13 @@ extern NSBundle *lcMainBundle;
     }
     // move all apps in shared folder back
     NSArray<NSString *> * sharedDataFoldersToMove = [fm contentsOfDirectoryAtPath:sharedAppDataFolderPath error:&error];
+    
+    // something went wrong with app group
+    if(!appGroupFolder && sharedDataFoldersToMove.count > 0) {
+        [lcUserDefaults setObject:@"LiveContainer was unable to move the data of shared app back because LiveContainer cannot access app group. Please check JITLess diagnose page in LiveContainer settings for more information." forKey:@"error"];
+        return;
+    }
+    
     for(int i = 0; i < [sharedDataFoldersToMove count]; ++i) {
         NSString* destPath = [appGroupFolder.path stringByAppendingPathComponent:[NSString stringWithFormat:@"Data/Application/%@", sharedDataFoldersToMove[i]]];
         if([fm fileExistsAtPath:destPath]) {

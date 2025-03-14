@@ -14,25 +14,87 @@ class LCAppModel: ObservableObject, Hashable {
     @Published var signProgress = 0.0
     private var observer : NSKeyValueObservation?
     
-    @Published var uiIsJITNeeded : Bool
+    @Published var uiIsJITNeeded : Bool {
+        didSet {
+            appInfo.isJITNeeded = uiIsJITNeeded
+        }
+    }
     @Published var uiIsHidden : Bool
     @Published var uiIsLocked : Bool
     @Published var uiIsShared : Bool
     @Published var uiDefaultDataFolder : String?
     @Published var uiContainers : [LCContainer]
     @Published var uiSelectedContainer : LCContainer?
-    @Published var uiTweakFolder : String?
-    @Published var uiDoSymlinkInbox : Bool
-    @Published var uiUseLCBundleId : Bool
-    @Published var uiBypassAssertBarrierOnQueue : Bool
-    @Published var uiSigner : Signer
-    @Published var uiIgnoreDlopenError : Bool
-    @Published var uiFixBlackScreen : Bool
-    @Published var uiOrientationLock : LCOrientationLock
-    @Published var uiSelectedLanguage : String
+    
+    @Published var uiIs32bit : Bool
+    
+    @Published var uiTweakFolder : String? {
+        didSet {
+            appInfo.tweakFolder = uiTweakFolder
+        }
+    }
+    @Published var uiDoSymlinkInbox : Bool {
+        didSet {
+            appInfo.doSymlinkInbox = uiDoSymlinkInbox
+        }
+    }
+    @Published var uiUseLCBundleId : Bool {
+        didSet {
+            appInfo.doUseLCBundleId = uiUseLCBundleId
+        }
+    }
+    @Published var uiBypassAssertBarrierOnQueue : Bool {
+        didSet {
+            appInfo.bypassAssertBarrierOnQueue = uiBypassAssertBarrierOnQueue
+        }
+    }
+    @Published var uiSigner : Signer {
+        didSet {
+            appInfo.signer = uiSigner
+        }
+    }
+    
+    @Published var uiHideLiveContainer : Bool {
+        didSet {
+            appInfo.hideLiveContainer = uiHideLiveContainer
+        }
+    }
+    @Published var uiFixBlackScreen : Bool {
+        didSet {
+            appInfo.fixBlackScreen = uiFixBlackScreen
+        }
+    }
+    @Published var uiDontInjectTweakLoader : Bool {
+        didSet {
+            appInfo.dontInjectTweakLoader = uiDontInjectTweakLoader
+        }
+    }
+    @Published var uiDontLoadTweakLoader : Bool {
+        didSet {
+            appInfo.dontLoadTweakLoader = uiDontLoadTweakLoader
+        }
+    }
+    @Published var uiOrientationLock : LCOrientationLock {
+        didSet {
+            appInfo.orientationLock = uiOrientationLock
+        }
+    }
+    @Published var uiSelectedLanguage : String {
+        didSet {
+            appInfo.selectedLanguage = uiSelectedLanguage
+        }
+    }
+    
+    @Published var uiDontSign : Bool {
+        didSet {
+            appInfo.dontSign = uiDontSign
+        }
+    }
+    
     @Published var supportedLanaguages : [String]?
     
     var jitAlert : YesNoHelper? = nil
+    @Published var jitLog : String = ""
     
     var delegate : LCAppModelDelegate?
     
@@ -51,14 +113,19 @@ class LCAppModel: ObservableObject, Hashable {
         self.uiSelectedLanguage = appInfo.selectedLanguage ?? ""
         self.uiDefaultDataFolder = appInfo.dataUUID
         self.uiContainers = appInfo.containers
-        self.uiTweakFolder = appInfo.tweakFolder()
+        self.uiTweakFolder = appInfo.tweakFolder
         self.uiDoSymlinkInbox = appInfo.doSymlinkInbox
         self.uiBypassAssertBarrierOnQueue = appInfo.bypassAssertBarrierOnQueue
         self.uiSigner = appInfo.signer
         self.uiOrientationLock = appInfo.orientationLock
         self.uiUseLCBundleId = appInfo.doUseLCBundleId
-        self.uiIgnoreDlopenError = appInfo.ignoreDlopenError
+        self.uiHideLiveContainer = appInfo.hideLiveContainer
         self.uiFixBlackScreen = appInfo.fixBlackScreen
+        self.uiDontInjectTweakLoader = appInfo.dontInjectTweakLoader
+        self.uiDontLoadTweakLoader = appInfo.dontLoadTweakLoader
+        self.uiDontSign = appInfo.dontSign
+        
+        self.uiIs32bit = appInfo.is32bit
         
         for container in uiContainers {
             if container.folderName == uiDefaultDataFolder {
@@ -89,7 +156,7 @@ class LCAppModel: ObservableObject, Hashable {
                 uiSelectedContainer = newContainer;
             }
             appInfo.containers = uiContainers;
-            newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: 0)
+            newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: Int.random(in: 0..<SharedModel.keychainAccessGroupCount))
             appInfo.dataUUID = newName
             uiDefaultDataFolder = newName
         }
@@ -109,9 +176,13 @@ class LCAppModel: ObservableObject, Hashable {
                 return
             }
         }
-        isAppRunning = true
+        await MainActor.run {
+            isAppRunning = true
+        }
         defer {
-            isAppRunning = false
+            Task { await MainActor.run {
+                isAppRunning = false
+            }}
         }
         try await signApp(force: false)
         
@@ -124,14 +195,15 @@ class LCAppModel: ObservableObject, Hashable {
             UserDefaults.standard.set([selectedLanguage], forKey: "AppleLanguages")
         }
         
-        if appInfo.isJITNeeded {
+        if appInfo.isJITNeeded || appInfo.is32bit {
             await self.jitLaunch()
         } else {
             LCUtils.launchToGuestApp()
         }
-
-        isAppRunning = false
         
+        await MainActor.run {
+            isAppRunning = false
+        }
     }
     
     func forceResign() async throws {
@@ -140,9 +212,9 @@ class LCAppModel: ObservableObject, Hashable {
         }
         isAppRunning = true
         defer {
-            DispatchQueue.main.async {
+            Task{ await MainActor.run {
                 self.isAppRunning = false
-            }
+            }}
 
         }
         try await signApp(force: true)
@@ -152,9 +224,9 @@ class LCAppModel: ObservableObject, Hashable {
         var signError : String? = nil
         var signSuccess = false
         defer {
-            DispatchQueue.main.async {
+            Task{ await MainActor.run {
                 self.isSigningInProgress = false
-            }
+            }}
         }
         
         await withCheckedContinuation({ c in
@@ -181,7 +253,7 @@ class LCAppModel: ObservableObject, Hashable {
         }
         
         // sign its tweak
-        guard let tweakFolder = appInfo.tweakFolder() else {
+        guard let tweakFolder = appInfo.tweakFolder else {
             return
         }
         
@@ -192,26 +264,36 @@ class LCAppModel: ObservableObject, Hashable {
             tweakFolderUrl = LCPath.tweakPath.appendingPathComponent(tweakFolder)
         }
         try await LCUtils.signTweaks(tweakFolderUrl: tweakFolderUrl, force: force, signer: self.appInfo.signer) { p in
-            DispatchQueue.main.async {
+            Task{ await MainActor.run {
                 self.isSigningInProgress = true
-            }
+            }}
         }
         
         // sign global tweak
         try await LCUtils.signTweaks(tweakFolderUrl: LCPath.tweakPath, force: force, signer: self.appInfo.signer) { p in
-            DispatchQueue.main.async {
+            Task{ await MainActor.run {
                 self.isSigningInProgress = true
-            }
+            }}
         }
         
         
     }
     
     func jitLaunch() async {
-        LCUtils.askForJIT()
+        await MainActor.run {
+            jitLog = ""
+        }
+        let enableJITTask = Task {
+            let _ = await LCUtils.askForJIT { newMsg in
+                Task { await MainActor.run {
+                    self.jitLog += "\(newMsg)\n"
+                }}
+            }
 
+        }
         guard let result = await jitAlert?.open(), result else {
             UserDefaults.standard.removeObject(forKey: "selected")
+            enableJITTask.cancel()
             return
         }
         LCUtils.launchToGuestApp()

@@ -1,4 +1,5 @@
 @import CommonCrypto;
+@import MachO;
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
@@ -41,7 +42,7 @@
                 @"LCOrientationLock",
                 @"cachedColor",
                 @"LCContainers",
-                @"ignoreDlopenError"
+                @"hideLiveContainer"
             ];
             for(NSString* key in lcAppInfoKeys) {
                 _info[key] = _infoPlist[key];
@@ -51,6 +52,15 @@
             [self save];
         }
         
+        // fix bundle id and execName if crash when signing
+        if (_infoPlist[@"LCBundleIdentifier"]) {
+            _infoPlist[@"CFBundleExecutable"] = _infoPlist[@"LCBundleExecutable"];
+            _infoPlist[@"CFBundleIdentifier"] = _infoPlist[@"LCBundleIdentifier"];
+            [_infoPlist removeObjectForKey:@"LCBundleExecutable"];
+            [_infoPlist removeObjectForKey:@"LCBundleIdentifier"];
+            [_infoPlist writeToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
+        }
+
         _autoSaveDisabled = false;
     }
     return self;
@@ -162,19 +172,27 @@
 }
 
 - (UIImage*)icon {
-    UIImage* icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
-    if(!icon) {
-        icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIconFiles"][0] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+    NSBundle* bundle = [[NSBundle alloc] initWithPath: _bundlePath];
+    NSString* iconPath = nil;
+    UIImage* icon = nil;
+
+    if((iconPath = [_infoPlist valueForKeyPath:@"CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconFiles"][0]) &&
+       (icon = [UIImage imageNamed:iconPath inBundle:bundle compatibleWithTraitCollection:nil])) {
+        return icon;
     }
     
-    if(!icon) {
-        icon = [UIImage imageNamed:[_infoPlist valueForKeyPath:@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconName"] inBundle:[[NSBundle alloc] initWithPath: _bundlePath] compatibleWithTraitCollection:nil];
+    if((iconPath = [_infoPlist valueForKeyPath:@"CFBundleIconFiles"][0]) &&
+       (icon = [UIImage imageNamed:iconPath inBundle:bundle compatibleWithTraitCollection:nil])) {
+        return icon;
     }
     
-    if(!icon) {
-        icon = [UIImage imageNamed:@"DefaultIcon"];
+    if((iconPath = [_infoPlist valueForKeyPath:@"CFBundleIcons~ipad"][@"CFBundlePrimaryIcon"][@"CFBundleIconName"]) &&
+       (icon = [UIImage imageNamed:iconPath inBundle:bundle compatibleWithTraitCollection:nil])) {
+        return icon;
     }
-    return icon;
+
+    return [UIImage imageNamed:@"DefaultIcon"];
+
 }
 
 - (UIImage *)generateLiveContainerWrappedIcon {
@@ -258,31 +276,58 @@
 }
 
 - (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(bool success, NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign {
+    [NSUserDefaults.standardUserDefaults setObject:@(YES) forKey:@"SigningInProgress"];
     NSString *appPath = self.bundlePath;
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", appPath];
     NSMutableDictionary *info = _info;
     NSMutableDictionary *infoPlist = _infoPlist;
     if (!info) {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(NO, @"Info.plist not found");
         return;
     }
-    
+    NSFileManager* fm = NSFileManager.defaultManager;
     // Update patch
-    int currentPatchRev = 5;
+    int currentPatchRev = 6;
     if ([info[@"LCPatchRevision"] intValue] < currentPatchRev) {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, _infoPlist[@"CFBundleExecutable"]];
+        NSString *backupPath = [NSString stringWithFormat:@"%@/%@_LiveContainerPatchBackUp", appPath, _infoPlist[@"CFBundleExecutable"]];
+        // copy-delete-move to avoid EXC_BAD_ACCESS (SIGKILL - CODESIGNING)
+        NSError *err;
+        [fm copyItemAtPath:execPath toPath:backupPath error:&err];
+        [fm removeItemAtPath:execPath error:&err];
+        [fm moveItemAtPath:backupPath toPath:execPath error:&err];
+        
+        __block bool has64bitSlice = NO;
         NSString *error = LCParseMachO(execPath.UTF8String, ^(const char *path, struct mach_header_64 *header) {
-            LCPatchExecSlice(path, header);
+            if(header->cputype == CPU_TYPE_ARM64) {
+                has64bitSlice |= YES;
+                LCPatchExecSlice(path, header, ![self dontInjectTweakLoader]);
+            }
         });
+        if(!has64bitSlice) {
+            self.is32bit = true;
+        }
+        
         if (error) {
+            [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
             completetionHandler(NO, error);
             return;
         }
         info[@"LCPatchRevision"] = @(currentPatchRev);
+        forceSign = true;
+        // remove ZSign cache since hash is changed after upgrading patch
+        NSString* cachePath = [appPath stringByAppendingPathComponent:@"zsign_cache.json"];
+        if([fm fileExistsAtPath:cachePath]) {
+            NSError* err;
+            [fm removeItemAtPath:cachePath error:&err];
+        }
+        
         [self save];
     }
 
-    if (!LCUtils.certificatePassword) {
+    if (!LCUtils.certificatePassword || self.is32bit || self.dontSign) {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(YES, nil);
         return;
     }
@@ -294,6 +339,7 @@
     if(expirationDate && [teamId isEqualToString:[LCUtils teamIdentifier]] && [[[NSUserDefaults alloc] initWithSuiteName:[LCUtils appGroupID]] boolForKey:@"LCSignOnlyOnExpiration"] && !forceSign) {
         if([expirationDate laterDate:[NSDate now]] == expirationDate) {
             // not expired yet, don't sign again
+            [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
             completetionHandler(YES, nil);
             return;
         }
@@ -306,6 +352,7 @@
         CC_SHA1(LCUtils.certificateData.bytes, (CC_LONG)LCUtils.certificateData.length, digest);
         signID = *(uint64_t *)digest + signRevision;
     } else {
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(NO, @"Failed to find signing certificate. Please refresh your store and try again.");
         return;
     }
@@ -318,7 +365,7 @@
             NSString *tmpExecPath = [appPath stringByAppendingPathComponent:@"LiveContainer.tmp"];
             if (!info[@"LCBundleIdentifier"]) {
                 // Don't let main executable get entitlements
-                [NSFileManager.defaultManager copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
+                [fm copyItemAtPath:NSBundle.mainBundle.executablePath toPath:tmpExecPath error:nil];
 
                 infoPlist[@"LCBundleExecutable"] = infoPlist[@"CFBundleExecutable"];
                 infoPlist[@"LCBundleIdentifier"] = infoPlist[@"CFBundleIdentifier"];
@@ -338,7 +385,7 @@
                     }
                     
                     // Remove fake main executable
-                    [NSFileManager.defaultManager removeItemAtPath:tmpExecPath error:nil];
+                    [fm removeItemAtPath:tmpExecPath error:nil];
                     
 
                     if(success && expirationDate) {
@@ -350,6 +397,7 @@
                     // Save sign ID and restore bundle ID
                     [self save];
                     [infoPlist writeToFile:infoPath atomically:YES];
+                    [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
                     completetionHandler(success, error.localizedDescription);
 
                 });
@@ -357,7 +405,8 @@
             
             __block NSProgress *progress;
             
-            switch ([self signer]) {
+            Signer currentSigner = [NSUserDefaults.standardUserDefaults boolForKey:@"LCCertificateImported"] ? ZSign : [self signer];
+            switch (currentSigner) {
                 case ZSign:
                     progress = [LCUtils signAppBundleWithZSign:appPathURL completionHandler:signCompletionHandler];
                     break;
@@ -366,6 +415,7 @@
                     break;
                     
                 default:
+                    [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
                     completetionHandler(NO, @"Signer Not Found");
                     break;
             }
@@ -377,6 +427,7 @@
 
     } else {
         // no need to sign again
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(YES, nil);
         return;
     }
@@ -434,15 +485,15 @@
     
 }
 
-- (bool)ignoreDlopenError {
-    if(_info[@"ignoreDlopenError"] != nil) {
-        return [_info[@"ignoreDlopenError"] boolValue];
+- (bool)hideLiveContainer {
+    if(_info[@"hideLiveContainer"] != nil) {
+        return [_info[@"hideLiveContainer"] boolValue];
     } else {
         return NO;
     }
 }
-- (void)setIgnoreDlopenError:(bool)ignoreDlopenError {
-    _info[@"ignoreDlopenError"] = [NSNumber numberWithBool:ignoreDlopenError];
+- (void)setHideLiveContainer:(bool)hideLiveContainer {
+    _info[@"hideLiveContainer"] = [NSNumber numberWithBool:hideLiveContainer];
     [self save];
 }
 
@@ -458,6 +509,35 @@
     [self save];
 }
 
+- (bool)dontInjectTweakLoader {
+    if(_info[@"dontInjectTweakLoader"] != nil) {
+        return [_info[@"dontInjectTweakLoader"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDontInjectTweakLoader:(bool)dontInjectTweakLoader {
+    if([_info[@"dontInjectTweakLoader"] boolValue] == dontInjectTweakLoader) {
+        return;
+    }
+    
+    _info[@"dontInjectTweakLoader"] = [NSNumber numberWithBool:dontInjectTweakLoader];
+    // we have to update patch to achieve this
+    _info[@"LCPatchRevision"] = @(-1);
+    [self save];
+}
+
+- (bool)dontLoadTweakLoader {
+    if(_info[@"dontLoadTweakLoader"] != nil) {
+        return [_info[@"dontLoadTweakLoader"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDontLoadTweakLoader:(bool)dontLoadTweakLoader {
+    _info[@"dontLoadTweakLoader"] = [NSNumber numberWithBool:dontLoadTweakLoader];
+    [self save];
+}
 
 - (bool)doUseLCBundleId {
     if(_info[@"doUseLCBundleId"] != nil) {
@@ -552,5 +632,32 @@
     _info[@"LCContainers"] = containerInfo;
     [self save];
 }
+
+- (bool)is32bit {
+    if(_info[@"is32bit"] != nil) {
+        return [_info[@"is32bit"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setIs32bit:(bool)is32bit {
+    _info[@"is32bit"] = [NSNumber numberWithBool:is32bit];
+    [self save];
+    
+}
+
+- (bool)dontSign {
+    if(_info[@"dontSign"] != nil) {
+        return [_info[@"dontSign"] boolValue];
+    } else {
+        return NO;
+    }
+}
+- (void)setDontSign:(bool)dontSign {
+    _info[@"dontSign"] = [NSNumber numberWithBool:dontSign];
+    [self save];
+    
+}
+
 
 @end

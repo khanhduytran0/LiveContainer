@@ -18,11 +18,10 @@ struct LCAppSettingsView : View{
     @Binding var tweakFolders: [String]
     
 
-    @State private var uiPickerTweakFolder : String?
-    
     @StateObject private var renameFolderInput = InputHelper()
     @StateObject private var moveToAppGroupAlert = YesNoHelper()
     @StateObject private var moveToPrivateDocAlert = YesNoHelper()
+    @StateObject private var signUnsignedAlert = YesNoHelper()
     
     @State private var errorShow = false
     @State private var errorInfo = ""
@@ -35,7 +34,6 @@ struct LCAppSettingsView : View{
         self._model = ObservedObject(wrappedValue: model)
         _appDataFolders = appDataFolders
         _tweakFolders = tweakFolders
-        self._uiPickerTweakFolder = State(initialValue: model.uiTweakFolder)
     }
     
     var body: some View {
@@ -47,10 +45,11 @@ struct LCAppSettingsView : View{
                     Text(appInfo.relativeBundlePath)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.trailing)
+                        .textSelection(.enabled)
                 }
                 if !model.uiIsShared {
                     Menu {
-                        Picker(selection: $uiPickerTweakFolder , label: Text("")) {
+                        Picker(selection: $model.uiTweakFolder , label: Text("")) {
                             Label("lc.common.none".loc, systemImage: "nosign").tag(Optional<String>(nil))
                             ForEach(tweakFolders, id:\.self) { folderName in
                                 Text(folderName).tag(Optional(folderName))
@@ -65,11 +64,6 @@ struct LCAppSettingsView : View{
                                 .multilineTextAlignment(.trailing)
                         }
                     }
-                    .onChange(of: uiPickerTweakFolder, perform: { newValue in
-                        if newValue != model.uiTweakFolder {
-                            setTweakFolder(folderName: newValue)
-                        }
-                    })
                     
                     
                 } else {
@@ -99,15 +93,15 @@ struct LCAppSettingsView : View{
             
             Section {
                 List{
-                    ForEach($model.uiContainers, id:\.self) { $container in
+                    ForEach(model.uiContainers.indices, id:\.self) { i in
                         NavigationLink {
-                            LCContainerView(container: $container, uiDefaultDataFolder: $model.uiDefaultDataFolder, delegate: self)
+                            LCContainerView(container: model.uiContainers[i], uiDefaultDataFolder: $model.uiDefaultDataFolder, delegate: self)
                         } label: {
-                            Text(container.name)
+                            Text(model.uiContainers[i].name)
                         }
                     }
                 }
-                if(model.uiContainers.count < 3) {
+                if(model.uiContainers.count < SharedModel.keychainAccessGroupCount) {
                     Button {
                         Task{ await createFolder() }
                     } label: {
@@ -131,9 +125,6 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiIsJITNeeded) {
                     Text("lc.appSettings.launchWithJit".loc)
                 }
-                .onChange(of: model.uiIsJITNeeded, perform: { newValue in
-                    Task { await setJITNeeded(newValue) }
-                })
             } footer: {
                 Text("lc.appSettings.launchWithJitDesc".loc)
             }
@@ -161,16 +152,16 @@ struct LCAppSettingsView : View{
                         .transition(.opacity.combined(with: .slide))
                 }
             }
-
-            Picker(selection: $model.uiSigner) {
-                Text("AltSign").tag(Signer.AltSign)
-                Text("ZSign").tag(Signer.ZSign)
-            } label: {
-                Text("lc.appSettings.signer".loc)
+            
+            if !sharedModel.certificateImported {
+                Picker(selection: $model.uiSigner) {
+                    Text("AltSign").tag(Signer.AltSign)
+                    Text("ZSign").tag(Signer.ZSign)
+                } label: {
+                    Text("lc.appSettings.signer".loc)
+                }
             }
-            .onChange(of: model.uiSigner, perform: { newValue in
-                Task { await setSigner(newValue) }
-            })
+
             
             Section {
                 NavigationLink {
@@ -195,9 +186,6 @@ struct LCAppSettingsView : View{
                                 Text("lc.common.language".loc)
                             }
                             .pickerStyle(.inline)
-                            .onChange(of: model.uiSelectedLanguage, perform: { newValue in
-                                Task { await setLanguage(newValue) }
-                            })
                         }
 
                     } else {
@@ -228,14 +216,21 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiUseLCBundleId) {
                     Text("lc.appSettings.useLCBundleId".loc)
                 }
-                .onChange(of: model.uiUseLCBundleId, perform: { newValue in
-                    Task { await setDoUseLCBundleId(newValue) }
-                })
             } header: {
                 Text("lc.appSettings.fixes".loc)
             } footer: {
                 Text("lc.appSettings.useLCBundleIdDesc".loc)
             }
+            
+            Section {
+                Toggle(isOn: $model.uiFixBlackScreen) {
+                    Text("lc.appSettings.fixBlackScreen".loc)
+                }
+            } footer: {
+                Text("lc.appSettings.fixBlackScreenDesc".loc)
+            }
+
+            
             if sharedModel.isPhone {
                 Section {
                     Picker(selection: $model.uiOrientationLock) {
@@ -245,32 +240,26 @@ struct LCAppSettingsView : View{
                     } label: {
                         Text("lc.apppSettings.orientationLock".loc)
                     }
-                    .onChange(of: model.uiOrientationLock, perform: { newValue in
-                        Task { await setOrientationLock(newValue) }
-                    })
                 }
             }
             
             Section {
-                Toggle(isOn: $model.uiIgnoreDlopenError) {
-                    Text("lc.appSettings.ignoreDlopenError".loc)
+                Toggle(isOn: $model.uiHideLiveContainer) {
+                    Text("lc.appSettings.hideLiveContainer".loc)
                 }
-                .onChange(of: model.uiIgnoreDlopenError, perform: { newValue in
-                    Task { await setIgnoreDlopenError(newValue) }
-                })
-            } footer: {
-                Text("lc.appSettings.ignoreDlopenErrorDesc".loc)
-            }
-            
-            Section {
-                Toggle(isOn: $model.uiFixBlackScreen) {
-                    Text("lc.appSettings.fixBlackScreen".loc)
+
+                Toggle(isOn: $model.uiDontInjectTweakLoader) {
+                    Text("lc.appSettings.dontInjectTweakLoader".loc)
                 }
-                .onChange(of: model.uiFixBlackScreen, perform: { newValue in
-                    Task { await setFixBlackScreen(newValue) }
-                })
+                
+                if model.uiDontInjectTweakLoader {
+                    Toggle(isOn: $model.uiDontLoadTweakLoader) {
+                        Text("lc.appSettings.dontLoadTweakLoader".loc)
+                    }
+                }
+                
             } footer: {
-                Text("lc.appSettings.fixBlackScreenDesc".loc)
+                Text("lc.appSettings.hideLiveContainerDesc".loc)
             }
 
             
@@ -278,9 +267,6 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
                     Text("lc.appSettings.fixFilePicker".loc)
                 }
-                .onChange(of: model.uiDoSymlinkInbox, perform: { newValue in
-                    Task { await setSimlinkInbox(newValue) }
-                })
             } footer: {
                 Text("lc.appSettings.fixFilePickerDesc".loc)
             }
@@ -289,10 +275,6 @@ struct LCAppSettingsView : View{
                 Toggle(isOn: $model.uiBypassAssertBarrierOnQueue) {
                     Text("lc.appSettings.bypassAssert".loc)
                 }
-                .onChange(of: model.uiBypassAssertBarrierOnQueue, perform: { newValue in
-                    Task { await setBypassAssertBarrierOnQueue(newValue) }
-                })
-            
             } footer: {
                 Text("lc.appSettings.bypassAssertDesc".loc)
             }
@@ -353,6 +335,18 @@ struct LCAppSettingsView : View{
         } message: {
             Text("lc.appSettings.toPrivateAppDesc".loc)
         }
+        .alert("lc.appSettings.forceSign".loc, isPresented: $signUnsignedAlert.show) {
+            Button {
+                self.signUnsignedAlert.close(result: true)
+            } label: {
+                Text("lc.common.ok".loc)
+            }
+            Button("lc.common.cancel".loc, role: .cancel) {
+                self.signUnsignedAlert.close(result: false)
+            }
+        } message: {
+            Text("lc.appSettings.signUnsignedDesc".loc)
+        }
         .sheet(isPresented: $selectUnusedContainerSheetShow) {
             LCSelectContainerView(isPresent: $selectUnusedContainerSheetShow, delegate: self)
         }
@@ -383,13 +377,13 @@ struct LCAppSettingsView : View{
         let newContainer = LCContainer(folderName: newName, name: displayName, isShared: model.uiIsShared, isolateAppGroup: false)
         // assign keychain group
         var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
-        for i in 0...2 {
+        for i in 0..<SharedModel.keychainAccessGroupCount {
             keychainGroupSet.insert(i)
         }
         for container in model.uiContainers {
             keychainGroupSet.remove(container.keychainGroupId)
         }
-        guard let freeKeyChainGroup = keychainGroupSet.first else {
+        guard let freeKeyChainGroup = keychainGroupSet.randomElement() else {
             errorInfo = "lc.container.notEnoughKeychainGroup".loc
             errorShow = true
             return
@@ -406,13 +400,7 @@ struct LCAppSettingsView : View{
         appInfo.containers = model.uiContainers;
         newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: freeKeyChainGroup)
     }
-    
-    func setTweakFolder(folderName: String?) {
-        self.appInfo.setTweakFolder(folderName)
-        self.model.uiTweakFolder = folderName
-        self.uiPickerTweakFolder = folderName
-    }
-    
+
     func moveToAppGroup() async {
         guard let result = await moveToAppGroupAlert.open(), result else {
             return
@@ -429,7 +417,7 @@ struct LCAppSettingsView : View{
                     return s == container.folderName
                 })
             }
-            if let tweakFolder = appInfo.tweakFolder(), tweakFolder.count > 0 {
+            if let tweakFolder = appInfo.tweakFolder, tweakFolder.count > 0 {
                 try fm.moveItem(at: LCPath.tweakPath.appendingPathComponent(tweakFolder),
                                 to: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder))
                 tweakFolders.removeAll(where: { s in
@@ -469,7 +457,7 @@ struct LCAppSettingsView : View{
                                 to: LCPath.dataPath.appendingPathComponent(container.folderName))
                 appDataFolders.append(container.folderName)
             }
-            if let tweakFolder = appInfo.tweakFolder(), tweakFolder.count > 0 {
+            if let tweakFolder = appInfo.tweakFolder, tweakFolder.count > 0 {
                 try fm.moveItem(at: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder),
                                 to: LCPath.tweakPath.appendingPathComponent(tweakFolder))
                 tweakFolders.append(tweakFolder)
@@ -488,47 +476,6 @@ struct LCAppSettingsView : View{
         
     }
     
-    func setJITNeeded(_ JITNeeded: Bool) async {
-        appInfo.isJITNeeded = JITNeeded
-        model.uiIsJITNeeded = JITNeeded
-
-    }
-    
-    func setSigner(_ signer: Signer) async {
-        appInfo.signer = signer
-        model.uiSigner = signer
-    }
-    
-    func setLanguage(_ lang: String) async {
-        appInfo.selectedLanguage = lang
-        model.uiSelectedLanguage = lang
-    }
-    
-    func setSimlinkInbox(_ simlinkInbox : Bool) async {
-        appInfo.doSymlinkInbox = simlinkInbox
-        model.uiDoSymlinkInbox = simlinkInbox
-    }
-    
-    func setDoUseLCBundleId(_ doUseLCBundleId : Bool) async {
-        appInfo.doUseLCBundleId = doUseLCBundleId
-        model.uiUseLCBundleId = doUseLCBundleId
-    }
-    
-    func setIgnoreDlopenError(_ ignoreDlopenError : Bool) async {
-        appInfo.ignoreDlopenError = ignoreDlopenError
-        model.uiIgnoreDlopenError = ignoreDlopenError
-    }
-    
-    func setFixBlackScreen(_ fixBlackScreen : Bool) async {
-        appInfo.fixBlackScreen = fixBlackScreen
-        model.uiFixBlackScreen = fixBlackScreen
-    }
-    
-    func setOrientationLock(_ lock : LCOrientationLock) async {
-        appInfo.orientationLock = lock
-        model.uiOrientationLock = lock
-    }
-    
     func loadSupportedLanguages() {
         do {
             try model.loadSupportedLanguages()
@@ -539,15 +486,18 @@ struct LCAppSettingsView : View{
         }
     }
     
-    func setBypassAssertBarrierOnQueue(_ enabled : Bool) async {
-            appInfo.bypassAssertBarrierOnQueue = enabled
-            model.uiBypassAssertBarrierOnQueue = enabled
-    }
     func toggleHidden() async {
         await model.toggleHidden()
     }
     
     func forceResign() async {
+        if model.uiDontSign {
+            guard let result = await signUnsignedAlert.open(), result else {
+                return
+            }
+            model.uiDontSign = false
+        }
+        
         do {
             try await model.forceResign()
         } catch {
@@ -603,6 +553,7 @@ extension LCAppSettingsView : LCContainerViewDelegate {
     func saveContainer(container: LCContainer) {
         container.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: container.keychainGroupId)
         appInfo.containers = model.uiContainers
+        model.objectWillChange.send()
     }
     
     func getSettingsBundle() -> Bundle? {
@@ -629,7 +580,7 @@ extension LCAppSettingsView : LCContainerViewDelegate {
 
 extension LCAppSettingsView : LCSelectContainerViewDelegate {
     func addContainers(containers: Set<String>) {
-        if containers.count + model.uiContainers.count > 3 {
+        if containers.count + model.uiContainers.count > SharedModel.keychainAccessGroupCount {
             errorInfo = "lc.container.tooMuchContainers".loc
             errorShow = true
             return
@@ -640,14 +591,14 @@ extension LCAppSettingsView : LCSelectContainerViewDelegate {
             newContainer.loadName()
             if newContainer.keychainGroupId == -1 {
                 // assign keychain group for old containers
-                var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
-                for i in 0...2 {
+                var keychainGroupSet : Set<Int> = Set(minimumCapacity: SharedModel.keychainAccessGroupCount)
+                for i in 0..<SharedModel.keychainAccessGroupCount {
                     keychainGroupSet.insert(i)
                 }
                 for container in model.uiContainers {
                     keychainGroupSet.remove(container.keychainGroupId)
                 }
-                guard let freeKeyChainGroup = keychainGroupSet.first else {
+                guard let freeKeyChainGroup = keychainGroupSet.randomElement() else {
                     errorInfo = "lc.container.notEnoughKeychainGroup".loc
                     errorShow = true
                     return

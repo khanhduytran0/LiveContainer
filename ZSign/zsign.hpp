@@ -34,7 +34,9 @@ void zsign(NSString *appPath,
           NSProgress* progress,
           void(^completionHandler)(BOOL success, NSDate* expirationDate, NSString* teamId, NSError *error)
           );
-
+NSString* getTeamId(NSData *prov,
+                    NSData *key,
+                    NSString *pass);
 
 #ifdef __cplusplus
 }

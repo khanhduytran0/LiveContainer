@@ -126,13 +126,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Launch Now"
+            "value" : "Run without JIT"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "立即启动"
+            "value" : "不带JIT启动"
           }
         }
       }
@@ -382,6 +382,23 @@
         }
       }
     },
+    "lc.appList.convertToSharedToShowInLC2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convert Apps to Shared Apps to Use Them in LiveContainer2"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将App转换为共享App以在LiveContainer2中使用"
+          }
+        }
+      }
+    },
     "lc.appList.enterUrlTip" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -484,6 +501,40 @@
         }
       }
     },
+    "lc.appList.installFromIpa" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install IPA File"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过IPA文件安装"
+          }
+        }
+      }
+    },
+    "lc.appList.installFromUrl" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install from URL"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过链接安装"
+          }
+        }
+      }
+    },
     "lc.appList.installReplaceTip" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -514,6 +565,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "点击加号按钮安装App"
+          }
+        }
+      }
+    },
+    "lc.appList.installUrlInputTip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please Input Install URL"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入安装链接"
           }
         }
       }
@@ -616,6 +684,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App签名成功，但以下文件签名失败。App有可能可以正常运行。"
+          }
+        }
+      }
+    },
+    "lc.appList.urlFileIsNotIpaError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please provide an IPA file to install."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请出提供一个IPA文件用于安装。"
           }
         }
       }
@@ -773,6 +858,40 @@
         }
       }
     },
+    "lc.appSettings.dontInjectTweakLoader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don’t Inject TweakLoader"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不注入TweakLoader"
+          }
+        }
+      }
+    },
+    "lc.appSettings.dontLoadTweakLoader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don’t Load TweakLoader"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不加载TweakLoader"
+          }
+        }
+      }
+    },
     "lc.appSettings.fixBlackScreen" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -926,36 +1045,36 @@
         }
       }
     },
-    "lc.appSettings.ignoreDlopenError" : {
+    "lc.appSettings.hideLiveContainer" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ignore Error During dlopen"
+            "value" : "Hide LiveContainer from Dyld Api"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "忽略dlopen时的错误"
+            "value" : "从Dyld Api中隐藏LiveContainer"
           }
         }
       }
     },
-    "lc.appSettings.ignoreDlopenErrorDesc" : {
+    "lc.appSettings.hideLiveContainerDesc" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Might solve errors like dlsym(xxxx, xxxx): symbol not found"
+            "value" : "Might help bypass some app’s injection detection."
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "可能解决类似dlsym(xxxx,xxxx): symbol not found的问题"
+            "value" : "可能可以帮助绕过一些App的注入检测。"
           }
         }
       }
@@ -1075,6 +1194,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "签名工具"
+          }
+        }
+      }
+    },
+    "lc.appSettings.signUnsignedDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app is not signed, do you want to sign it anyway?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此App未被签名，你确定要签名吗？"
           }
         }
       }
@@ -1249,6 +1385,23 @@
         }
       }
     },
+    "lc.common.continue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续"
+          }
+        }
+      }
+    },
     "lc.common.copy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1262,6 +1415,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制"
+          }
+        }
+      }
+    },
+    "lc.common.correct" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correct"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正确"
           }
         }
       }
@@ -1912,6 +2082,40 @@
         }
       }
     },
+    "lc.core.crashDuringSignErr" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer seems to crash during last app signing, and the app might be corrupted. Please consider reinstalling the app or switching to another signer."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer似乎在上次App签名时崩溃了，App可能已经损坏，请考虑重新安装或者切换到另一个签名工具。"
+          }
+        }
+      }
+    },
+    "lc.download.downloading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载中"
+          }
+        }
+      }
+    },
     "lc.guestTweak.appSwitchTip %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1997,6 +2201,23 @@
         }
       }
     },
+    "lc.guestTweak.restartToInstall" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please restart LiveContainer to install apps."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请重启LiveContainer以安装App。"
+          }
+        }
+      }
+    },
     "lc.helpView.text1" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2020,7 +2241,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "**Check [LiveContainer FAQ](https://github.com/khanhduytran0/LiveContainer/issues/265) for common issues.**\n                         \nIf you encounters a bug or compatibility issue please submit on [GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)."
+            "value" : "**Check [LiveContainer FAQ](https://github.com/khanhduytran0/LiveContainer/issues/265) for common issues.**\n                         \nIf you encounter a bug or compatibility issue please submit on [GitHub issues](https://github.com/khanhduytran0/LiveContainer/issues)."
           }
         },
         "zh_CN" : {
@@ -2044,6 +2265,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "LiveContainer帮助"
+          }
+        }
+      }
+    },
+    "lc.jielessDiag.entitlement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entitlement File"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entitlement 文件"
           }
         }
       }
@@ -2095,6 +2333,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "包名"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.bundleIdExpected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expected Bundle Identifier"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期望包名"
           }
         }
       }
@@ -2197,6 +2452,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装方式"
+          }
+        }
+      }
+    },
+    "lc.jitlessDiag.teamId" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Team ID"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "团队名"
           }
         }
       }
@@ -2514,6 +2786,40 @@
         }
       }
     },
+    "lc.settings.dontSign" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don’t Sign New Apps"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不签名新App"
+          }
+        }
+      }
+    },
+    "lc.settings.dontSignDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LiveContainer will not sign new apps until this option is off. App installed during this option is on will remain unsigned."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此选项启用时LiveContainer不会签名新App。此选项启用期间安装的App会保持未签名状态。"
+          }
+        }
+      }
+    },
     "lc.settings.dynamicColors" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2599,6 +2905,57 @@
         }
       }
     },
+    "lc.settings.importCertificate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Certificate"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入证书"
+          }
+        }
+      }
+    },
+    "lc.settings.importCertificateDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To use JITLess mode without AltStore/SideStore, you have to import the certificate used to sign LiveContainer. Continue?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要不通过SideStore/AltStore使用免JIT模式，你需要导入用于签名LiveContainer的证书。要继续吗？"
+          }
+        }
+      }
+    },
+    "lc.settings.importCertificateInputPassword" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please Input Password of the Certificate"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入证书密码"
+          }
+        }
+      }
+    },
     "lc.settings.injectLCItself" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2650,6 +3007,23 @@
         }
       }
     },
+    "lc.settings.invalidCertError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to validate certificate. Please check the password and if the selected certificate is used to sign LiveContainer."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证证书失败，请检查密码并确认该证书是签名LiveContainer所使用的证书"
+          }
+        }
+      }
+    },
     "lc.settings.JitAddress" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2680,6 +3054,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "配置SideJITServer/JITStreamer。需要本地网络权限。"
+          }
+        }
+      }
+    },
+    "lc.settings.jitEnabler" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JIT Enabler"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JIT启用工具"
           }
         }
       }
@@ -2887,6 +3278,23 @@
         }
       }
     },
+    "lc.settings.multiLCArchiveSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The packed second LiveContainer has been saved to LiveContainer's document folder. Please install it manually."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打包的第二个LiveContainer ipa已经保存到LiveContainer的“文件”文件夹，请将其手动安装。"
+          }
+        }
+      }
+    },
     "lc.settings.multiLCDesc" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2910,13 +3318,30 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Install another LiveContainer"
+            "value" : "Install Another LiveContainer"
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装第二个LiveContainer"
+          }
+        }
+      }
+    },
+    "lc.settings.multiLCInstallAlertDesc %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ will be opened to install the second LiveContainer, Continue?\n\nSelect “Archive Only” if you want to do some customization and install manually."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即将跳转到%@来安装第二个LiveContainer，要继续吗？\n\n可选择“仅打包”来进行自定义并手动安装。"
           }
         }
       }
@@ -2944,7 +3369,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reinstall another LiveContainer"
+            "value" : "Reinstall Another LiveContainer"
           }
         },
         "zh_CN" : {
@@ -3029,13 +3454,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Patched %@ has been saved to LiveContainer's document folder. Please install it with the %@ that LiveContainer is installed with."
+            "value" : "Patched %@ ipa has been saved to LiveContainer's document folder. Please install it with the %@ that LiveContainer is installed with."
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打包的%@已经保存到LiveContainer的“文件”文件夹，请将其手动安装到安装了LiveContainer的那个%@中。"
+            "value" : "打包的%@ ipa已经保存到LiveContainer的“文件”文件夹，请将其手动安装到安装了LiveContainer的那个%@中。"
           }
         }
       }
@@ -3074,6 +3499,40 @@
         }
       }
     },
+    "lc.settings.removeCertificate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Certificate"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除证"
+          }
+        }
+      }
+    },
+    "lc.settings.removeCertificateDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You won’t be able to install apps after removing the certificate. Continue?"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除证书后你无法签名App，要继续吗？"
+          }
+        }
+      }
+    },
     "lc.settings.renewJitLess" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3097,13 +3556,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "If ZSign reports an error, please try AltSign. Please restart LiveContainer after switching Signer."
+            "value" : "If AltSign reports an error, please try ZSign and vice versa. Please restart LiveContainer after switching Signer."
           }
         },
         "zh_CN" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "若ZSign签名遇到问题，可尝试使用AltSign。切换签名工具后请重启LiveContainer。"
+            "value" : "若AltSign签名遇到问题，可尝试使用ZSign，反之亦然。切换签名工具后请重启LiveContainer。"
           }
         }
       }
@@ -3165,7 +3624,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "By default, LiveContainer asks you how to open an URL. Enable this automatically open URL in current app."
+            "value" : "By default, LiveContainer asks you how to open an URL. Enable this to automatically open URL in current app."
           }
         },
         "zh_CN" : {

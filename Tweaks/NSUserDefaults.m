@@ -13,13 +13,6 @@
 void swizzle(Class class, SEL originalAction, SEL swizzledAction) {
     method_exchangeImplementations(class_getInstanceMethod(class, originalAction), class_getInstanceMethod(class, swizzledAction));
 }
-@interface NSUserDefaults(LiveContainer)
-+ (instancetype)lcSharedDefaults;
-+ (instancetype)lcUserDefaults;
-+ (NSString *)lcAppUrlScheme;
-+ (NSString *)lcAppGroupPath;
-@end
-
 
 NSMutableDictionary* LCPreferences = 0;
 

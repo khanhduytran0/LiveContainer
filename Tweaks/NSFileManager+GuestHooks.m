@@ -1,10 +1,10 @@
 @import Foundation;
 #import "utils.h"
 #import "LCSharedUtils.h"
+#import "Tweaks.h"
 
 BOOL isolateAppGroup = NO;
-__attribute__((constructor))
-static void NSFMGuestHooksInit() {
+void NSFMGuestHooksInit(void) {
     NSString* containerInfoPath = [[NSString stringWithUTF8String:getenv("HOME")] stringByAppendingPathComponent:@"LCContainerInfo.plist"];
     NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfFile:containerInfoPath];
     isolateAppGroup = [infoDict[@"isolateAppGroup"] boolValue];
@@ -21,8 +21,10 @@ static void NSFMGuestHooksInit() {
     NSURL *result;
     if(isolateAppGroup) {
         result = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%s/LCAppGroup/%@", getenv("HOME"), groupIdentifier]];
-    } else {
+    } else if (NSUserDefaults.lcAppGroupPath){
         result = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%@/LiveContainer/Data/AppGroup/%@", NSUserDefaults.lcAppGroupPath, groupIdentifier]];
+    } else {
+        result = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%s/Documents/Data/AppGroup/%@", getenv("LC_HOME_PATH"), groupIdentifier]];
     }
     [NSFileManager.defaultManager createDirectoryAtURL:result withIntermediateDirectories:YES attributes:nil error:nil];
     return result;

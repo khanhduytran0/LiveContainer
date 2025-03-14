@@ -94,8 +94,7 @@ void LCShowSwitchAppConfirmation(NSURL *url, NSString* bundleId) {
     objc_setAssociatedObject(alert, @"window", window, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
-void LCShowAppNotFoundAlert(NSString* bundleId) {
-    NSString *message = [@"lc.guestTweak.error.bundleNotFound %@" localizeWithFormat: bundleId];
+void LCShowAlert(NSString* message) {
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"LiveContainer" message:message preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"lc.common.ok".loc style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
@@ -108,6 +107,10 @@ void LCShowAppNotFoundAlert(NSString* bundleId) {
     [window makeKeyAndVisible];
     [window.rootViewController presentViewController:alert animated:YES completion:nil];
     objc_setAssociatedObject(alert, @"window", window, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+void LCShowAppNotFoundAlert(NSString* bundleId) {
+    LCShowAlert([@"lc.guestTweak.error.bundleNotFound %@" localizeWithFormat: bundleId]);
 }
 
 void openUniversalLink(NSString* decodedUrl) {
@@ -230,6 +233,13 @@ void handleLiveContainerLaunch(NSURL* url) {
             containerFolderName = queryItem.value;
         }
     }
+    
+    // launch to LiveContainerUI
+    if([bundleName isEqualToString:@"ui"]) {
+        LCShowSwitchAppConfirmation(url, @"LiveContainer");
+        return;
+    }
+    
     NSString* containerId = [NSString stringWithUTF8String:getenv("HOME")].lastPathComponent;
     if(!containerFolderName) {
         containerFolderName = findDefaultContainerWithBundleId(bundleName);
@@ -295,6 +305,11 @@ BOOL canAppOpenItself(NSURL* url) {
 @implementation UIApplication(LiveContainerHook)
 - (void)hook__applicationOpenURLAction:(id)action payload:(NSDictionary *)payload origin:(id)origin {
     NSString *url = payload[UIApplicationLaunchOptionsURLKey];
+    if ([url hasPrefix:@"file:"]) {
+        [[NSURL URLWithString:url] startAccessingSecurityScopedResource];
+        [self hook__applicationOpenURLAction:action payload:payload origin:origin];
+        return;
+    }
     if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-relaunch", NSUserDefaults.lcAppUrlScheme]]) {
         // Ignore
         return;
@@ -330,6 +345,9 @@ BOOL canAppOpenItself(NSURL* url) {
         handleLiveContainerLaunch([NSURL URLWithString:url]);
         // Not what we're looking for, pass it
         
+    } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://install", NSUserDefaults.lcAppUrlScheme]]) {
+        LCShowAlert(@"lc.guestTweak.restartToInstall".loc);
+        return;
     }
     [self hook__applicationOpenURLAction:action payload:payload origin:origin];
     return;
@@ -389,8 +407,14 @@ BOOL canAppOpenItself(NSURL* url) {
         }
     }
 
-    // Don't have UIOpenURLAction? pass it
-    if (!urlAction) {
+    // Don't have UIOpenURLAction or is passing a file to app? pass it
+    if (!urlAction || urlAction.url.isFileURL) {
+        [self hook_scene:scene didReceiveActions:actions fromTransitionContext:context];
+        return;
+    }
+    
+    if (urlAction.url.isFileURL) {
+        [urlAction.url startAccessingSecurityScopedResource];
         [self hook_scene:scene didReceiveActions:actions fromTransitionContext:context];
         return;
     }
@@ -429,6 +453,9 @@ BOOL canAppOpenItself(NSURL* url) {
     } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://livecontainer-launch?bundle-name=", NSUserDefaults.lcAppUrlScheme]]){
         handleLiveContainerLaunch(urlAction.url);
         
+    } else if ([url hasPrefix:[NSString stringWithFormat: @"%@://install", NSUserDefaults.lcAppUrlScheme]]) {
+        LCShowAlert(@"lc.guestTweak.restartToInstall".loc);
+        return;
     }
 
     NSMutableSet *newActions = actions.mutableCopy;

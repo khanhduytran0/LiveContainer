@@ -14,7 +14,8 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include "TPRO.h"
-#include "fishhook/fishhook.h"
+#import "fishhook/fishhook.h"
+#import "Tweaks/Tweaks.h"
 #include <mach-o/ldsyms.h>
 
 static int (*appMain)(int, char**);
@@ -25,8 +26,6 @@ NSString *lcAppGroupPath;
 NSString* lcAppUrlScheme;
 NSBundle* lcMainBundle;
 NSDictionary* guestAppInfo;
-
-void NUDGuestHooksInit();
 
 @implementation NSUserDefaults(LiveContainer)
 + (instancetype)lcUserDefaults {
@@ -184,9 +183,9 @@ static void overwriteExecPath(NSString *bundlePath) {
     }
 }
 
-static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
+static void *getAppEntryPoint(void *handle) {
     uint32_t entryoff = 0;
-    const struct mach_header_64 *header = (struct mach_header_64 *)_dyld_get_image_header(imageIndex);
+    const struct mach_header_64 *header = (struct mach_header_64 *)getGuestAppHeader();
     uint8_t *imageHeaderPtr = (uint8_t*)header + sizeof(struct mach_header_64);
     struct load_command *command = (struct load_command *)imageHeaderPtr;
     for(int i = 0; i < header->ncmds > 0; ++i) {
@@ -202,19 +201,6 @@ static void *getAppEntryPoint(void *handle, uint32_t imageIndex) {
     return (void *)header + entryoff;
 }
 
-uint32_t appMainImageIndex = 0;
-void* appExecutableHandle = 0;
-void* (*orig_dlsym)(void * __handle, const char * __symbol);
-void* new_dlsym(void * __handle, const char * __symbol) {
-    if(__handle == (void*)RTLD_MAIN_ONLY) {
-        if(strcmp(__symbol, MH_EXECUTE_SYM) == 0) {
-            return (void*)_dyld_get_image_header(appMainImageIndex);
-        }
-        return orig_dlsym(appExecutableHandle, __symbol);
-    }
-    
-    return orig_dlsym(__handle, __symbol);
-}
 
 static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContainer, int argc, char *argv[]) {
     NSString *appError = nil;
@@ -236,18 +222,30 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     NSURL *appGroupFolder = nil;
     
     NSString *bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", docPath, selectedApp];
-    NSBundle *appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+    guestAppInfo = [NSDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/LCAppInfo.plist", bundlePath]];
     bool isSharedBundle = false;
     // not found locally, let's look for the app in shared folder
-    if (!appBundle) {
+    if(!guestAppInfo) {
         NSURL *appGroupPath = [NSFileManager.defaultManager containerURLForSecurityApplicationGroupIdentifier:[LCSharedUtils appGroupID]];
         appGroupFolder = [appGroupPath URLByAppendingPathComponent:@"LiveContainer"];
-        
         bundlePath = [NSString stringWithFormat:@"%@/Applications/%@", appGroupFolder.path, selectedApp];
-        appBundle = [[NSBundle alloc] initWithPath:bundlePath];
+        guestAppInfo = [NSDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/LCAppInfo.plist", bundlePath]];
         isSharedBundle = true;
     }
-    guestAppInfo = [NSDictionary dictionaryWithContentsOfURL:[appBundle URLForResource:@"LCAppInfo" withExtension:@"plist"]];
+    
+    if(!guestAppInfo) {
+        return @"App bundle not found! Unable to read LCAppInfo.plist.";
+    }
+    
+    if([guestAppInfo[@"doUseLCBundleId"] boolValue] ) {
+        NSMutableDictionary* infoPlist = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
+        if(![infoPlist[@"CFBundleIdentifier"] isEqualToString:NSBundle.mainBundle.bundleIdentifier]) {
+            infoPlist[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
+            [infoPlist writeToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
+        }
+    }
+    
+    NSBundle *appBundle = [[NSBundle alloc] initWithPathForMainBundle:bundlePath];
     
     if(!appBundle) {
         return @"App not found";
@@ -288,7 +286,8 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     }
 
     // If JIT is enabled, bypass library validation so we can load arbitrary binaries
-    if (checkJITEnabled()) {
+    bool isJitEnabled = checkJITEnabled();
+    if (isJitEnabled) {
         init_bypassDyldLibValidation();
     }
 
@@ -302,7 +301,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
             break;
         }
     }
-
+    
     // Overwrite @executable_path
     const char *appExecPath = appBundle.executablePath.UTF8String;
     *path = appExecPath;
@@ -396,6 +395,10 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     overwriteMainCFBundle();
 
     // Overwrite executable info
+    if(!appBundle.executablePath) {
+        return @"App's executable path not found. Please try force re-signing or reinstalling this app.";
+    }
+    
     NSMutableArray<NSString *> *objcArgv = NSProcessInfo.processInfo.arguments.mutableCopy;
     objcArgv[0] = appBundle.executablePath;
     [NSProcessInfo.processInfo performSelector:@selector(setArguments:) withObject:objcArgv];
@@ -404,15 +407,46 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     
     // hook NSUserDefault before running libraries' initializers
     NUDGuestHooksInit();
-    
+    SecItemGuestHooksInit();
+    NSFMGuestHooksInit();
     // Preload executable to bypass RT_NOLOAD
     uint32_t appIndex = _dyld_image_count();
     appMainImageIndex = appIndex;
-    void *appHandle = dlopen(*path, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
+    
+    DyldHooksInit([guestAppInfo[@"hideLiveContainer"] boolValue]);
+    
+    bool is32bit = [guestAppInfo[@"is32bit"] boolValue];
+    if(is32bit) {
+        if (!isJitEnabled) {
+            return @"JIT is required to run 32-bit apps.";
+        }
+        
+        NSString *selected32BitLayer = [lcUserDefaults stringForKey:@"selected32BitLayer"];
+        if(!selected32BitLayer || [selected32BitLayer length] == 0) {
+            appError = @"No 32-bit translation layer installed";
+            NSLog(@"[LCBootstrap] %@", appError);
+            *path = oldPath;
+            return appError;
+        }
+        NSBundle *selected32bitLayerBundle = [NSBundle bundleWithPath:[docPath stringByAppendingPathComponent:selected32BitLayer]]; //TODO make it user friendly;
+        if(!selected32bitLayerBundle) {
+            appError = @"The specified LiveExec32.app path is not found";
+            NSLog(@"[LCBootstrap] %@", appError);
+            *path = oldPath;
+            return appError;
+        }
+        // maybe need to save selected32bitLayerBundle to static variable?
+        appExecPath = strdup(selected32bitLayerBundle.executablePath.UTF8String);
+    }
+    
+    if(![guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
+        tweakLoaderLoaded = true;
+    }
+    void *appHandle = dlopen(appExecPath, RTLD_LAZY|RTLD_GLOBAL|RTLD_FIRST);
     appExecutableHandle = appHandle;
     const char *dlerr = dlerror();
-
-    if (!appHandle || (uint64_t)appHandle > 0xf00000000000 || (dlerr && ![guestAppInfo[@"ignoreDlopenError"] boolValue]) ) {
+    
+    if (!appHandle || (uint64_t)appHandle > 0xf00000000000) {
         if (dlerr) {
             appError = @(dlerr);
         } else {
@@ -422,13 +456,17 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         *path = oldPath;
         return appError;
     }
-    // hook dlsym to solve RTLD_MAIN_ONLY
-    rebind_symbols((struct rebinding[1]){{"dlsym", (void *)new_dlsym, (void **)&orig_dlsym}},1);
+    
+    if([guestAppInfo[@"dontInjectTweakLoader"] boolValue] && ![guestAppInfo[@"dontLoadTweakLoader"] boolValue]) {
+        tweakLoaderLoaded = true;
+        dlopen("@loader_path/../../Tweaks/TweakLoader.dylib", RTLD_LAZY|RTLD_GLOBAL);
+    }
     
     // Fix dynamic properties of some apps
     [NSUserDefaults performSelector:@selector(initialize)];
 
-    if (![appBundle loadAndReturnError:&error]) {
+    // Attempt to load the bundle. 32-bit bundle will always fail because of 32-bit main executable, so ignore it
+    if (!is32bit && ![appBundle loadAndReturnError:&error]) {
         appError = error.localizedDescription;
         NSLog(@"[LCBootstrap] loading bundle failed: %@", error);
         *path = oldPath;
@@ -437,7 +475,7 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
     NSLog(@"[LCBootstrap] loaded bundle");
 
     // Find main()
-    appMain = getAppEntryPoint(appHandle, appIndex);
+    appMain = getAppEntryPoint(appHandle);
     if (!appMain) {
         appError = @"Could not find the main entry point";
         NSLog(@"[LCBootstrap] %@", appError);
@@ -447,8 +485,14 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
 
     // Go!
     NSLog(@"[LCBootstrap] jumping to main %p", appMain);
-    argv[0] = (char *)appExecPath;
-    int ret = appMain(argc, argv);
+    int ret;
+    if(!is32bit) {
+        argv[0] = (char *)appExecPath;
+        ret = appMain(argc, argv);
+    } else {
+        char *argv32[] = {(char*)appExecPath, (char*)*path, NULL};
+        ret = appMain(sizeof(argv32)/sizeof(*argv32) - 1, argv32);
+    }
 
     return [NSString stringWithFormat:@"App returned from its main function with code %d.", ret];
 }
@@ -489,6 +533,12 @@ int LiveContainerMain(int argc, char *argv[]) {
     
     NSString *selectedApp = [lcUserDefaults stringForKey:@"selected"];
     NSString *selectedContainer = [lcUserDefaults stringForKey:@"selectedContainer"];
+    if([selectedApp isEqualToString:@"ui"]) {
+        selectedApp = nil;
+        [lcUserDefaults removeObjectForKey:@"selected"];
+        [lcUserDefaults removeObjectForKey:@"selectedContainer"];
+    }
+    
     if(selectedApp && !selectedContainer) {
         selectedContainer = [LCSharedUtils findDefaultContainerWithBundleId:selectedApp];
     }
@@ -561,8 +611,6 @@ int LiveContainerMain(int argc, char *argv[]) {
         NSString *appError = invokeAppMain(selectedApp, selectedContainer, argc, argv);
         if (appError) {
             [lcUserDefaults setObject:appError forKey:@"error"];
-            [LCSharedUtils setAppRunningByThisLC:nil];
-            [LCSharedUtils setContainerUsingByThisLC:nil];
             // potentially unrecovable state, exit now
             return 1;
         }
