@@ -97,7 +97,7 @@ make package
 ### ZSign
 - The app signer shipped with LiveContainer.
 - Originally made by [zhlynn](https://github.com/zhlynn/zsign).
-- LiveContainer uses [Feather's](https://github.com/khcrysalis/Feather) version of ZSign modified by hcrysalis.
+- LiveContainer uses [Feather's](https://github.com/khcrysalis/Feather) version of ZSign modified by khcrysalis.
 - Changes are made to meet LiveContainer's need.
 
 ## How does it work?
