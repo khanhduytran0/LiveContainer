@@ -1,6 +1,6 @@
 Package: com.kdt.livecontainer
 Name: livecontainer
-Version: 3.3.0
+Version: 3.3.1
 Architecture: iphoneos-arm
 Description: Run iOS app without actually installing it!
 Maintainer: khanhduytran0

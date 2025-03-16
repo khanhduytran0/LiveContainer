@@ -6,7 +6,7 @@ include $(THEOS)/makefiles/common.mk
 
 LIBRARY_NAME = TweakLoader
 
-TweakLoader_FILES = TweakLoader.m UIKit+GuestHooks.m utils.m DocumentPicker.m FBSSerialQueue.m ../Localization.m
+TweakLoader_FILES = TweakLoader.m UIKit+GuestHooks.m utils.m DocumentPicker.m FBSSerialQueue.m ../Localization.m JIT.m
 TweakLoader_CFLAGS = -objc-arc
 TweakLoader_INSTALL_PATH = /Applications/LiveContainer.app/Frameworks
 TweakLoader_PRIVATE_FRAMEWORKS = CoreServices FrontBoard RunningBoardServices

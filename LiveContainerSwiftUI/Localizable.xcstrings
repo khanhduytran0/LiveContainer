@@ -2150,6 +2150,40 @@
         }
       }
     },
+    "lc.guestTweak.jitError %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to acquire JIT: %@"
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取JIT权限失败： %@"
+          }
+        }
+      }
+    },
+    "lc.guestTweak.jitSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JIT is successfully acquired."
+          }
+        },
+        "zh_CN" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成功地获取了JIT权限。"
+          }
+        }
+      }
+    },
     "lc.guestTweak.openInCurrentApp" : {
       "extractionState" : "manual",
       "localizations" : {

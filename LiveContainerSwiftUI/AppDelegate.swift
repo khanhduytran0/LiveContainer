@@ -71,6 +71,7 @@ import SwiftUI
         window.rootViewController = UIHostingController(rootView: contentView)
         window.makeKeyAndVisible()
         application.shortcutItems = nil
+        UserDefaults.standard.removeObject(forKey: "LCNeedToAcquireJIT")
         return true
     }
     

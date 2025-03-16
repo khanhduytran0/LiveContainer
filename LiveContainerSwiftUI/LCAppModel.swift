@@ -284,10 +284,19 @@ class LCAppModel: ObservableObject, Hashable {
             jitLog = ""
         }
         let enableJITTask = Task {
-            let _ = await LCUtils.askForJIT { newMsg in
+            let enableResult = await LCUtils.askForJIT { newMsg in
                 Task { await MainActor.run {
                     self.jitLog += "\(newMsg)\n"
                 }}
+            }
+            guard let groupUserDefaults = UserDefaults(suiteName: LCUtils.appGroupID()),
+                  let jitEnabler = JITEnablerType(rawValue: groupUserDefaults.integer(forKey: "LCJITEnablerType")) else {
+                return
+            }
+            
+            if jitEnabler == .JITStreamerEB && enableResult{
+                UserDefaults.standard.set(true, forKey: "LCNeedToAcquireJIT")
+                LCUtils.launchToGuestApp()
             }
 
         }
