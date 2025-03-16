@@ -4,6 +4,8 @@
 #include <objc/runtime.h>
 #include "utils.h"
 
+extern void LCAcquireJIT(void);
+
 static NSString *loadTweakAtURL(NSURL *url) {
     NSString *tweakPath = url.path;
     NSString *tweak = tweakPath.lastPathComponent;
@@ -65,7 +67,12 @@ static void TweakLoaderConstructor() {
         NSLog(@"Skip loading tweaks");
         return;
     }
-
+    
+    if([NSUserDefaults.lcUserDefaults boolForKey:@"LCNeedToAcquireJIT"]) {
+        LCAcquireJIT();
+        [NSUserDefaults.lcUserDefaults removeObjectForKey:@"LCNeedToAcquireJIT"];
+    }
+    
     NSMutableArray *errors = [NSMutableArray new];
 
     // Load CydiaSubstrate
